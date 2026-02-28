@@ -1,5 +1,5 @@
 // =========================================
-// Main Game Controller
+// Main Game Controller (v2 - Enhanced)
 // =========================================
 
 class Game {
@@ -10,12 +10,21 @@ class Game {
     this.notify = new NotificationManager();
     this.panels = new PanelManager(this);
 
+    // New systems
+    this.orders = new OrderSystem(this);
+    this.achievements = new AchievementSystem(this);
+    this.mastery = new MasterySystem(this);
+    this.collections = new CollectionSystem(this);
+    this.pet = new PetSystem(this);
+    this.loginRewards = new LoginRewardSystem(this);
+    this.market = new MarketSystem(this);
+
     // Interaction state
-    this.currentTool = 'select'; // select, plant, harvest, build, demolish, move
+    this.currentTool = 'select';
     this.selectedCrop = null;
     this.selectedTree = null;
     this.selectedAnimal = null;
-    this.placementItem = null; // { type: 'pen'|'production'|'decoration', id: ... }
+    this.placementItem = null;
     this.hoverTile = null;
     this.isDragging = false;
     this.dragStart = null;
@@ -37,7 +46,7 @@ class Game {
     const loadingBar = document.querySelector('#loading-screen .loading-bar');
     const loadingTip = document.querySelector('#loading-screen .loading-tip');
 
-    const tips = [
+    const tips = typeof LOADING_TIPS !== 'undefined' ? LOADING_TIPS : [
       '🌾 Wheat grows fastest — great for beginners!',
       '🐔 Feed chickens corn to get eggs!',
       '🏪 Build a bakery to turn wheat into bread!',
@@ -78,11 +87,14 @@ class Game {
     await this.sleep(200);
     this.setupInput();
 
-    // Step 4: Generate daily quests if needed
+    // Step 4: Initialize systems
     loadingBar.style.width = '80%';
     await this.sleep(200);
     this.checkDailyQuests();
     this.checkMainQuests();
+    this.orders.update();
+    this.market.update();
+    this.pet.ensureState();
 
     // Step 5: Center camera and start
     loadingBar.style.width = '100%';
@@ -103,7 +115,6 @@ class Game {
 
     // Start music
     if (settings.musicEnabled) {
-      // Start music on first user interaction
       const startMusic = () => {
         Audio.startMusic();
         document.removeEventListener('click', startMusic);
@@ -115,6 +126,13 @@ class Game {
 
     // Start game loop
     requestAnimationFrame(this.gameLoop);
+
+    // Check daily login rewards
+    if (this.loginRewards.check()) {
+      setTimeout(() => {
+        this.panels.open('daily_login');
+      }, 1500);
+    }
 
     // Welcome back or new game message
     if (isNewGame) {
@@ -152,7 +170,9 @@ class Game {
         if (!cropData) continue;
 
         const elapsed = Utils.now() - crop.plantedAt;
-        const totalTime = cropData.growthTime;
+        // Apply mastery time reduction
+        const timeReduction = this.mastery.getTimeReduction(crop.cropId);
+        const totalTime = cropData.growthTime * (1 - timeReduction);
 
         // Update stage
         const stages = cropData.stages.length;
@@ -213,12 +233,14 @@ class Game {
         tree.mature = true;
         tree.stage = 2;
 
-        // Check if fruit is ready
         if (!tree.lastHarvest) tree.lastHarvest = tree.plantedAt + tData.matureTime;
         const sinceLast = Utils.now() - tree.lastHarvest;
         tree.fruitReady = sinceLast >= tData.fruitCycle;
       }
     });
+
+    // Update pet system
+    this.pet.update();
 
     // Update HUD periodically
     this.updateHUD();
@@ -259,7 +281,6 @@ class Game {
           default: // grass
             tileColor = '#66BB6A';
             sideColor = '#43A047';
-            // Add slight variation
             if ((row + col) % 3 === 0) tileColor = '#5CB860';
             if ((row + col) % 5 === 0) tileColor = '#72C676';
         }
@@ -299,11 +320,9 @@ class Game {
       const bldData = BUILDINGS_DATA[building.typeId];
       if (!bldData) return;
 
-      // Building takes up its base tile
       r.drawOnTile(building.col, building.row, bldData.icon, 24, -6);
       r.drawLabelOnTile(building.col, building.row, bldData.name, 'rgba(62,39,35,0.8)', 'white', 14);
 
-      // Show if production is complete
       const hasComplete = building.production?.some(p => p?.complete);
       if (hasComplete) {
         r.drawSparkle(building.col, building.row);
@@ -314,19 +333,16 @@ class Game {
     const drawnPens = new Set();
     s.animals.forEach(animal => {
       if (!animal.penId) return;
-      // Find pen
       const penTile = this.findPenTile(animal.penId);
       if (!penTile) return;
 
       if (!drawnPens.has(animal.penId)) {
         drawnPens.add(animal.penId);
-        // Pen itself is drawn as a building
       }
 
       const aData = ANIMALS_DATA[animal.typeId];
       if (!aData) return;
 
-      // Animate animal
       const animIdx = Math.floor(Date.now() / 800) % aData.idleFrames.length;
       r.drawOnTile(animal.col, animal.row, aData.idleFrames[animIdx], 18, -4);
 
@@ -337,6 +353,16 @@ class Game {
         r.drawLabelOnTile(animal.col, animal.row, '🍽️ Hungry', 'rgba(255,152,0,0.9)', 'white', 14);
       }
     });
+
+    // Draw pet on farm
+    if (s.pet) {
+      const petData = typeof PETS_DATA !== 'undefined' ? PETS_DATA[s.pet.typeId] : null;
+      if (petData) {
+        const petCol = 1, petRow = 1;
+        const bobY = Math.sin(Date.now() / 500) * 2;
+        r.drawOnTile(petCol, petRow, petData.icon, 16, -4 + bobY);
+      }
+    }
 
     // Draw hover/selection indicators
     if (this.hoverTile && !this.isDragging) {
@@ -349,13 +375,15 @@ class Game {
           r.drawTileHighlight(col, row);
         }
 
-        // Show tile info tooltip
         this.renderTileTooltip(row, col);
       }
     }
 
     // Draw particles
     r.updateParticles();
+
+    // Draw day/night overlay
+    r.drawDayNightOverlay();
   }
 
   renderTileContent(col, row, tile) {
@@ -374,14 +402,13 @@ class Game {
         r.drawOnTile(col, row, emoji, 18, -4);
 
         const elapsed = Utils.now() - content.plantedAt;
-        const totalTime = cropData.growthTime;
+        const timeReduction = this.mastery.getTimeReduction(content.cropId);
+        const totalTime = cropData.growthTime * (1 - timeReduction);
 
         if (elapsed >= totalTime && !content.withered) {
-          // Ready to harvest
           r.drawSparkle(col, row);
           r.drawLabelOnTile(col, row, 'Ready!', 'rgba(76,175,80,0.9)', 'white', 14);
         } else if (elapsed < totalTime) {
-          // Show growth progress
           const progress = elapsed / totalTime;
           r.drawProgressOnTile(col, row, progress, '#4CAF50', 16);
           const remaining = totalTime - elapsed;
@@ -398,7 +425,6 @@ class Game {
   }
 
   renderTileTooltip(row, col) {
-    // Simple tooltip shown via HUD
     const tile = this.state.getTile(row, col);
     if (!tile) return;
 
@@ -408,12 +434,14 @@ class Game {
         const cd = CROPS_DATA[tile.content.cropId];
         if (cd) {
           const elapsed = Utils.now() - tile.content.plantedAt;
+          const timeReduction = this.mastery.getTimeReduction(tile.content.cropId);
+          const totalTime = cd.growthTime * (1 - timeReduction);
           if (tile.content.withered) {
             info = `${cd.icon} ${cd.name} — Withered! Click to clear.`;
-          } else if (elapsed >= cd.growthTime) {
+          } else if (elapsed >= totalTime) {
             info = `${cd.icon} ${cd.name} — Ready to harvest!`;
           } else {
-            info = `${cd.icon} ${cd.name} — ${Utils.formatTime(cd.growthTime - elapsed)}`;
+            info = `${cd.icon} ${cd.name} — ${Utils.formatTime(totalTime - elapsed)}`;
           }
         }
       } else if (tile.content.type === 'pen') {
@@ -426,7 +454,6 @@ class Game {
       info = 'Grass — click to plow for planting';
     }
 
-    // Update tooltip element
     const tooltipEl = document.getElementById('tile-tooltip');
     if (tooltipEl) {
       if (info) {
@@ -442,16 +469,14 @@ class Game {
   setupInput() {
     const canvas = this.canvas;
 
-    // Mouse events
     canvas.addEventListener('mousedown', (e) => this.onPointerDown(e.clientX, e.clientY, e));
     canvas.addEventListener('mousemove', (e) => this.onPointerMove(e.clientX, e.clientY, e));
     canvas.addEventListener('mouseup', (e) => this.onPointerUp(e.clientX, e.clientY, e));
     canvas.addEventListener('wheel', (e) => this.onWheel(e));
 
-    // Touch events
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      Audio.init(); // Initialize audio on first touch
+      Audio.init();
       if (e.touches.length === 1) {
         this.onPointerDown(e.touches[0].clientX, e.touches[0].clientY, e);
       } else if (e.touches.length === 2) {
@@ -479,7 +504,6 @@ class Game {
       this.pinchDist = null;
     }, { passive: false });
 
-    // Setup HUD button handlers
     this.setupHUDButtons();
   }
 
@@ -496,7 +520,6 @@ class Game {
   }
 
   onPointerMove(x, y, e) {
-    // Update hover tile
     const grid = this.renderer.screenToGrid(x, y);
     this.hoverTile = { row: grid.y, col: grid.x };
 
@@ -517,7 +540,6 @@ class Game {
 
   onPointerUp(x, y, e) {
     if (!this.isDragging) {
-      // It's a click/tap
       const grid = this.renderer.screenToGrid(x, y);
       this.handleTileClick(grid.y, grid.x, x, y);
     }
@@ -543,21 +565,18 @@ class Game {
     const s = this.state.get();
     Audio.sfx('click');
 
-    // Check if clicking on a tree
     const tree = s.trees.find(t => t.row === row && t.col === col);
     if (tree) {
       this.handleTreeClick(tree, screenX, screenY);
       return;
     }
 
-    // Check if clicking on a building
     const building = s.buildings.find(b => b.row === row && b.col === col);
     if (building) {
       this.panels.open('building', { building });
       return;
     }
 
-    // Check if clicking on a pen
     if (tile.content && tile.content.type === 'pen') {
       const penId = tile.content.penId;
       const pen = { id: penId, typeId: tile.content.penTypeId, row, col };
@@ -565,32 +584,27 @@ class Game {
       return;
     }
 
-    // Check if clicking on an animal
     const animal = s.animals.find(a => a.row === row && a.col === col);
     if (animal) {
       this.handleAnimalClick(animal, screenX, screenY);
       return;
     }
 
-    // Placement mode
     if (this.placementItem) {
       this.handlePlacement(row, col, screenX, screenY);
       return;
     }
 
-    // Selected crop to plant
     if (this.selectedCrop) {
       this.plantCrop(row, col, screenX, screenY);
       return;
     }
 
-    // Selected tree to plant
     if (this.selectedTree) {
       this.plantTree(row, col, screenX, screenY);
       return;
     }
 
-    // Default actions based on tile state
     if (tile.content && tile.content.type === 'crop') {
       if (tile.content.withered) {
         this.clearWithered(row, col, screenX, screenY);
@@ -598,16 +612,16 @@ class Game {
         const cropData = CROPS_DATA[tile.content.cropId];
         if (cropData) {
           const elapsed = Utils.now() - tile.content.plantedAt;
-          if (elapsed >= cropData.growthTime) {
+          const timeReduction = this.mastery.getTimeReduction(tile.content.cropId);
+          const totalTime = cropData.growthTime * (1 - timeReduction);
+          if (elapsed >= totalTime) {
             this.harvestCrop(row, col, screenX, screenY);
           }
         }
       }
     } else if (tile.type === 'grass' && !tile.content && !tile.decoration) {
-      // Plow the tile
       this.plowTile(row, col, screenX, screenY);
     } else if (tile.type === 'plowed' && !tile.content) {
-      // Open seed selector
       this.panels.open('shop');
     }
   }
@@ -633,27 +647,23 @@ class Game {
     const cropData = CROPS_DATA[this.selectedCrop];
     if (!cropData) return;
 
-    // Check level
     if (this.state.get().player.level < cropData.unlockLevel) {
       this.notify.warn(`Reach Level ${cropData.unlockLevel} to plant ${cropData.name}!`);
       return;
     }
 
-    // Check coins
     if (!this.state.spendCoins(cropData.cost)) {
       this.notify.error('Not enough coins!');
       Audio.sfx('error');
       return;
     }
 
-    // Check energy
     if (!this.state.useEnergy(1)) {
       this.notify.warn('Not enough energy! Wait for it to regenerate.');
       Audio.sfx('error');
       return;
     }
 
-    // Plant
     tile.content = {
       type: 'crop',
       cropId: this.selectedCrop,
@@ -666,11 +676,9 @@ class Game {
     Audio.sfx('plant');
     this.notify.showLoss(`-${cropData.cost}🪙`, screenX, screenY);
 
-    // Quest progress
     this.updateQuestProgress('plant', this.selectedCrop, 1);
     this.updateQuestProgress('plant', 'any', 1);
 
-    // Particles
     const pos = this.renderer.gridToScreen(col, row);
     this.renderer.addParticle(pos.x, pos.y + 16, '🌱', 3);
 
@@ -684,54 +692,68 @@ class Game {
     const cropData = CROPS_DATA[tile.content.cropId];
     if (!cropData) return;
 
-    // Check if ready
+    // Check if ready (with mastery reduction)
     const elapsed = Utils.now() - tile.content.plantedAt;
-    if (elapsed < cropData.growthTime) {
+    const timeReduction = this.mastery.getTimeReduction(tile.content.cropId);
+    const totalTime = cropData.growthTime * (1 - timeReduction);
+    if (elapsed < totalTime) {
       this.notify.warn(`${cropData.name} isn't ready yet!`);
       return;
     }
 
-    // Check energy
     if (!this.state.useEnergy(1)) {
       this.notify.warn('Not enough energy!');
       Audio.sfx('error');
       return;
     }
 
-    // Add to inventory
-    if (!this.state.addItem(tile.content.cropId, 1)) {
+    // Check double harvest chance from mastery
+    let harvestQty = 1;
+    const doubleChance = this.mastery.getDoubleChance(tile.content.cropId);
+    if (doubleChance > 0 && Math.random() < doubleChance) {
+      harvestQty = 2;
+    }
+
+    if (!this.state.addItem(tile.content.cropId, harvestQty)) {
       this.notify.error('Barn is full! Sell items or upgrade.');
       Audio.sfx('error');
       return;
     }
 
-    // Add XP
     const levelUps = this.state.addXP(cropData.xp);
 
     // Save cropId before clearing
     const harvestedCropId = tile.content.cropId;
-
-    // Clear tile
     tile.content = null;
 
     // Stats
-    this.state.get().statistics.cropsHarvested++;
-    this.state.get().player.totalCropsHarvested++;
+    this.state.get().statistics.cropsHarvested += harvestQty;
+    this.state.get().player.totalCropsHarvested = (this.state.get().player.totalCropsHarvested || 0) + harvestQty;
+
+    // Mastery tracking
+    this.mastery.addHarvest(harvestedCropId);
+
+    // Collection drop roll
+    this.collections.rollForDrop('harvest');
 
     // Effects
     Audio.sfx('harvest');
     this.notify.showXP(cropData.xp, screenX, screenY);
+    if (harvestQty > 1) {
+      this.notify.toast(`🎉 Double harvest! x${harvestQty}`, 'reward');
+    }
     const pos = this.renderer.gridToScreen(col, row);
     this.renderer.addParticle(pos.x, pos.y + 16, cropData.icon, 5);
 
     // Quest progress
-    this.updateQuestProgress('harvest', harvestedCropId, 1);
-    this.updateQuestProgress('harvest', 'any', 1);
+    this.updateQuestProgress('harvest', harvestedCropId, harvestQty);
+    this.updateQuestProgress('harvest', 'any', harvestQty);
 
     // Level up check
-    levelUps.forEach(lu => {
-      this.handleLevelUp(lu);
-    });
+    levelUps.forEach(lu => this.handleLevelUp(lu));
+
+    // Achievement check
+    this.checkAchievements();
 
     this.state.save();
   }
@@ -740,7 +762,6 @@ class Game {
     const tile = this.state.getTile(row, col);
     if (!tile || !tile.content || !tile.content.withered) return;
 
-    // Small cost to clear
     const cost = 5;
     if (!this.state.spendCoins(cost)) {
       this.notify.error('Not enough coins to clear!');
@@ -780,15 +801,23 @@ class Game {
         const cropData = CROPS_DATA[tile.content.cropId];
         if (!cropData) continue;
         const elapsed = Utils.now() - tile.content.plantedAt;
-        if (elapsed >= cropData.growthTime) {
-          if (this.state.addItem(tile.content.cropId, 1)) {
+        const timeReduction = this.mastery.getTimeReduction(tile.content.cropId);
+        const totalTime = cropData.growthTime * (1 - timeReduction);
+        if (elapsed >= totalTime) {
+          let qty = 1;
+          const doubleChance = this.mastery.getDoubleChance(tile.content.cropId);
+          if (doubleChance > 0 && Math.random() < doubleChance) qty = 2;
+
+          if (this.state.addItem(tile.content.cropId, qty)) {
             const levelUps = this.state.addXP(cropData.xp);
             const cropId = tile.content.cropId;
             tile.content = null;
-            s.statistics.cropsHarvested++;
-            count++;
-            this.updateQuestProgress('harvest', cropId, 1);
-            this.updateQuestProgress('harvest', 'any', 1);
+            s.statistics.cropsHarvested += qty;
+            count += qty;
+            this.mastery.addHarvest(cropId);
+            this.collections.rollForDrop('harvest');
+            this.updateQuestProgress('harvest', cropId, qty);
+            this.updateQuestProgress('harvest', 'any', qty);
             levelUps.forEach(lu => this.handleLevelUp(lu));
           }
         }
@@ -798,6 +827,7 @@ class Game {
     if (count > 0) {
       Audio.sfx('harvest');
       this.notify.reward(`Harvested ${count} crops!`);
+      this.checkAchievements();
       this.state.save();
     } else {
       this.notify.info('No crops ready to harvest.');
@@ -921,6 +951,7 @@ class Game {
       this.renderer.addParticle(pos.x, pos.y + 16, tData.fruitIcon, 5);
 
       this.updateQuestProgress('harvest_tree', tree.typeId, 1);
+      this.collections.rollForDrop('tree_harvest');
       levelUps.forEach(lu => this.handleLevelUp(lu));
       this.state.save();
     }
@@ -938,7 +969,6 @@ class Game {
     const penType = aData.penType;
     const penData = ANIMAL_PENS_DATA[penType];
 
-    // Find existing pens of the right type
     const s = this.state.get();
     const availablePens = [];
     for (const [key, tile] of Object.entries(s.farm.tiles)) {
@@ -964,7 +994,6 @@ class Game {
       return;
     }
 
-    // Place in first available pen
     const pen = availablePens[0];
     const [pRow, pCol] = pen.key.split(',').map(Number);
 
@@ -984,6 +1013,7 @@ class Game {
     Audio.sfx('buy');
     this.notify.reward(`Bought a ${aData.icon} ${aData.name}!`);
     this.updateQuestProgress('buy_animal', animalId, 1);
+    this.checkAchievements();
 
     this.selectedAnimal = null;
     this.state.save();
@@ -993,7 +1023,6 @@ class Game {
     const aData = ANIMALS_DATA[animal.typeId];
     if (!aData) return;
 
-    // Check feed requirements
     for (const [item, qty] of Object.entries(aData.feedRequired)) {
       if (!this.state.hasItem(item, qty)) {
         this.notify.error(`Need ${qty} ${CROPS_DATA[item]?.name || item}!`);
@@ -1002,7 +1031,6 @@ class Game {
       }
     }
 
-    // Consume feed
     for (const [item, qty] of Object.entries(aData.feedRequired)) {
       this.state.removeItem(item, qty);
     }
@@ -1038,13 +1066,23 @@ class Game {
     animal.productReady = false;
     animal.fed = false;
 
-    this.state.get().statistics.productsCollected++;
+    const s = this.state.get();
+    s.statistics.productsCollected++;
+    // Track specific product stats
+    if (aData.product === 'eggs') {
+      s.statistics.eggsCollected = (s.statistics.eggsCollected || 0) + aData.productQuantity;
+    }
+
     Audio.sfx('collect');
     this.notify.reward(`Collected ${aData.productIcon} ${aData.productName} x${aData.productQuantity}!`);
     this.updateQuestProgress('collect_product', aData.product, aData.productQuantity);
     this.updateQuestProgress('collect_product', 'any', aData.productQuantity);
 
+    // Roll for collectible drops
+    this.collections.rollForDrop('collect');
+
     levelUps.forEach(lu => this.handleLevelUp(lu));
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1052,7 +1090,6 @@ class Game {
     if (animal.productReady) {
       this.collectAnimalProduct(animal);
     } else {
-      // Find pen and open panel
       const s = this.state.get();
       for (const [key, tile] of Object.entries(s.farm.tiles)) {
         if (tile.content && tile.content.type === 'pen' && tile.content.penId === animal.penId) {
@@ -1189,6 +1226,7 @@ class Game {
 
       const tile = this.state.getTile(row, col);
       tile.decoration = item.id;
+      s.statistics.decorationsPlaced = (s.statistics.decorationsPlaced || 0) + 1;
 
       Audio.sfx('buy');
       this.notify.reward(`Placed ${decoData.icon} ${decoData.name}!`);
@@ -1196,6 +1234,7 @@ class Game {
 
     this.placementItem = null;
     this.setTool('select');
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1206,7 +1245,6 @@ class Game {
     const recipe = bldData.recipes[recipeId];
     if (!recipe) return;
 
-    // Check ingredients
     for (const [item, qty] of Object.entries(recipe.ingredients)) {
       if (!this.state.hasItem(item, qty)) {
         this.notify.error(`Need more ${item}!`);
@@ -1214,7 +1252,6 @@ class Game {
       }
     }
 
-    // Consume ingredients
     for (const [item, qty] of Object.entries(recipe.ingredients)) {
       this.state.removeItem(item, qty);
     }
@@ -1246,13 +1283,18 @@ class Game {
     const levelUps = this.state.addXP(recipe.xp);
     building.production[slotIndex] = null;
 
-    this.state.get().statistics.itemsProduced++;
+    const s = this.state.get();
+    s.statistics.itemsProduced++;
+    s.statistics.bakeryProduced = (s.statistics.bakeryProduced || 0) + 1;
+
     Audio.sfx('collect');
     this.notify.reward(`Produced ${recipe.icon} ${recipe.name}!`);
     this.updateQuestProgress('produce', recipe.id, 1);
     this.updateQuestProgress('produce', 'any', 1);
 
+    this.collections.rollForDrop('produce');
     levelUps.forEach(lu => this.handleLevelUp(lu));
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1265,11 +1307,18 @@ class Game {
     if (actual <= 0) return;
 
     this.state.removeItem(itemId, actual);
-    const total = info.sellPrice * actual;
+
+    // Apply mastery sell bonus + market price
+    const masteryBonus = this.mastery.getSellBonus(itemId);
+    const basePrice = info.sellPrice;
+    const marketPrice = this.market.getModifiedPrice(itemId, basePrice);
+    const finalPrice = Math.floor(marketPrice * (1 + masteryBonus));
+    const total = finalPrice * actual;
+
     this.state.addCoins(total);
 
     this.state.get().statistics.itemsSold += actual;
-    this.state.get().player.totalItemsSold += actual;
+    this.state.get().player.totalItemsSold = (this.state.get().player.totalItemsSold || 0) + actual;
     Audio.sfx('sell');
     this.notify.toast(`Sold ${info.icon} ${info.name} x${actual} for 🪙${total}!`, 'reward');
 
@@ -1277,6 +1326,7 @@ class Game {
     this.updateQuestProgress('sell', 'any', actual);
     this.updateQuestProgress('earn_coins', 'any', total);
 
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1288,7 +1338,10 @@ class Game {
     for (const [id, qty] of Object.entries({ ...inv })) {
       const info = this.panels.getItemInfo(id);
       if (!info) continue;
-      totalCoins += info.sellPrice * qty;
+      const masteryBonus = this.mastery.getSellBonus(id);
+      const marketPrice = this.market.getModifiedPrice(id, info.sellPrice);
+      const finalPrice = Math.floor(marketPrice * (1 + masteryBonus));
+      totalCoins += finalPrice * qty;
       totalItems += qty;
       this.updateQuestProgress('sell', id, qty);
       this.updateQuestProgress('sell', 'any', qty);
@@ -1299,7 +1352,6 @@ class Game {
       return;
     }
 
-    // Clear inventory
     this.state.get().inventory.items = {};
     this.state.addCoins(totalCoins);
 
@@ -1308,6 +1360,7 @@ class Game {
 
     Audio.sfx('sell');
     this.notify.reward(`Sold everything for 🪙${totalCoins}!`);
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1336,6 +1389,7 @@ class Game {
     Audio.sfx('build');
     this.notify.reward(`🗺️ Farm expanded: ${expansion.label}!`);
     this.updateQuestProgress('expand_land', 'any', 1);
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1354,18 +1408,15 @@ class Game {
       this.notify.toast(`💎 +${rewards.gems} gems!`, 'reward');
     }
 
-    // Check for new unlocks
     this.checkUnlocks(level);
-
-    // Quest progress
     this.updateQuestProgress('reach_level', level, 1);
     this.checkMainQuests();
+    this.checkAchievements();
 
     this.state.save();
   }
 
   checkUnlocks(level) {
-    // Check for newly available crops, animals, buildings
     const unlocked = [];
     Object.values(CROPS_DATA).forEach(c => {
       if (c.unlockLevel === level) unlocked.push(`${c.icon} ${c.name}`);
@@ -1386,11 +1437,15 @@ class Game {
     }
   }
 
+  // ==================== ACHIEVEMENT SYSTEM ====================
+  checkAchievements() {
+    this.achievements.check();
+  }
+
   // ==================== QUEST SYSTEM ====================
   updateQuestProgress(actionType, target, count) {
     const s = this.state.get();
 
-    // Update active quests
     for (const [qId, qProgress] of Object.entries(s.quests.active)) {
       const qData = QUESTS_DATA[qId];
       if (!qData) continue;
@@ -1406,7 +1461,6 @@ class Game {
       });
     }
 
-    // Update daily quests
     if (s.quests.dailyQuests) {
       s.quests.dailyQuests.forEach(dq => {
         dq.objectives.forEach((obj, idx) => {
@@ -1435,7 +1489,6 @@ class Game {
     const qData = QUESTS_DATA[questId];
     if (!qData || !this.isQuestComplete(questId)) return;
 
-    // Give rewards
     if (qData.rewards.coins) this.state.addCoins(qData.rewards.coins);
     if (qData.rewards.xp) {
       const levelUps = this.state.addXP(qData.rewards.xp);
@@ -1443,7 +1496,6 @@ class Game {
     }
     if (qData.rewards.gems) this.state.addGems(qData.rewards.gems);
 
-    // Move to completed
     delete s.quests.active[questId];
     s.quests.completed.push(questId);
     s.statistics.questsCompleted++;
@@ -1451,11 +1503,11 @@ class Game {
     Audio.sfx('quest_complete');
     this.notify.questComplete(qData.title);
 
-    // Activate next quest
     if (qData.nextQuest && QUESTS_DATA[qData.nextQuest]) {
       s.quests.active[qData.nextQuest] = { progress: {}, accepted: Utils.now() };
     }
 
+    this.checkAchievements();
     this.state.save();
   }
 
@@ -1472,7 +1524,6 @@ class Game {
     Audio.sfx('quest_complete');
     this.notify.questComplete(dailyQuest.title);
 
-    // Check if all daily quests are claimed for bonus
     const s = this.state.get();
     if (s.quests.dailyQuests.every(dq => dq.claimed) && !s.quests.dailyBonusClaimed) {
       s.quests.dailyBonusClaimed = true;
@@ -1491,7 +1542,6 @@ class Game {
     const today = new Date().toDateString();
 
     if (s.quests.dailyQuestsDate !== today) {
-      // Generate new daily quests
       const templates = Utils.shuffle(DAILY_QUEST_TEMPLATES).slice(0, 3);
       s.quests.dailyQuests = templates.map(t => ({
         ...Utils.deepClone(t),
@@ -1505,13 +1555,11 @@ class Game {
 
   checkMainQuests() {
     const s = this.state.get();
-    // Activate main quests based on level
     Object.values(QUESTS_DATA).forEach(q => {
       if (q.type === 'main' &&
           !s.quests.active[q.id] &&
           !s.quests.completed.includes(q.id) &&
           (q.requiredLevel || 1) <= s.player.level) {
-        // Check if prerequisite is complete
         const prevQuests = Object.values(QUESTS_DATA)
           .filter(pq => pq.type === 'main' && pq.nextQuest === q.id);
         const prereqMet = prevQuests.length === 0 ||
@@ -1530,14 +1578,13 @@ class Game {
     const lastSave = s.timestamps.lastSave;
     const elapsed = now - lastSave;
 
-    if (elapsed < 60) return; // Less than a minute, skip
+    if (elapsed < 60) return;
 
     let cropsReady = 0;
     let cropsWithered = 0;
     let productsReady = 0;
     let treeFruitsReady = 0;
 
-    // Update crops
     for (const [key, tile] of Object.entries(s.farm.tiles)) {
       if (tile.content && tile.content.type === 'crop') {
         const cropData = CROPS_DATA[tile.content.cropId];
@@ -1556,7 +1603,6 @@ class Game {
       }
     }
 
-    // Update animals
     s.animals.forEach(animal => {
       if (animal.fed && !animal.productReady) {
         const aData = ANIMALS_DATA[animal.typeId];
@@ -1568,7 +1614,6 @@ class Game {
       }
     });
 
-    // Update buildings
     s.buildings.forEach(building => {
       building.production?.forEach((prod) => {
         if (prod && prod.recipeId && !prod.complete) {
@@ -1582,7 +1627,6 @@ class Game {
       });
     });
 
-    // Update trees
     s.trees.forEach(tree => {
       const tData = TREES_DATA[tree.typeId];
       if (!tData) return;
@@ -1596,15 +1640,13 @@ class Game {
       }
     });
 
-    // Energy regen
     const energyBefore = s.player.energy;
     this.state.regenEnergy();
     const energyGained = s.player.energy - energyBefore;
 
     s.timestamps.lastLogin = now;
 
-    // Show welcome back panel if significant time passed
-    if (elapsed > 300) { // More than 5 minutes
+    if (elapsed > 300) {
       setTimeout(() => {
         this.panels.open('welcome_back', {
           cropsReady, cropsWithered, productsReady,
@@ -1619,7 +1661,6 @@ class Game {
     const s = this.state.get();
     if (!s) return;
 
-    // Player info
     const avatarEl = document.getElementById('hud-avatar');
     const nameEl = document.getElementById('hud-player-name');
     const levelEl = document.getElementById('hud-level');
@@ -1653,6 +1694,14 @@ class Game {
       questBadge.style.display = total > 0 ? 'flex' : 'none';
       questBadge.textContent = total;
     }
+
+    // Orders badge
+    const ordersBadge = document.getElementById('orders-badge');
+    if (ordersBadge) {
+      const completableOrders = this.orders.getCompletableCount();
+      ordersBadge.style.display = completableOrders > 0 ? 'flex' : 'none';
+      ordersBadge.textContent = completableOrders;
+    }
   }
 
   setupHUDButtons() {
@@ -1677,6 +1726,11 @@ class Game {
     document.getElementById('btn-settings')?.addEventListener('click', () => this.panels.open('settings'));
     document.getElementById('btn-avatar')?.addEventListener('click', () => this.panels.open('avatar'));
     document.getElementById('hud-avatar-btn')?.addEventListener('click', () => this.panels.open('avatar'));
+
+    // New system buttons
+    document.getElementById('btn-orders')?.addEventListener('click', () => this.panels.open('orders'));
+    document.getElementById('btn-achievements')?.addEventListener('click', () => this.panels.open('achievements'));
+    document.getElementById('btn-collections')?.addEventListener('click', () => this.panels.open('collections'));
   }
 
   setTool(tool) {

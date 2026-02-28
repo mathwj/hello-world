@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#4CAF50">
-  <title>Mini Farm 🌾</title>
+  <title>Mini Farm</title>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,11 +19,14 @@
 
   <!-- Loading Screen -->
   <div id="loading-screen">
-    <div class="logo">🌾 Mini Farm 🐄</div>
+    <div class="logo">Mini Farm</div>
     <div class="loading-bar-container">
       <div class="loading-bar"></div>
     </div>
     <div class="loading-tip">Loading your farm...</div>
+    <div class="loading-scenery">
+      <span>🌳</span><span>🏠</span><span>🌾</span><span>🐄</span><span>🌻</span><span>🌳</span>
+    </div>
   </div>
 
   <!-- Game Container -->
@@ -37,7 +40,7 @@
       <div class="hud-top-bar">
         <div class="hud-player-info">
           <div class="hud-avatar" id="hud-avatar-btn">
-            <span id="hud-avatar">👨‍🌾</span>
+            <span id="hud-avatar">&#x1F468;&#x200D;&#x1F33E;</span>
           </div>
           <span class="hud-player-name" id="hud-player-name">Farmer</span>
           <span class="hud-level-badge" id="hud-level">Lv.1</span>
@@ -52,15 +55,15 @@
 
         <div class="hud-currencies">
           <div class="hud-currency coins">
-            <span class="icon">🪙</span>
+            <span class="icon">&#x1FA99;</span>
             <span id="hud-coins">100</span>
           </div>
           <div class="hud-currency gems">
-            <span class="icon">💎</span>
+            <span class="icon">&#x1F48E;</span>
             <span id="hud-gems">5</span>
           </div>
           <div class="energy-bar">
-            <span class="icon">⚡</span>
+            <span class="icon">&#x26A1;</span>
             <span id="hud-energy">20/20</span>
           </div>
         </div>
@@ -68,56 +71,47 @@
 
       <!-- Side Buttons -->
       <div class="hud-side-buttons">
-        <button class="hud-btn" id="btn-shop" title="Shop">🛒</button>
-        <button class="hud-btn" id="btn-inventory" title="Barn/Inventory">🏚️</button>
+        <button class="hud-btn" id="btn-shop" title="Shop">&#x1F6D2;</button>
+        <button class="hud-btn" id="btn-inventory" title="Barn/Inventory">&#x1F3DA;&#xFE0F;</button>
+        <button class="hud-btn" id="btn-orders" title="Order Board">
+          &#x1F4E6;
+          <span class="badge" id="orders-badge" style="display:none">0</span>
+        </button>
         <button class="hud-btn" id="btn-quests" title="Quests">
-          📜
+          &#x1F4DC;
           <span class="badge" id="quest-badge" style="display:none">0</span>
         </button>
-        <button class="hud-btn" id="btn-settings" title="Settings">⚙️</button>
+        <button class="hud-btn" id="btn-achievements" title="Achievements">&#x1F3C6;</button>
+        <button class="hud-btn" id="btn-collections" title="Collections">&#x1F4DA;</button>
+        <button class="hud-btn" id="btn-settings" title="Settings">&#x2699;&#xFE0F;</button>
       </div>
 
       <!-- Bottom Toolbar -->
       <div class="hud-bottom-bar">
         <button class="tool-btn active" data-tool="select" title="Select/Interact">
-          👆
+          &#x1F446;
           <span>Select</span>
         </button>
         <button class="tool-btn" data-tool="plant" title="Plant Mode">
-          🌱
+          &#x1F331;
           <span>Plant</span>
         </button>
         <button class="tool-btn" data-tool="harvest-all" title="Harvest All Ready Crops">
-          🌾
+          &#x1F33E;
           <span>Harvest</span>
         </button>
         <button class="tool-btn" data-tool="plant-all" title="Plant All Empty Plots">
-          🌻
+          &#x1F33B;
           <span>Fill All</span>
         </button>
         <button class="tool-btn" data-tool="build" title="Build Mode">
-          🏗️
+          &#x1F3D7;&#xFE0F;
           <span>Build</span>
         </button>
       </div>
 
       <!-- Tile Info Tooltip -->
-      <div id="tile-tooltip" style="
-        position: absolute;
-        bottom: 68px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(62, 39, 35, 0.9);
-        color: white;
-        padding: 6px 14px;
-        border-radius: 16px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        white-space: nowrap;
-        pointer-events: none;
-        display: none;
-        backdrop-filter: blur(8px);
-      "></div>
+      <div id="tile-tooltip"></div>
     </div>
 
     <!-- Toast Notification Container -->
@@ -135,12 +129,18 @@
   <script src="js/data/decorations.js"></script>
   <script src="js/data/quests.js"></script>
   <script src="js/data/levels.js"></script>
+  <script src="js/data/achievements.js"></script>
+  <script src="js/data/orders.js"></script>
 
   <!-- Core -->
   <script src="js/core/utils.js"></script>
   <script src="js/core/audio.js"></script>
   <script src="js/core/renderer.js"></script>
   <script src="js/core/state.js"></script>
+
+  <!-- Systems -->
+  <script src="js/systems/orders.js"></script>
+  <script src="js/systems/achievements.js"></script>
 
   <!-- UI -->
   <script src="js/ui/notifications.js"></script>

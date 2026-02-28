@@ -1,5 +1,5 @@
 // =========================================
-// Panel/Modal Manager
+// Panel/Modal Manager (v2 - Enhanced)
 // =========================================
 
 class PanelManager {
@@ -51,6 +51,14 @@ class PanelManager {
       case 'confirm': return this.buildConfirmPanel(data);
       case 'welcome_back': return this.buildWelcomeBackPanel(data);
       case 'expansion': return this.buildExpansionPanel();
+      // New panels
+      case 'orders': return this.buildOrdersPanel();
+      case 'achievements': return this.buildAchievementsPanel();
+      case 'daily_login': return this.buildDailyLoginPanel();
+      case 'collections': return this.buildCollectionsPanel();
+      case 'mastery': return this.buildMasteryPanel();
+      case 'pet': return this.buildPetPanel();
+      case 'market': return this.buildMarketPanel();
       default: return null;
     }
   }
@@ -84,7 +92,6 @@ class PanelManager {
     const state = this.game.state.get();
     const level = state.player.level;
 
-    // Tabs
     const tabs = document.createElement('div');
     tabs.className = 'panel-tabs';
     const tabNames = [
@@ -94,7 +101,8 @@ class PanelManager {
       { id: 'pens', label: '🏠 Pens' },
       { id: 'buildings', label: '🏪 Buildings' },
       { id: 'decorations', label: '🌸 Decor' },
-      { id: 'expansion', label: '🗺️ Land' }
+      { id: 'expansion', label: '🗺️ Land' },
+      { id: 'pets', label: '🐕 Pets' }
     ];
 
     let activeTab = 'seeds';
@@ -112,6 +120,7 @@ class PanelManager {
         case 'buildings': this.renderBuildingsTab(panel.body, level); break;
         case 'decorations': this.renderDecorationsTab(panel.body, level); break;
         case 'expansion': this.renderExpansionTab(panel.body, level); break;
+        case 'pets': this.renderPetsTab(panel.body); break;
       }
     };
 
@@ -137,9 +146,18 @@ class PanelManager {
       const locked = crop.unlockLevel > level;
       const item = document.createElement('div');
       item.className = 'shop-item' + (locked ? ' locked' : '');
+
+      // Market price info
+      let priceTag = '';
+      if (this.game.market.isHot(crop.id)) {
+        priceTag = ' <span style="color:#E65100;font-size:0.7rem;">🔥 HOT</span>';
+      } else if (this.game.market.isCold(crop.id)) {
+        priceTag = ' <span style="color:#1565C0;font-size:0.7rem;">❄️ LOW</span>';
+      }
+
       item.innerHTML = `
         <div class="item-icon">${crop.icon}</div>
-        <div class="item-name">${crop.name}</div>
+        <div class="item-name">${crop.name}${priceTag}</div>
         <div class="item-cost">🪙 ${crop.cost}</div>
         <div class="item-info">⏱️ ${Utils.formatTime(crop.growthTime)} | 💰 ${crop.sellPrice}</div>
         ${locked ? `<div class="item-level">Lvl ${crop.unlockLevel}</div>` : ''}
@@ -326,6 +344,37 @@ class PanelManager {
     container.appendChild(grid);
   }
 
+  renderPetsTab(container) {
+    if (typeof PETS_DATA === 'undefined') {
+      container.innerHTML = '<p class="empty-state">Pets coming soon!</p>';
+      return;
+    }
+
+    const state = this.game.state.get();
+    const grid = document.createElement('div');
+    grid.className = 'shop-grid';
+
+    Object.entries(PETS_DATA).forEach(([id, pet]) => {
+      const owned = state.pet && state.pet.typeId === id;
+      const item = document.createElement('div');
+      item.className = 'shop-item pet-card' + (owned ? ' locked' : '');
+      item.innerHTML = `
+        <div class="item-icon">${pet.icon}</div>
+        <div class="item-name">${pet.name}</div>
+        <div class="item-cost">${owned ? '✅ Adopted' : `🪙 ${pet.cost}`}</div>
+        <div class="item-info">${pet.perk}</div>
+      `;
+      if (!owned && !state.pet) {
+        item.onclick = () => {
+          this.game.pet.adopt(id);
+          this.open('shop');
+        };
+      }
+      grid.appendChild(item);
+    });
+    container.appendChild(grid);
+  }
+
   // ==================== INVENTORY ====================
   buildInventoryPanel() {
     const panel = this.createPanelFrame('Barn', '🏚️');
@@ -333,7 +382,6 @@ class PanelManager {
     const inv = state.inventory;
     const totalItems = this.game.state.getTotalItems();
 
-    // Capacity bar
     const capBar = document.createElement('div');
     capBar.className = 'barn-capacity';
     const capPct = totalItems / inv.capacity;
@@ -345,7 +393,6 @@ class PanelManager {
     `;
     panel.body.appendChild(capBar);
 
-    // Actions
     const actions = document.createElement('div');
     actions.className = 'inventory-actions';
     const sellAllBtn = document.createElement('button');
@@ -368,13 +415,12 @@ class PanelManager {
     actions.appendChild(upgradeBtn);
     panel.body.appendChild(actions);
 
-    // Items grid
     const grid = document.createElement('div');
     grid.className = 'inventory-grid';
 
     const allItems = this.getAllItemInfo();
     if (allItems.length === 0) {
-      grid.innerHTML = '<p style="text-align:center; color:#999; padding: 20px; grid-column: 1/-1;">Your barn is empty! Harvest crops to fill it up.</p>';
+      grid.innerHTML = '<p class="empty-state">Your barn is empty! Harvest crops to fill it up.</p>';
     }
 
     allItems.forEach(item => {
@@ -417,24 +463,20 @@ class PanelManager {
   }
 
   getItemInfo(id) {
-    // Check crops
     if (CROPS_DATA[id]) {
       const c = CROPS_DATA[id];
       return { name: c.name, icon: c.icon, sellPrice: c.sellPrice };
     }
-    // Check tree fruits
     for (const t of Object.values(TREES_DATA)) {
       if (t.id === id || t.fruitName.toLowerCase().replace(/\s/g, '_') === id) {
         return { name: t.fruitName, icon: t.fruitIcon, sellPrice: t.fruitSellPrice };
       }
     }
-    // Check animal products
     for (const a of Object.values(ANIMALS_DATA)) {
       if (a.product === id) {
         return { name: a.productName, icon: a.productIcon, sellPrice: a.productValue };
       }
     }
-    // Check building products
     for (const b of Object.values(BUILDINGS_DATA)) {
       for (const r of Object.values(b.recipes)) {
         if (r.id === id) {
@@ -445,12 +487,494 @@ class PanelManager {
     return { name: id, icon: '📦', sellPrice: 1 };
   }
 
+  // ==================== ORDERS ====================
+  buildOrdersPanel() {
+    const panel = this.createPanelFrame('Order Board', '📦');
+    const state = this.game.state.get();
+
+    // Tabs: Orders and Market
+    const tabs = document.createElement('div');
+    tabs.className = 'panel-tabs';
+    const tabNames = [
+      { id: 'orders', label: '📋 Orders' },
+      { id: 'market', label: '📈 Market' }
+    ];
+
+    let activeTab = 'orders';
+    const renderTab = (tabId) => {
+      activeTab = tabId;
+      tabs.querySelectorAll('.panel-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.tab === tabId));
+      panel.body.innerHTML = '';
+      switch (tabId) {
+        case 'orders': this.renderOrdersList(panel.body, state); break;
+        case 'market': this.renderMarketPrices(panel.body, state); break;
+      }
+    };
+
+    tabNames.forEach(t => {
+      const tab = document.createElement('div');
+      tab.className = 'panel-tab' + (t.id === activeTab ? ' active' : '');
+      tab.textContent = t.label;
+      tab.dataset.tab = t.id;
+      tab.onclick = () => renderTab(t.id);
+      tabs.appendChild(tab);
+    });
+
+    panel.insertBefore(tabs, panel.body);
+    renderTab('orders');
+    return panel;
+  }
+
+  renderOrdersList(container, state) {
+    this.game.orders.ensureState();
+    const orders = state.orders?.board || [];
+
+    if (orders.length === 0) {
+      container.innerHTML = '<p class="empty-state">No orders available right now. Check back soon!</p>';
+      return;
+    }
+
+    orders.forEach((order, idx) => {
+      const card = document.createElement('div');
+      card.className = 'order-card';
+
+      let itemsHtml = '';
+      let canComplete = true;
+      Object.entries(order.items).forEach(([itemId, needed]) => {
+        const info = this.getItemInfo(itemId);
+        const have = this.game.state.getItemCount(itemId);
+        const fulfilled = have >= needed;
+        if (!fulfilled) canComplete = false;
+        itemsHtml += `
+          <div class="order-item ${fulfilled ? 'fulfilled' : ''}">
+            <span>${info.icon} ${info.name}</span>
+            <span class="${fulfilled ? 'done' : 'needed'}">${have}/${needed}</span>
+          </div>
+        `;
+      });
+
+      card.innerHTML = `
+        <div class="order-header">
+          <span class="order-npc">${order.npcIcon} ${order.npc}</span>
+          <span class="order-tier ${order.difficulty}">${order.difficulty.toUpperCase()}</span>
+        </div>
+        <div class="order-items">${itemsHtml}</div>
+        <div class="order-rewards">
+          <span>🪙 ${order.coins}</span>
+          <span>⭐ ${order.xp} XP</span>
+        </div>
+      `;
+
+      if (canComplete) {
+        const completeBtn = document.createElement('button');
+        completeBtn.className = 'btn btn-confirm btn-sm';
+        completeBtn.style.marginTop = '8px';
+        completeBtn.style.width = '100%';
+        completeBtn.textContent = '📦 Deliver Order!';
+        completeBtn.onclick = () => {
+          this.game.orders.completeOrder(idx);
+          this.open('orders');
+        };
+        card.appendChild(completeBtn);
+      }
+
+      container.appendChild(card);
+    });
+  }
+
+  renderMarketPrices(container, state) {
+    this.game.market.ensureState();
+    const market = state.market;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'padding: 8px; font-size: 0.85rem; color: #6D4C41; text-align:center; margin-bottom:8px;';
+    info.textContent = 'Prices change daily! Sell hot items for bonus coins.';
+    container.appendChild(info);
+
+    // Hot items
+    if (market.hotItems && market.hotItems.length > 0) {
+      const hotSection = document.createElement('div');
+      hotSection.innerHTML = '<h3 class="section-title">🔥 Hot Items (Price Up!)</h3>';
+      const hotGrid = document.createElement('div');
+      hotGrid.className = 'market-prices';
+      market.hotItems.forEach(itemId => {
+        const crop = CROPS_DATA[itemId];
+        if (!crop) return;
+        const mod = market.priceModifiers[itemId] || 1;
+        const newPrice = Math.floor(crop.sellPrice * mod);
+        const el = document.createElement('div');
+        el.className = 'market-item hot';
+        el.innerHTML = `
+          <span>${crop.icon} ${crop.name}</span>
+          <span class="price">🪙 ${newPrice} <small>(+${Math.round((mod - 1) * 100)}%)</small></span>
+        `;
+        hotGrid.appendChild(el);
+      });
+      hotSection.appendChild(hotGrid);
+      container.appendChild(hotSection);
+    }
+
+    // Cold items
+    if (market.coldItems && market.coldItems.length > 0) {
+      const coldSection = document.createElement('div');
+      coldSection.innerHTML = '<h3 class="section-title">❄️ Low Demand (Price Down)</h3>';
+      const coldGrid = document.createElement('div');
+      coldGrid.className = 'market-prices';
+      market.coldItems.forEach(itemId => {
+        const crop = CROPS_DATA[itemId];
+        if (!crop) return;
+        const mod = market.priceModifiers[itemId] || 1;
+        const newPrice = Math.floor(crop.sellPrice * mod);
+        const el = document.createElement('div');
+        el.className = 'market-item cold';
+        el.innerHTML = `
+          <span>${crop.icon} ${crop.name}</span>
+          <span class="price">🪙 ${newPrice} <small>(${Math.round((mod - 1) * 100)}%)</small></span>
+        `;
+        coldGrid.appendChild(el);
+      });
+      coldSection.appendChild(coldGrid);
+      container.appendChild(coldSection);
+    }
+  }
+
+  // ==================== ACHIEVEMENTS ====================
+  buildAchievementsPanel() {
+    const panel = this.createPanelFrame('Achievements', '🏆');
+    const state = this.game.state.get();
+
+    // Tabs
+    const tabs = document.createElement('div');
+    tabs.className = 'panel-tabs';
+    const tabNames = [
+      { id: 'achievements', label: '🏆 Trophies' },
+      { id: 'mastery', label: '🌾 Mastery' },
+      { id: 'stats', label: '📊 Stats' }
+    ];
+
+    let activeTab = 'achievements';
+    const renderTab = (tabId) => {
+      activeTab = tabId;
+      tabs.querySelectorAll('.panel-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.tab === tabId));
+      panel.body.innerHTML = '';
+      switch (tabId) {
+        case 'achievements': this.renderAchievementsList(panel.body, state); break;
+        case 'mastery': this.renderMasteryList(panel.body, state); break;
+        case 'stats': this.renderStatistics(panel.body, state); break;
+      }
+    };
+
+    tabNames.forEach(t => {
+      const tab = document.createElement('div');
+      tab.className = 'panel-tab' + (t.id === activeTab ? ' active' : '');
+      tab.textContent = t.label;
+      tab.dataset.tab = t.id;
+      tab.onclick = () => renderTab(t.id);
+      tabs.appendChild(tab);
+    });
+
+    panel.insertBefore(tabs, panel.body);
+    renderTab('achievements');
+    return panel;
+  }
+
+  renderAchievementsList(container, state) {
+    if (typeof ACHIEVEMENTS_DATA === 'undefined') {
+      container.innerHTML = '<p class="empty-state">Achievements coming soon!</p>';
+      return;
+    }
+
+    this.game.achievements.ensureState();
+    const unlocked = state.achievements?.unlocked || [];
+    const score = state.achievements?.score || 0;
+
+    // Score header
+    const scoreEl = document.createElement('div');
+    scoreEl.className = 'score-header';
+    scoreEl.innerHTML = `<span>🏆 Achievement Score</span><span>${score} pts</span>`;
+    container.appendChild(scoreEl);
+
+    const total = Object.keys(ACHIEVEMENTS_DATA).length;
+    const progressInfo = document.createElement('div');
+    progressInfo.style.cssText = 'text-align:center;font-size:0.8rem;color:#8D6E63;margin-bottom:12px;';
+    progressInfo.textContent = `${unlocked.length}/${total} unlocked`;
+    container.appendChild(progressInfo);
+
+    // Achievement cards
+    Object.entries(ACHIEVEMENTS_DATA).forEach(([id, ach]) => {
+      const isUnlocked = unlocked.includes(id);
+      const card = document.createElement('div');
+      card.className = 'achievement-card' + (isUnlocked ? ' unlocked' : '');
+
+      const stats = this.game.achievements.getStats();
+      const currentVal = stats[ach.condition.stat] || 0;
+      const progress = Math.min(1, currentVal / ach.condition.target);
+
+      card.innerHTML = `
+        <div class="ach-icon">${isUnlocked ? '🏆' : '🔒'}</div>
+        <div class="ach-info">
+          <div class="ach-title">${ach.title}</div>
+          <div class="ach-desc">${ach.description}</div>
+          ${!isUnlocked ? `
+            <div class="progress-bar" style="height:6px;margin-top:4px;">
+              <div class="fill" style="width:${progress * 100}%"></div>
+            </div>
+            <div style="font-size:0.7rem;color:#999;margin-top:2px;">${currentVal}/${ach.condition.target}</div>
+          ` : ''}
+        </div>
+        <div class="ach-points">${ach.points}pts</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  renderMasteryList(container, state) {
+    if (typeof MASTERY_LEVELS === 'undefined') {
+      container.innerHTML = '<p class="empty-state">Crop mastery coming soon!</p>';
+      return;
+    }
+
+    this.game.mastery.ensureState();
+
+    const info = document.createElement('div');
+    info.style.cssText = 'padding: 8px; font-size: 0.85rem; color: #6D4C41; text-align:center; margin-bottom:8px;';
+    info.textContent = 'Harvest crops repeatedly to earn mastery bonuses!';
+    container.appendChild(info);
+
+    Object.entries(CROPS_DATA).forEach(([cropId, crop]) => {
+      const m = this.game.mastery.getCropMastery(cropId);
+      const card = document.createElement('div');
+      card.className = 'mastery-card';
+
+      let progressHtml = '';
+      if (m.nextLevel) {
+        const progress = m.harvests / m.nextLevel.harvests;
+        progressHtml = `
+          <div class="progress-bar" style="height:6px;margin-top:4px;">
+            <div class="fill" style="width:${Math.min(progress * 100, 100)}%"></div>
+          </div>
+          <div style="font-size:0.7rem;color:#999;">${m.harvests}/${m.nextLevel.harvests} to ${m.nextLevel.label}</div>
+        `;
+      } else if (m.level.level !== 'none') {
+        progressHtml = '<div style="font-size:0.7rem;color:#FFD700;">MAX LEVEL!</div>';
+      }
+
+      let bonusHtml = '';
+      if (m.level.bonus) {
+        const b = m.level.bonus;
+        if (b.sellBonus) bonusHtml += `<span>💰+${Math.round(b.sellBonus * 100)}%</span> `;
+        if (b.timeReduction) bonusHtml += `<span>⏱️-${Math.round(b.timeReduction * 100)}%</span> `;
+        if (b.doubleChance) bonusHtml += `<span>🎲${Math.round(b.doubleChance * 100)}% x2</span>`;
+      }
+
+      card.innerHTML = `
+        <div class="mastery-icon">${crop.icon}</div>
+        <div class="mastery-info">
+          <div class="mastery-title">${crop.name}</div>
+          <div class="mastery-level">${m.level.icon || '⬜'} ${m.level.label}</div>
+          ${bonusHtml ? `<div class="mastery-bonuses">${bonusHtml}</div>` : ''}
+          ${progressHtml}
+        </div>
+        <div class="mastery-harvests">${m.harvests} harvested</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  renderStatistics(container, state) {
+    const st = state.statistics;
+    const stats = [
+      { label: '🌾 Crops Planted', value: st.cropsPlanted || 0 },
+      { label: '🌻 Crops Harvested', value: st.cropsHarvested || 0 },
+      { label: '🌳 Trees Planted', value: st.treesPlanted || 0 },
+      { label: '🐔 Animals Fed', value: st.animalsFed || 0 },
+      { label: '🥚 Products Collected', value: st.productsCollected || 0 },
+      { label: '🏗️ Buildings Built', value: st.buildingsBuilt || 0 },
+      { label: '💰 Items Sold', value: st.itemsSold || 0 },
+      { label: '🏭 Items Produced', value: st.itemsProduced || 0 },
+      { label: '📜 Quests Completed', value: st.questsCompleted || 0 },
+      { label: '📦 Orders Completed', value: st.ordersCompleted || 0 },
+      { label: '🗺️ Expansions Bought', value: st.expansionsBought || 0 },
+      { label: '🌸 Decorations Placed', value: st.decorationsPlaced || 0 },
+      { label: '💎 Total Coins Earned', value: state.player.totalCoinsEarned || 0 },
+      { label: '⭐ Player Level', value: state.player.level },
+    ];
+
+    const grid = document.createElement('div');
+    grid.className = 'stats-grid';
+
+    stats.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'stat-item';
+      item.innerHTML = `<span class="stat-label">${s.label}</span><span class="stat-value">${Utils.formatNumber(s.value)}</span>`;
+      grid.appendChild(item);
+    });
+
+    container.appendChild(grid);
+  }
+
+  // ==================== DAILY LOGIN ====================
+  buildDailyLoginPanel() {
+    const panel = this.createPanelFrame('Daily Rewards', '📅');
+
+    if (typeof LOGIN_REWARDS === 'undefined') {
+      panel.body.innerHTML = '<p class="empty-state">Daily rewards coming soon!</p>';
+      return panel;
+    }
+
+    this.game.loginRewards.ensureState();
+    const state = this.game.state.get();
+    const lr = state.loginRewards;
+    const today = new Date().toDateString();
+    const canClaim = lr.lastClaimDate !== today;
+
+    // Streak badge
+    if (lr.streak > 1) {
+      const streak = document.createElement('div');
+      streak.className = 'streak-badge';
+      streak.innerHTML = `🔥 ${lr.streak} Day Streak!${lr.streak >= 7 ? ' <small>(1.5x bonus!)</small>' : ''}`;
+      panel.body.appendChild(streak);
+    }
+
+    // Calendar grid
+    const calendar = document.createElement('div');
+    calendar.className = 'login-calendar';
+
+    LOGIN_REWARDS.forEach((reward, idx) => {
+      const dayNum = idx + 1;
+      const claimed = lr.claimedDays.includes(dayNum);
+      const isToday = dayNum === lr.currentDay + 1 && canClaim;
+
+      const day = document.createElement('div');
+      day.className = 'login-day' + (claimed ? ' claimed' : '') + (isToday ? ' today' : '');
+      day.innerHTML = `
+        <div class="day-num">Day ${dayNum}</div>
+        <div class="day-icon">${reward.icon}</div>
+        <div class="day-reward">${reward.label}</div>
+        ${claimed ? '<div class="day-check">✅</div>' : ''}
+      `;
+
+      if (isToday && canClaim) {
+        day.onclick = () => {
+          this.game.loginRewards.claim();
+          this.open('daily_login');
+        };
+      }
+
+      calendar.appendChild(day);
+    });
+
+    panel.body.appendChild(calendar);
+    return panel;
+  }
+
+  // ==================== COLLECTIONS ====================
+  buildCollectionsPanel() {
+    const panel = this.createPanelFrame('Collections', '📚');
+
+    if (typeof COLLECTIONS_DATA === 'undefined') {
+      panel.body.innerHTML = '<p class="empty-state">Collections coming soon!</p>';
+      return panel;
+    }
+
+    this.game.collections.ensureState();
+    const state = this.game.state.get();
+
+    Object.entries(COLLECTIONS_DATA).forEach(([catId, cat]) => {
+      const found = state.collections?.[catId] || [];
+      const isComplete = found.length >= cat.items.length;
+
+      const category = document.createElement('div');
+      category.className = 'collection-category' + (isComplete ? ' complete' : '');
+
+      category.innerHTML = `
+        <h3 class="section-title">${cat.icon} ${cat.name} (${found.length}/${cat.items.length})${isComplete ? ' ✅' : ''}</h3>
+      `;
+
+      const itemsGrid = document.createElement('div');
+      itemsGrid.className = 'collection-items';
+
+      cat.items.forEach(item => {
+        const discovered = found.includes(item.id);
+        const el = document.createElement('div');
+        el.className = 'collection-item' + (discovered ? ' found' : '');
+        el.innerHTML = `
+          <div class="coll-icon">${discovered ? item.icon : '❓'}</div>
+          <div class="coll-name">${discovered ? item.name : '???'}</div>
+          ${discovered ? `<div class="coll-rarity">${item.rarity}</div>` : ''}
+        `;
+        itemsGrid.appendChild(el);
+      });
+
+      category.appendChild(itemsGrid);
+
+      if (isComplete) {
+        const prizeEl = document.createElement('div');
+        prizeEl.style.cssText = 'text-align:center;font-size:0.8rem;color:#4CAF50;font-weight:700;padding:4px;';
+        prizeEl.textContent = `Grand Prize: 🪙${cat.grandPrize.coins || 0} + 💎${cat.grandPrize.gems || 0}`;
+        category.appendChild(prizeEl);
+      }
+
+      panel.body.appendChild(category);
+    });
+
+    return panel;
+  }
+
+  // ==================== MASTERY (standalone) ====================
+  buildMasteryPanel() {
+    const panel = this.createPanelFrame('Crop Mastery', '🌾');
+    const state = this.game.state.get();
+    this.renderMasteryList(panel.body, state);
+    return panel;
+  }
+
+  // ==================== PET ====================
+  buildPetPanel() {
+    const panel = this.createPanelFrame('Pet Companion', '🐕');
+
+    if (typeof PETS_DATA === 'undefined') {
+      panel.body.innerHTML = '<p class="empty-state">Pets coming soon!</p>';
+      return panel;
+    }
+
+    const state = this.game.state.get();
+    this.game.pet.ensureState();
+
+    if (state.pet) {
+      const petData = PETS_DATA[state.pet.typeId];
+      if (petData) {
+        panel.body.innerHTML = `
+          <div style="text-align:center;padding:16px;">
+            <div style="font-size:4rem;">${petData.icon}</div>
+            <h3 style="margin:8px 0;">${state.pet.name}</h3>
+            <p style="color:#6D4C41;font-size:0.85rem;">${petData.perk}</p>
+            <p style="color:#999;font-size:0.8rem;">Finds coins for you every few minutes!</p>
+          </div>
+        `;
+      }
+    } else {
+      panel.body.innerHTML = '<p class="empty-state">Visit the Shop > Pets tab to adopt a pet!</p>';
+    }
+
+    return panel;
+  }
+
+  // ==================== MARKET ====================
+  buildMarketPanel() {
+    const panel = this.createPanelFrame('Market Prices', '📈');
+    const state = this.game.state.get();
+    this.renderMarketPrices(panel.body, state);
+    return panel;
+  }
+
   // ==================== QUESTS ====================
   buildQuestPanel() {
     const panel = this.createPanelFrame('Quests', '📜');
     const state = this.game.state.get();
 
-    // Tabs
     const tabs = document.createElement('div');
     tabs.className = 'panel-tabs';
     const tabNames = [
@@ -493,7 +1017,7 @@ class PanelManager {
 
     const questEntries = Object.keys(activeQuests);
     if (questEntries.length === 0) {
-      list.innerHTML = '<p style="text-align:center; color:#999; padding: 20px;">No active quests. Keep leveling up!</p>';
+      list.innerHTML = '<p class="empty-state">No active quests. Keep leveling up!</p>';
       container.appendChild(list);
       return;
     }
@@ -557,7 +1081,7 @@ class PanelManager {
     list.className = 'quest-list';
 
     if (!state.quests.dailyQuests || state.quests.dailyQuests.length === 0) {
-      list.innerHTML = '<p style="text-align:center; color:#999; padding: 20px;">Daily quests refresh each day!</p>';
+      list.innerHTML = '<p class="empty-state">Daily quests refresh each day!</p>';
       container.appendChild(list);
       return;
     }
@@ -613,7 +1137,7 @@ class PanelManager {
     const completed = state.quests.completed;
 
     if (completed.length === 0) {
-      list.innerHTML = '<p style="text-align:center; color:#999; padding: 20px;">Complete quests to see them here!</p>';
+      list.innerHTML = '<p class="empty-state">Complete quests to see them here!</p>';
     } else {
       completed.forEach(qId => {
         const questData = QUESTS_DATA[qId];
@@ -669,7 +1193,6 @@ class PanelManager {
       </div>
     `;
 
-    // Event listeners
     setTimeout(() => {
       document.getElementById('settings-music-toggle')?.addEventListener('click', () => {
         const on = Audio.toggleMusic();
@@ -777,7 +1300,6 @@ class PanelManager {
     const panel = this.createPanelFrame(bldData.name, bldData.icon);
     const state = this.game.state.get();
 
-    // Production slots
     for (let i = 0; i < (building.slots || 1); i++) {
       const slot = document.createElement('div');
       slot.className = 'production-slot';
@@ -912,7 +1434,6 @@ class PanelManager {
         </div>
       `;
 
-      // Action buttons
       const btnContainer = document.createElement('div');
       btnContainer.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
 
@@ -946,7 +1467,6 @@ class PanelManager {
       panel.body.appendChild(el);
     });
 
-    // Add animal button if not at capacity
     if (animals.length < penData.capacity) {
       const addInfo = document.createElement('div');
       addInfo.style.cssText = 'text-align:center;padding:12px;color:#999;font-size:0.85rem;';
