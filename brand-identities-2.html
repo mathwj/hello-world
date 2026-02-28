@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aloud — 50 More Brand Identity Concepts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Unbounded:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Josefin+Sans:wght@300;400;600;700&family=Major+Mono+Display&family=Press+Start+2P&family=DM+Serif+Display:ital@0;1&family=Abril+Fatface&family=Righteous&family=Orbitron:wght@400;500;600;700;800;900&family=Russo+One&family=Teko:wght@400;500;600;700&family=Michroma&family=Audiowide&family=Bowlby+One+SC&family=Bungee&family=Fascinate&family=Black+Ops+One&family=Monoton&family=Rubik+Mono+One&family=Permanent+Marker&family=Archivo+Black&family=Zen+Dots&family=Megrim&family=Nova+Mono&family=Poiret+One&family=Rajdhani:wght@400;500;600;700&family=Oxanium:wght@400;500;600;700;800&family=Share+Tech+Mono&family=Silkscreen&family=Tourney:wght@400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --cyan: #00FFFF; --black: #0a0a0a; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--black); color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+  body::before { content:''; position:fixed; inset:0; z-index:9999; pointer-events:none; opacity:0.06; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-repeat:repeat; background-size:180px; }
+
+  .hero { min-height:45vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:6rem 2rem 4rem; background:radial-gradient(ellipse 60% 50% at 50% 45%, rgba(0,255,255,0.05) 0%, transparent 70%); }
+  .hero-label { font-family:'Space Grotesk',sans-serif; font-size:0.7rem; letter-spacing:0.4em; text-transform:uppercase; color:var(--cyan); opacity:0.7; margin-bottom:1.5rem; }
+  .hero h1 { font-family:'Playfair Display',serif; font-size:clamp(2.5rem,6vw,5rem); font-weight:900; line-height:1.1; margin-bottom:1rem; }
+  .hero h1 span { color:var(--cyan); text-shadow:0 0 50px rgba(0,255,255,0.25); }
+  .hero p { max-width:460px; font-size:0.95rem; line-height:1.7; color:rgba(255,255,255,0.4); font-weight:300; }
+
+  .grid { max-width:1400px; margin:0 auto; padding:2rem; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1.5rem; }
+
+  .card { aspect-ratio:4/3; border-radius:16px; border:1px solid rgba(255,255,255,0.05); position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0d0d0d; transition:border-color 0.3s,transform 0.3s; }
+  .card:hover { border-color:rgba(0,255,255,0.15); transform:translateY(-4px); }
+  .card::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:0.08; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size:150px; border-radius:inherit; }
+  .card-label { position:absolute; bottom:12px; left:14px; font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.2); font-family:'Space Grotesk',sans-serif; }
+  .card-num { position:absolute; top:12px; right:14px; font-size:0.55rem; letter-spacing:0.15em; color:rgba(0,255,255,0.3); font-family:'Space Mono',monospace; }
+  .flex-col { display:flex; flex-direction:column; align-items:center; gap:0.8rem; }
+
+  /* ═══ 51 — The Megaphone ═══ */
+  .c51 .mega { width:0; height:0; border-top:25px solid transparent; border-bottom:25px solid transparent; border-left:50px solid var(--cyan); opacity:0.8; filter:drop-shadow(0 0 15px rgba(0,255,255,0.4)); }
+  .c51 .logo { font-family:'Archivo Black',sans-serif; font-size:2.8rem; text-transform:uppercase; letter-spacing:0.1em; color:#fff; }
+
+  /* ═══ 52 — The Hologram ═══ */
+  .c52 .logo { font-family:'Outfit',sans-serif; font-size:3.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; background:linear-gradient(90deg, var(--cyan), #fff, var(--cyan), #fff, var(--cyan)); background-size:200% 100%; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:holoShift 3s linear infinite; }
+  @keyframes holoShift { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+  .c52 .sub { font-size:0.5rem; letter-spacing:0.4em; text-transform:uppercase; color:rgba(0,255,255,0.3); }
+
+  /* ═══ 53 — The Polaroid ═══ */
+  .c53 .frame { background:#111; border:1px solid rgba(255,255,255,0.06); padding:1.5rem 1.5rem 2.5rem; display:flex; flex-direction:column; align-items:center; gap:0.8rem; }
+  .c53 .frame .photo { width:120px; height:80px; background:linear-gradient(135deg,rgba(0,255,255,0.1),rgba(0,255,255,0.03)); border:1px solid rgba(0,255,255,0.1); display:flex; align-items:center; justify-content:center; }
+  .c53 .frame .photo span { font-family:'Playfair Display',serif; font-size:2rem; font-weight:900; font-style:italic; color:var(--cyan); }
+  .c53 .frame .name { font-family:'Permanent Marker',cursive; font-size:1rem; color:rgba(255,255,255,0.5); }
+
+  /* ═══ 54 — The Countdown ═══ */
+  .c54 .timer { display:flex; gap:6px; }
+  .c54 .timer .digit { font-family:'Orbitron',sans-serif; font-size:2rem; font-weight:700; color:var(--cyan); background:rgba(0,255,255,0.05); border:1px solid rgba(0,255,255,0.15); padding:0.3rem 0.6rem; border-radius:4px; }
+  .c54 .logo { font-family:'Rajdhani',sans-serif; font-size:1.5rem; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+
+  /* ═══ 55 — The Decibel ═══ */
+  .c55 .db { font-family:'Orbitron',sans-serif; font-size:3.5rem; font-weight:900; color:var(--cyan); text-shadow:0 0 30px rgba(0,255,255,0.3); }
+  .c55 .unit { font-family:'Orbitron',sans-serif; font-size:0.7rem; color:rgba(0,255,255,0.4); letter-spacing:0.2em; }
+  .c55 .name { font-family:'Inter',sans-serif; font-size:0.7rem; font-weight:600; letter-spacing:0.4em; text-transform:uppercase; color:rgba(255,255,255,0.3); }
+
+  /* ═══ 56 — The Matrix Rain ═══ */
+  .c56 { background:#050505 !important; }
+  .c56 .rain { position:absolute; top:0; left:0; right:0; bottom:0; overflow:hidden; opacity:0.15; }
+  .c56 .rain span { position:absolute; font-family:'Share Tech Mono',monospace; font-size:0.6rem; color:var(--cyan); animation:fall linear infinite; }
+  @keyframes fall { 0%{transform:translateY(-100%);opacity:1} 100%{transform:translateY(400%);opacity:0} }
+  .c56 .logo { font-family:'Share Tech Mono',monospace; font-size:2.5rem; font-weight:700; color:var(--cyan); text-shadow:0 0 20px rgba(0,255,255,0.5); z-index:1; letter-spacing:0.2em; }
+
+  /* ═══ 57 — The Broadcast ═══ */
+  .c57 .antenna { display:flex; flex-direction:column; align-items:center; }
+  .c57 .antenna .tower { width:2px; height:30px; background:rgba(255,255,255,0.3); }
+  .c57 .antenna .waves { display:flex; flex-direction:column; align-items:center; gap:4px; margin-bottom:4px; }
+  .c57 .antenna .wave-arc { border:1.5px solid rgba(0,255,255,0.3); border-bottom:0; border-radius:50% 50% 0 0; }
+  .c57 .logo { font-family:'Audiowide',sans-serif; font-size:1.6rem; letter-spacing:0.2em; text-transform:uppercase; color:#fff; }
+
+  /* ═══ 58 — The Kaleidoscope ═══ */
+  .c58 .kscope { position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center; }
+  .c58 .kscope .tri { position:absolute; width:0; height:0; border-left:20px solid transparent; border-right:20px solid transparent; border-bottom:35px solid rgba(0,255,255,0.15); }
+  .c58 .kscope .tri:nth-child(1) { transform:rotate(0deg); }
+  .c58 .kscope .tri:nth-child(2) { transform:rotate(60deg); }
+  .c58 .kscope .tri:nth-child(3) { transform:rotate(120deg); }
+  .c58 .kscope .tri:nth-child(4) { transform:rotate(180deg); }
+  .c58 .kscope .tri:nth-child(5) { transform:rotate(240deg); }
+  .c58 .kscope .tri:nth-child(6) { transform:rotate(300deg); }
+  .c58 .name { font-family:'Poiret One',sans-serif; font-size:1.8rem; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.6); }
+
+  /* ═══ 59 — The Microphone ═══ */
+  .c59 .mic { display:flex; flex-direction:column; align-items:center; }
+  .c59 .mic .head { width:30px; height:40px; border:2px solid var(--cyan); border-radius:15px 15px 15px 15px; box-shadow:0 0 15px rgba(0,255,255,0.2); }
+  .c59 .mic .stem { width:2px; height:20px; background:var(--cyan); opacity:0.5; }
+  .c59 .mic .base { width:30px; height:2px; background:var(--cyan); opacity:0.3; border-radius:2px; }
+  .c59 .logo { font-family:'DM Sans',sans-serif; font-size:2rem; font-weight:700; letter-spacing:0.15em; color:#fff; }
+
+  /* ═══ 60 — The Oscilloscope ═══ */
+  .c60 .scope { width:160px; height:60px; border:1px solid rgba(0,255,255,0.15); border-radius:4px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; background:rgba(0,255,255,0.02); }
+  .c60 .scope svg { width:140px; height:40px; }
+  .c60 .scope svg path { fill:none; stroke:var(--cyan); stroke-width:2; filter:drop-shadow(0 0 4px rgba(0,255,255,0.5)); }
+  .c60 .logo { font-family:'Oxanium',sans-serif; font-size:1.4rem; font-weight:700; letter-spacing:0.25em; text-transform:uppercase; color:rgba(255,255,255,0.6); }
+
+  /* ═══ 61 — The Scanline ═══ */
+  .c61 { background:repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,255,0.02) 2px, rgba(0,255,255,0.02) 4px) !important; }
+  .c61 .logo { font-family:'Teko',sans-serif; font-size:4rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 20px rgba(0,255,255,0.3); }
+  .c61 .sub { font-size:0.5rem; letter-spacing:0.4em; color:rgba(255,255,255,0.2); text-transform:uppercase; }
+
+  /* ═══ 62 — The Tessellation ═══ */
+  .c62 .tess { display:grid; grid-template-columns:repeat(4,1fr); gap:2px; transform:rotate(45deg); }
+  .c62 .tess div { width:16px; height:16px; border:1px solid rgba(0,255,255,0.15); }
+  .c62 .tess div:nth-child(odd) { background:rgba(0,255,255,0.08); }
+  .c62 .tess div:nth-child(5) { background:var(--cyan); box-shadow:0 0 10px rgba(0,255,255,0.4); }
+  .c62 .name { font-family:'Josefin Sans',sans-serif; font-size:1.5rem; font-weight:600; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-top:1.5rem; }
+
+  /* ═══ 63 — The Warp ═══ */
+  .c63 .logo { font-family:'Syne',sans-serif; font-size:3rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:#fff; transform:scaleX(1.3) skewX(-5deg); }
+  .c63 .logo span { color:var(--cyan); }
+  .c63 .sub { font-size:0.5rem; letter-spacing:0.3em; color:rgba(255,255,255,0.2); text-transform:uppercase; }
+
+  /* ═══ 64 — The Isometric ═══ */
+  .c64 .iso { font-family:'Outfit',sans-serif; font-size:3rem; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:#fff; transform:perspective(500px) rotateX(10deg) rotateY(-15deg); text-shadow:2px 2px 0 var(--cyan), 4px 4px 0 rgba(0,255,255,0.2); }
+
+  /* ═══ 65 — The Spotlight ═══ */
+  .c65 { background:radial-gradient(circle at 50% 40%, rgba(0,255,255,0.08) 0%, transparent 50%), #0a0a0a !important; }
+  .c65 .logo { font-family:'Cormorant Garamond',serif; font-size:3.5rem; font-weight:700; font-style:italic; color:#fff; }
+  .c65 .logo span { color:var(--cyan); text-shadow:0 0 40px rgba(0,255,255,0.4); }
+  .c65 .sub { font-size:0.5rem; letter-spacing:0.4em; text-transform:uppercase; color:rgba(255,255,255,0.2); }
+
+  /* ═══ 66 — The Retro TV ═══ */
+  .c66 .tv { border:3px solid rgba(255,255,255,0.1); border-radius:12px; padding:1rem 2rem; position:relative; background:rgba(0,255,255,0.02); }
+  .c66 .tv::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(transparent, transparent 1px, rgba(0,0,0,0.05) 1px, rgba(0,0,0,0.05) 2px); border-radius:inherit; pointer-events:none; }
+  .c66 .tv .text { font-family:'Silkscreen',monospace; font-size:1.5rem; color:var(--cyan); text-shadow:0 0 10px rgba(0,255,255,0.5); }
+  .c66 .knobs { display:flex; gap:6px; margin-top:0.5rem; }
+  .c66 .knobs div { width:8px; height:8px; border-radius:50%; border:1px solid rgba(255,255,255,0.15); }
+
+  /* ═══ 67 — The Diamond ═══ */
+  .c67 .diamond { width:60px; height:60px; background:linear-gradient(135deg, var(--cyan), rgba(0,255,255,0.3)); transform:rotate(45deg); box-shadow:0 0 30px rgba(0,255,255,0.2); display:flex; align-items:center; justify-content:center; }
+  .c67 .diamond span { transform:rotate(-45deg); font-family:'Inter',sans-serif; font-size:1.5rem; font-weight:900; color:#000; }
+  .c67 .name { font-family:'Inter',sans-serif; font-size:1rem; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+
+  /* ═══ 68 — The Spiral ═══ */
+  .c68 .spiral { width:80px; height:80px; border:2px solid transparent; border-top-color:var(--cyan); border-radius:50%; animation:spinSlow 4s linear infinite; position:relative; display:flex; align-items:center; justify-content:center; }
+  .c68 .spiral::before { content:''; position:absolute; width:50px; height:50px; border:2px solid transparent; border-right-color:rgba(0,255,255,0.4); border-radius:50%; animation:spinSlow 3s linear infinite reverse; }
+  @keyframes spinSlow { to{transform:rotate(360deg)} }
+  .c68 .spiral .dot { width:6px; height:6px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px rgba(0,255,255,0.6); }
+  .c68 .name { font-family:'Zen Dots',sans-serif; font-size:1.2rem; color:rgba(255,255,255,0.6); letter-spacing:0.15em; }
+
+  /* ═══ 69 — The Monolith ═══ */
+  .c69 .mono { width:50px; height:100px; background:linear-gradient(180deg, var(--cyan), rgba(0,255,255,0.1)); border-radius:2px; box-shadow:0 0 40px rgba(0,255,255,0.15); }
+  .c69 .name { font-family:'Inter',sans-serif; font-size:0.8rem; font-weight:800; letter-spacing:0.5em; text-transform:uppercase; color:rgba(255,255,255,0.4); }
+
+  /* ═══ 70 — The Horizon ═══ */
+  .c70 .horizon { width:200px; display:flex; flex-direction:column; align-items:center; }
+  .c70 .logo { font-family:'Outfit',sans-serif; font-size:2.5rem; font-weight:300; letter-spacing:0.25em; text-transform:uppercase; color:#fff; }
+  .c70 .line { width:100%; height:1px; background:linear-gradient(90deg, transparent, var(--cyan), transparent); margin:0.3rem 0; box-shadow:0 0 10px rgba(0,255,255,0.3); }
+  .c70 .sub { font-size:0.5rem; letter-spacing:0.4em; text-transform:uppercase; color:rgba(0,255,255,0.3); }
+
+  /* ═══ 71 — The Marquee ═══ */
+  .c71 { overflow:hidden !important; }
+  .c71 .marquee { display:flex; white-space:nowrap; animation:marqueeScroll 8s linear infinite; }
+  .c71 .marquee span { font-family:'Bebas Neue',sans-serif; font-size:4rem; letter-spacing:0.2em; margin-right:2rem; }
+  .c71 .marquee span:nth-child(odd) { color:var(--cyan); opacity:0.4; }
+  .c71 .marquee span:nth-child(even) { color:rgba(255,255,255,0.1); }
+  @keyframes marqueeScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+  /* ═══ 72 — The Smoke ═══ */
+  .c72 .logo { font-family:'Playfair Display',serif; font-size:3.5rem; font-weight:900; color:var(--cyan); filter:blur(0.5px); text-shadow:0 0 40px rgba(0,255,255,0.5), 0 0 80px rgba(0,255,255,0.2); }
+
+  /* ═══ 73 — The Pendulum ═══ */
+  .c73 .pend { display:flex; flex-direction:column; align-items:center; }
+  .c73 .pend .string { width:1px; height:40px; background:rgba(255,255,255,0.15); transform-origin:top center; animation:swing 3s ease-in-out infinite; }
+  .c73 .pend .ball { width:16px; height:16px; border-radius:50%; background:var(--cyan); box-shadow:0 0 20px rgba(0,255,255,0.5); margin-top:-1px; }
+  @keyframes swing { 0%,100%{transform:rotate(20deg)} 50%{transform:rotate(-20deg)} }
+  .c73 .logo { font-family:'DM Serif Display',serif; font-size:2rem; color:#fff; letter-spacing:0.1em; }
+
+  /* ═══ 74 — The Zigzag ═══ */
+  .c74 .zag { display:flex; align-items:center; gap:0; }
+  .c74 .zag .seg { width:15px; height:15px; border-right:2px solid var(--cyan); border-bottom:2px solid var(--cyan); transform:rotate(-45deg); opacity:0.5; }
+  .c74 .zag .seg:nth-child(3) { opacity:1; box-shadow:2px 2px 8px rgba(0,255,255,0.3); }
+  .c74 .logo { font-family:'Teko',sans-serif; font-size:2.5rem; font-weight:600; letter-spacing:0.3em; text-transform:uppercase; color:#fff; }
+
+  /* ═══ 75 — The Arrow ═══ */
+  .c75 .arrow { display:flex; align-items:center; gap:0.5rem; }
+  .c75 .arrow .shaft { width:60px; height:2px; background:var(--cyan); }
+  .c75 .arrow .head { width:0; height:0; border-top:8px solid transparent; border-bottom:8px solid transparent; border-left:12px solid var(--cyan); filter:drop-shadow(0 0 6px rgba(0,255,255,0.4)); }
+  .c75 .logo { font-family:'Outfit',sans-serif; font-size:2.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:#fff; }
+
+  /* ═══ 76 — The Orbit ═══ */
+  .c76 .orbit-wrap { position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center; }
+  .c76 .orbit-ring { position:absolute; width:100%; height:100%; border:1px solid rgba(0,255,255,0.1); border-radius:50%; }
+  .c76 .orbit-ring:nth-child(2) { transform:rotateX(60deg); }
+  .c76 .orbit-ring:nth-child(3) { transform:rotateY(60deg); }
+  .c76 .orbit-dot { width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 12px rgba(0,255,255,0.6); z-index:1; }
+  .c76 .name { font-family:'Megrim',sans-serif; font-size:1.8rem; letter-spacing:0.2em; color:rgba(255,255,255,0.6); text-transform:uppercase; }
+
+  /* ═══ 77 — The Terminal ═══ */
+  .c77 .term { background:rgba(0,255,255,0.03); border:1px solid rgba(0,255,255,0.1); border-radius:6px; padding:1rem 1.5rem; font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:rgba(0,255,255,0.6); min-width:180px; }
+  .c77 .term .line1 { color:rgba(255,255,255,0.3); margin-bottom:0.3rem; }
+  .c77 .term .line2 { color:var(--cyan); font-size:1.2rem; }
+  .c77 .term .cursor { display:inline-block; width:8px; height:14px; background:var(--cyan); animation:curBlink 1s step-end infinite; margin-left:2px; vertical-align:middle; }
+  @keyframes curBlink { 50%{opacity:0} }
+
+  /* ═══ 78 — The Watermark ═══ */
+  .c78 .bg { font-family:'Outfit',sans-serif; font-size:6rem; font-weight:900; text-transform:uppercase; color:rgba(0,255,255,0.04); position:absolute; letter-spacing:0.1em; }
+  .c78 .fg { font-family:'Inter',sans-serif; font-size:1.5rem; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; color:var(--cyan); z-index:1; text-shadow:0 0 20px rgba(0,255,255,0.3); }
+
+  /* ═══ 79 — The Emboss ═══ */
+  .c79 .logo { font-family:'Rubik Mono One',monospace; font-size:2.5rem; color:#0d0d0d; text-shadow:1px 1px 0 rgba(0,255,255,0.3), -1px -1px 0 rgba(0,0,0,0.8); letter-spacing:0.05em; }
+
+  /* ═══ 80 — The Tape ═══ */
+  .c80 .tape { background:var(--cyan); padding:0.4rem 2rem; transform:rotate(-3deg); }
+  .c80 .tape-text { font-family:'Inter',sans-serif; font-size:1rem; font-weight:900; color:#000; letter-spacing:0.2em; text-transform:uppercase; }
+  .c80 .sub { font-size:0.55rem; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.25); margin-top:1rem; }
+
+  /* ═══ 81 — The Banner ═══ */
+  .c81 .banner { position:relative; padding:0.8rem 3rem; }
+  .c81 .banner::before, .c81 .banner::after { content:''; position:absolute; top:0; bottom:0; width:20px; }
+  .c81 .banner::before { left:0; background:linear-gradient(135deg, transparent 50%, rgba(0,255,255,0.15) 50%); }
+  .c81 .banner::after { right:0; background:linear-gradient(-135deg, transparent 50%, rgba(0,255,255,0.15) 50%); }
+  .c81 .banner .text { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; letter-spacing:0.25em; color:#fff; border-top:1px solid rgba(0,255,255,0.2); border-bottom:1px solid rgba(0,255,255,0.2); padding:0.3rem 0; }
+
+  /* ═══ 82 — The Shield ═══ */
+  .c82 .shield { width:80px; height:95px; background:rgba(0,255,255,0.05); clip-path:polygon(50% 0%, 100% 15%, 100% 70%, 50% 100%, 0% 70%, 0% 15%); border:2px solid var(--cyan); display:flex; align-items:center; justify-content:center; position:relative; }
+  .c82 .shield::before { content:''; position:absolute; inset:3px; clip-path:polygon(50% 0%, 100% 15%, 100% 70%, 50% 100%, 0% 70%, 0% 15%); border:1px solid rgba(0,255,255,0.2); }
+  .c82 .shield span { font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:900; color:var(--cyan); margin-top:0.5rem; }
+  .c82 .name { font-family:'Inter',sans-serif; font-size:0.7rem; font-weight:700; letter-spacing:0.4em; text-transform:uppercase; color:rgba(255,255,255,0.4); }
+
+  /* ═══ 83 — The Heartbeat ═══ */
+  .c83 .heartbeat { display:flex; align-items:center; gap:0; }
+  .c83 .heartbeat svg { width:160px; height:40px; }
+  .c83 .heartbeat svg polyline { fill:none; stroke:var(--cyan); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 4px rgba(0,255,255,0.5)); }
+  .c83 .logo { font-family:'DM Sans',sans-serif; font-size:1.8rem; font-weight:700; letter-spacing:0.15em; color:#fff; }
+
+  /* ═══ 84 — The Lighthouse ═══ */
+  .c84 .light { display:flex; flex-direction:column; align-items:center; }
+  .c84 .beam { width:4px; height:4px; background:var(--cyan); border-radius:50%; box-shadow:0 0 20px 10px rgba(0,255,255,0.3), 0 0 60px 20px rgba(0,255,255,0.1); animation:beamPulse 2s ease-in-out infinite; }
+  @keyframes beamPulse { 0%,100%{box-shadow:0 0 20px 10px rgba(0,255,255,0.3),0 0 60px 20px rgba(0,255,255,0.1)} 50%{box-shadow:0 0 30px 15px rgba(0,255,255,0.5),0 0 80px 30px rgba(0,255,255,0.2)} }
+  .c84 .tower { width:12px; height:50px; background:linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05)); border-radius:2px 2px 4px 4px; margin-top:2px; }
+  .c84 .name { font-family:'Cormorant Garamond',serif; font-size:1.5rem; font-weight:700; letter-spacing:0.2em; color:rgba(255,255,255,0.5); text-transform:uppercase; font-style:italic; }
+
+  /* ═══ 85 — The Rotary ═══ */
+  .c85 .dial { width:100px; height:100px; border-radius:50%; border:2px solid rgba(0,255,255,0.2); position:relative; display:flex; align-items:center; justify-content:center; }
+  .c85 .dial .tick { position:absolute; width:2px; height:8px; background:rgba(0,255,255,0.3); top:5px; transform-origin:50% 45px; }
+  .c85 .dial .tick:nth-child(1) { transform:rotate(0deg); }
+  .c85 .dial .tick:nth-child(2) { transform:rotate(30deg); }
+  .c85 .dial .tick:nth-child(3) { transform:rotate(60deg); }
+  .c85 .dial .tick:nth-child(4) { transform:rotate(90deg); }
+  .c85 .dial .tick:nth-child(5) { transform:rotate(120deg); background:var(--cyan); box-shadow:0 0 6px rgba(0,255,255,0.5); }
+  .c85 .dial .tick:nth-child(6) { transform:rotate(150deg); }
+  .c85 .dial .tick:nth-child(7) { transform:rotate(180deg); }
+  .c85 .dial .tick:nth-child(8) { transform:rotate(210deg); }
+  .c85 .dial .tick:nth-child(9) { transform:rotate(240deg); }
+  .c85 .dial .tick:nth-child(10) { transform:rotate(270deg); }
+  .c85 .dial .tick:nth-child(11) { transform:rotate(300deg); }
+  .c85 .dial .tick:nth-child(12) { transform:rotate(330deg); }
+  .c85 .dial .center { font-family:'Inter',sans-serif; font-size:0.8rem; font-weight:900; color:var(--cyan); z-index:1; }
+  .c85 .name { font-family:'Space Grotesk',sans-serif; font-size:0.75rem; font-weight:600; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.4); }
+
+  /* ═══ 86 — The Compass ═══ */
+  .c86 .compass { width:80px; height:80px; border:1px solid rgba(0,255,255,0.2); border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; }
+  .c86 .compass .needle { width:2px; height:35px; background:linear-gradient(180deg, var(--cyan) 50%, rgba(255,255,255,0.2) 50%); position:absolute; animation:needleSpin 6s ease-in-out infinite; transform-origin:center; }
+  @keyframes needleSpin { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(90deg)} 50%{transform:rotate(45deg)} 75%{transform:rotate(-30deg)} }
+  .c86 .compass .n { position:absolute; top:4px; font-size:0.45rem; color:var(--cyan); font-family:'Space Mono',monospace; }
+  .c86 .name { font-family:'DM Serif Display',serif; font-size:1.5rem; font-style:italic; color:rgba(255,255,255,0.6); }
+
+  /* ═══ 87 — The Infinity ═══ */
+  .c87 .inf { font-size:3rem; color:var(--cyan); text-shadow:0 0 20px rgba(0,255,255,0.4); line-height:1; }
+  .c87 .name { font-family:'Outfit',sans-serif; font-size:1.5rem; font-weight:300; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+
+  /* ═══ 88 — The Wave Pool ═══ */
+  .c88 .pool { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .c88 .pool .wave { height:2px; border-radius:50%; background:var(--cyan); animation:wavePool 3s ease-in-out infinite; }
+  .c88 .pool .wave:nth-child(1) { width:30px; opacity:0.2; animation-delay:0s; }
+  .c88 .pool .wave:nth-child(2) { width:60px; opacity:0.4; animation-delay:0.2s; }
+  .c88 .pool .wave:nth-child(3) { width:90px; opacity:0.6; animation-delay:0.4s; }
+  .c88 .pool .wave:nth-child(4) { width:120px; opacity:0.8; animation-delay:0.6s; }
+  .c88 .pool .wave:nth-child(5) { width:150px; opacity:1; animation-delay:0.8s; box-shadow:0 0 8px rgba(0,255,255,0.3); }
+  @keyframes wavePool { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(0.7)} }
+  .c88 .name { font-family:'Inter',sans-serif; font-size:1.2rem; font-weight:600; letter-spacing:0.25em; text-transform:uppercase; color:rgba(255,255,255,0.4); }
+
+  /* ═══ 89 — The Static ═══ */
+  .c89 .logo { font-family:'Black Ops One',sans-serif; font-size:2.5rem; color:var(--cyan); text-transform:uppercase; position:relative; animation:staticFlicker 0.15s infinite; }
+  @keyframes staticFlicker { 0%{opacity:1;transform:translate(0)} 25%{opacity:0.8;transform:translate(1px,-1px)} 50%{opacity:1;transform:translate(-1px,1px)} 75%{opacity:0.9;transform:translate(1px,0)} }
+  .c89 .sub { font-size:0.5rem; letter-spacing:0.3em; color:rgba(255,255,255,0.2); text-transform:uppercase; }
+
+  /* ═══ 90 — The Aperture ═══ */
+  .c90 .apt { width:80px; height:80px; border-radius:50%; border:2px solid var(--cyan); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 0 20px rgba(0,255,255,0.15); }
+  .c90 .apt .blade { position:absolute; width:40px; height:80px; border-right:1px solid rgba(0,255,255,0.2); transform-origin:right center; }
+  .c90 .apt .blade:nth-child(1) { transform:rotate(0deg); }
+  .c90 .apt .blade:nth-child(2) { transform:rotate(45deg); }
+  .c90 .apt .blade:nth-child(3) { transform:rotate(90deg); }
+  .c90 .apt .blade:nth-child(4) { transform:rotate(135deg); }
+  .c90 .apt .center { width:20px; height:20px; border-radius:50%; background:var(--cyan); z-index:1; box-shadow:0 0 15px rgba(0,255,255,0.5); }
+  .c90 .name { font-family:'Rajdhani',sans-serif; font-size:1.3rem; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+
+  /* ═══ 91 — The Equalizer ═══ */
+  .c91 .eq { display:flex; align-items:flex-end; gap:3px; height:50px; }
+  .c91 .eq div { width:8px; border-radius:2px 2px 0 0; background:var(--cyan); animation:eqBounce 1.2s ease-in-out infinite; }
+  .c91 .eq div:nth-child(1) { animation-delay:0s; }
+  .c91 .eq div:nth-child(2) { animation-delay:0.15s; }
+  .c91 .eq div:nth-child(3) { animation-delay:0.3s; }
+  .c91 .eq div:nth-child(4) { animation-delay:0.45s; }
+  .c91 .eq div:nth-child(5) { animation-delay:0.6s; }
+  .c91 .eq div:nth-child(6) { animation-delay:0.2s; }
+  .c91 .eq div:nth-child(7) { animation-delay:0.4s; }
+  @keyframes eqBounce { 0%,100%{height:10px;opacity:0.4} 50%{height:50px;opacity:1} }
+  .c91 .logo { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:700; letter-spacing:0.15em; color:#fff; }
+
+  /* ═══ 92 — The Particle ═══ */
+  .c92 .particles { position:relative; width:120px; height:60px; }
+  .c92 .particles .p { position:absolute; width:3px; height:3px; border-radius:50%; background:var(--cyan); box-shadow:0 0 4px rgba(0,255,255,0.5); animation:particleFloat 4s ease-in-out infinite; }
+  .c92 .particles .p:nth-child(1) { left:10%; top:20%; animation-delay:0s; }
+  .c92 .particles .p:nth-child(2) { left:25%; top:60%; animation-delay:0.5s; width:4px; height:4px; }
+  .c92 .particles .p:nth-child(3) { left:45%; top:30%; animation-delay:1s; }
+  .c92 .particles .p:nth-child(4) { left:60%; top:70%; animation-delay:1.5s; }
+  .c92 .particles .p:nth-child(5) { left:75%; top:40%; animation-delay:0.8s; width:5px; height:5px; }
+  .c92 .particles .p:nth-child(6) { left:90%; top:55%; animation-delay:1.2s; }
+  @keyframes particleFloat { 0%,100%{transform:translateY(0);opacity:0.5} 50%{transform:translateY(-10px);opacity:1} }
+  .c92 .logo { font-family:'Outfit',sans-serif; font-size:2rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.6); }
+
+  /* ═══ 93 — The X-Ray ═══ */
+  .c93 .logo { font-family:'Inter',sans-serif; font-size:3.5rem; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:transparent; -webkit-text-stroke:1px rgba(0,255,255,0.5); background:linear-gradient(180deg, rgba(0,255,255,0.15) 0%, transparent 100%); -webkit-background-clip:text; }
+  .c93 .sub { font-size:0.5rem; letter-spacing:0.3em; color:rgba(0,255,255,0.25); text-transform:uppercase; }
+
+  /* ═══ 94 — The Fluorescent ═══ */
+  .c94 .logo { font-family:'Monoton',sans-serif; font-size:3rem; color:var(--cyan); text-shadow:0 0 5px var(--cyan), 0 0 20px var(--cyan), 0 0 60px rgba(0,255,255,0.3); letter-spacing:0.1em; }
+
+  /* ═══ 95 — The Duotone ═══ */
+  .c95 .duo { display:flex; gap:0; }
+  .c95 .duo .left { font-family:'Outfit',sans-serif; font-size:3rem; font-weight:900; color:var(--cyan); background:#0d0d0d; padding:0.2rem 0.5rem; }
+  .c95 .duo .right { font-family:'Outfit',sans-serif; font-size:3rem; font-weight:900; color:#0d0d0d; background:var(--cyan); padding:0.2rem 0.5rem; }
+
+  /* ═══ 96 — The Mirror ═══ */
+  .c96 .mirror-wrap { display:flex; flex-direction:column; align-items:center; gap:0; }
+  .c96 .top-text { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:#fff; }
+  .c96 .bot-text { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:rgba(0,255,255,0.15); transform:scaleY(-1); line-height:0.9; }
+
+  /* ═══ 97 — The Voxel ═══ */
+  .c97 .vox { display:flex; gap:4px; }
+  .c97 .vox div { width:14px; height:14px; background:rgba(0,255,255,0.1); border:1px solid rgba(0,255,255,0.15); }
+  .c97 .vox div:nth-child(1) { background:var(--cyan); border-color:var(--cyan); box-shadow:0 0 8px rgba(0,255,255,0.4); }
+  .c97 .vox div:nth-child(3) { background:rgba(0,255,255,0.4); }
+  .c97 .vox div:nth-child(5) { background:rgba(0,255,255,0.6); }
+  .c97 .name { font-family:'Oxanium',sans-serif; font-size:1.2rem; font-weight:700; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+
+  /* ═══ 98 — The Sonar ═══ */
+  .c98 .sonar-wrap { position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center; }
+  .c98 .sonar { position:absolute; border-radius:50%; border:1px solid var(--cyan); animation:sonarPing 2s ease-out infinite; opacity:0; }
+  .c98 .sonar:nth-child(1) { width:30px; height:30px; animation-delay:0s; }
+  .c98 .sonar:nth-child(2) { width:60px; height:60px; animation-delay:0.5s; }
+  .c98 .sonar:nth-child(3) { width:90px; height:90px; animation-delay:1s; }
+  @keyframes sonarPing { 0%{opacity:0.8;transform:scale(0.5)} 100%{opacity:0;transform:scale(1.2)} }
+  .c98 .center { width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 12px rgba(0,255,255,0.6); z-index:1; }
+  .c98 .name { font-family:'Audiowide',sans-serif; font-size:1rem; letter-spacing:0.25em; text-transform:uppercase; color:rgba(0,255,255,0.5); }
+
+  /* ═══ 99 — The Crest ═══ */
+  .c99 .crest { display:flex; flex-direction:column; align-items:center; gap:0.3rem; }
+  .c99 .crest .top-rule { width:80px; height:1px; background:linear-gradient(90deg, transparent, var(--cyan), transparent); }
+  .c99 .crest .wings { display:flex; align-items:center; gap:0.8rem; }
+  .c99 .crest .wing { font-family:'Playfair Display',serif; font-size:0.8rem; font-style:italic; color:rgba(0,255,255,0.35); }
+  .c99 .crest .initial { font-family:'Playfair Display',serif; font-size:2.5rem; font-weight:900; color:var(--cyan); text-shadow:0 0 20px rgba(0,255,255,0.3); }
+  .c99 .crest .bot-rule { width:60px; height:1px; background:rgba(0,255,255,0.15); }
+  .c99 .name { font-family:'Cormorant Garamond',serif; font-size:0.7rem; font-weight:600; letter-spacing:0.5em; text-transform:uppercase; color:rgba(255,255,255,0.3); }
+
+  /* ═══ 100 — The Aurora ═══ */
+  .c100 { background:linear-gradient(180deg, #050510 0%, #0a0a0a 100%) !important; overflow:hidden !important; }
+  .c100 .aurora { position:absolute; top:0; left:-20%; width:140%; height:60%; background:linear-gradient(180deg, rgba(0,255,255,0.08), rgba(0,255,255,0.03), transparent); filter:blur(30px); animation:auroraShift 6s ease-in-out infinite; }
+  @keyframes auroraShift { 0%,100%{transform:translateX(0) scaleY(1)} 50%{transform:translateX(10%) scaleY(1.2)} }
+  .c100 .logo { font-family:'Tourney',sans-serif; font-size:2.5rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:#fff; z-index:1; text-shadow:0 0 30px rgba(0,255,255,0.3); }
+  .c100 .sub { font-size:0.5rem; letter-spacing:0.4em; text-transform:uppercase; color:rgba(0,255,255,0.35); z-index:1; }
+
+  .footer { text-align:center; padding:4rem 2rem; border-top:1px solid rgba(255,255,255,0.04); }
+  .footer p { font-size:0.65rem; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.2); }
+
+  @media (max-width:700px) { .grid { grid-template-columns:1fr; padding:1rem; } }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <p class="hero-label">Concepts 51 — 100</p>
+  <h1><span>Aloud</span></h1>
+  <p>Fifty more brand directions — pushing the boundaries of grainy black and cyan.</p>
+</section>
+
+<div class="grid">
+
+  <!-- 51 -->
+  <div class="card c51"><span class="card-num">51</span><div class="flex-col"><div class="mega"></div><div class="logo">ALOUD</div></div><span class="card-label">The Megaphone</span></div>
+
+  <!-- 52 -->
+  <div class="card c52"><span class="card-num">52</span><div class="flex-col"><div class="logo">ALOUD</div><div class="sub">Holographic Edition</div></div><span class="card-label">The Hologram</span></div>
+
+  <!-- 53 -->
+  <div class="card c53"><span class="card-num">53</span><div class="flex-col"><div class="frame"><div class="photo"><span>A</span></div><div class="name">Aloud</div></div></div><span class="card-label">The Polaroid</span></div>
+
+  <!-- 54 -->
+  <div class="card c54"><span class="card-num">54</span><div class="flex-col"><div class="timer"><span class="digit">A</span><span class="digit">L</span><span class="digit">O</span><span class="digit">U</span><span class="digit">D</span></div><div class="logo">Start Speaking</div></div><span class="card-label">The Countdown</span></div>
+
+  <!-- 55 -->
+  <div class="card c55"><span class="card-num">55</span><div class="flex-col"><div class="db">85</div><div class="unit">DECIBELS</div><div class="name">Aloud</div></div><span class="card-label">The Decibel</span></div>
+
+  <!-- 56 -->
+  <div class="card c56"><span class="card-num">56</span>
+    <div class="rain"><span style="left:10%;animation-duration:3s">A</span><span style="left:20%;animation-duration:2.5s;animation-delay:0.5s">L</span><span style="left:35%;animation-duration:3.5s;animation-delay:1s">O</span><span style="left:50%;animation-duration:2.8s;animation-delay:0.3s">U</span><span style="left:65%;animation-duration:3.2s;animation-delay:0.8s">D</span><span style="left:75%;animation-duration:2.6s;animation-delay:1.2s">A</span><span style="left:88%;animation-duration:3s;animation-delay:0.6s">L</span></div>
+    <div class="flex-col"><div class="logo">ALOUD</div></div><span class="card-label">The Matrix Rain</span>
+  </div>
+
+  <!-- 57 -->
+  <div class="card c57"><span class="card-num">57</span><div class="flex-col"><div class="antenna"><div class="waves"><div class="wave-arc" style="width:40px;height:20px"></div><div class="wave-arc" style="width:60px;height:30px"></div><div class="wave-arc" style="width:80px;height:40px"></div></div><div class="tower"></div></div><div class="logo">Aloud</div></div><span class="card-label">The Broadcast</span></div>
+
+  <!-- 58 -->
+  <div class="card c58"><span class="card-num">58</span><div class="flex-col"><div class="kscope"><div class="tri"></div><div class="tri"></div><div class="tri"></div><div class="tri"></div><div class="tri"></div><div class="tri"></div></div><div class="name">Aloud</div></div><span class="card-label">The Kaleidoscope</span></div>
+
+  <!-- 59 -->
+  <div class="card c59"><span class="card-num">59</span><div class="flex-col"><div class="mic"><div class="head"></div><div class="stem"></div><div class="base"></div></div><div class="logo">Aloud</div></div><span class="card-label">The Microphone</span></div>
+
+  <!-- 60 -->
+  <div class="card c60"><span class="card-num">60</span><div class="flex-col"><div class="scope"><svg viewBox="0 0 140 40"><path d="M0,20 Q10,20 15,10 T30,20 Q40,20 45,5 T60,20 Q70,20 75,15 T90,20 Q100,20 105,8 T120,20 L140,20"/></svg></div><div class="logo">Aloud</div></div><span class="card-label">The Oscilloscope</span></div>
+
+  <!-- 61 -->
+  <div class="card c61"><span class="card-num">61</span><div class="flex-col"><div class="logo">ALOUD</div><div class="sub">Signal Received</div></div><span class="card-label">The Scanline</span></div>
+
+  <!-- 62 -->
+  <div class="card c62"><span class="card-num">62</span><div class="flex-col"><div class="tess"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div><div class="name">Aloud</div></div><span class="card-label">The Tessellation</span></div>
+
+  <!-- 63 -->
+  <div class="card c63"><span class="card-num">63</span><div class="flex-col"><div class="logo"><span>A</span>LOUD</div><div class="sub">Warped Reality</div></div><span class="card-label">The Warp</span></div>
+
+  <!-- 64 -->
+  <div class="card c64"><span class="card-num">64</span><div class="flex-col"><div class="iso">ALOUD</div></div><span class="card-label">The Isometric</span></div>
+
+  <!-- 65 -->
+  <div class="card c65"><span class="card-num">65</span><div class="flex-col"><div class="logo"><span>A</span>loud</div><div class="sub">Center Stage</div></div><span class="card-label">The Spotlight</span></div>
+
+  <!-- 66 -->
+  <div class="card c66"><span class="card-num">66</span><div class="flex-col"><div class="tv"><div class="text">ALOUD</div></div><div class="knobs"><div></div><div></div><div></div></div></div><span class="card-label">The Retro TV</span></div>
+
+  <!-- 67 -->
+  <div class="card c67"><span class="card-num">67</span><div class="flex-col"><div class="diamond"><span>A</span></div><div class="name">Aloud</div></div><span class="card-label">The Diamond</span></div>
+
+  <!-- 68 -->
+  <div class="card c68"><span class="card-num">68</span><div class="flex-col"><div class="spiral"><div class="dot"></div></div><div class="name">Aloud</div></div><span class="card-label">The Spiral</span></div>
+
+  <!-- 69 -->
+  <div class="card c69"><span class="card-num">69</span><div class="flex-col"><div class="mono"></div><div class="name">Aloud</div></div><span class="card-label">The Monolith</span></div>
+
+  <!-- 70 -->
+  <div class="card c70"><span class="card-num">70</span><div class="flex-col"><div class="horizon"><div class="logo">Aloud</div><div class="line"></div><div class="sub">Speak Beyond</div></div></div><span class="card-label">The Horizon</span></div>
+
+  <!-- 71 -->
+  <div class="card c71"><span class="card-num">71</span><div class="marquee"><span>ALOUD</span><span>ALOUD</span><span>ALOUD</span><span>ALOUD</span><span>ALOUD</span><span>ALOUD</span><span>ALOUD</span><span>ALOUD</span></div><span class="card-label">The Marquee</span></div>
+
+  <!-- 72 -->
+  <div class="card c72"><span class="card-num">72</span><div class="flex-col"><div class="logo">Aloud</div></div><span class="card-label">The Smoke</span></div>
+
+  <!-- 73 -->
+  <div class="card c73"><span class="card-num">73</span><div class="flex-col"><div class="pend"><div class="string"></div><div class="ball"></div></div><div class="logo">Aloud</div></div><span class="card-label">The Pendulum</span></div>
+
+  <!-- 74 -->
+  <div class="card c74"><span class="card-num">74</span><div class="flex-col"><div class="zag"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div><div class="logo">ALOUD</div></div><span class="card-label">The Zigzag</span></div>
+
+  <!-- 75 -->
+  <div class="card c75"><span class="card-num">75</span><div class="flex-col"><div class="logo">ALOUD</div><div class="arrow"><div class="shaft"></div><div class="head"></div></div></div><span class="card-label">The Arrow</span></div>
+
+  <!-- 76 -->
+  <div class="card c76"><span class="card-num">76</span><div class="flex-col"><div class="orbit-wrap"><div class="orbit-ring"></div><div class="orbit-ring"></div><div class="orbit-ring"></div><div class="orbit-dot"></div></div><div class="name">Aloud</div></div><span class="card-label">The Orbit</span></div>
+
+  <!-- 77 -->
+  <div class="card c77"><span class="card-num">77</span><div class="flex-col"><div class="term"><div class="line1">$ aloud --start</div><div class="line2">Aloud<span class="cursor"></span></div></div></div><span class="card-label">The Terminal</span></div>
+
+  <!-- 78 -->
+  <div class="card c78"><span class="card-num">78</span><div class="bg">ALOUD</div><div class="fg">ALOUD</div><span class="card-label">The Watermark</span></div>
+
+  <!-- 79 -->
+  <div class="card c79"><span class="card-num">79</span><div class="flex-col"><div class="logo">ALOUD</div></div><span class="card-label">The Emboss</span></div>
+
+  <!-- 80 -->
+  <div class="card c80"><span class="card-num">80</span><div class="flex-col"><div class="tape"><span class="tape-text">Aloud</span></div><div class="sub">Speak English Daily</div></div><span class="card-label">The Tape</span></div>
+
+  <!-- 81 -->
+  <div class="card c81"><span class="card-num">81</span><div class="flex-col"><div class="banner"><div class="text">ALOUD</div></div></div><span class="card-label">The Banner</span></div>
+
+  <!-- 82 -->
+  <div class="card c82"><span class="card-num">82</span><div class="flex-col"><div class="shield"><span>A</span></div><div class="name">Aloud</div></div><span class="card-label">The Shield</span></div>
+
+  <!-- 83 -->
+  <div class="card c83"><span class="card-num">83</span><div class="flex-col"><div class="heartbeat"><svg viewBox="0 0 160 40"><polyline points="0,20 30,20 40,5 50,35 60,15 70,25 80,20 160,20"/></svg></div><div class="logo">Aloud</div></div><span class="card-label">The Heartbeat</span></div>
+
+  <!-- 84 -->
+  <div class="card c84"><span class="card-num">84</span><div class="flex-col"><div class="light"><div class="beam"></div><div class="tower"></div></div><div class="name">Aloud</div></div><span class="card-label">The Lighthouse</span></div>
+
+  <!-- 85 -->
+  <div class="card c85"><span class="card-num">85</span><div class="flex-col"><div class="dial"><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><span class="center">A</span></div><div class="name">Aloud</div></div><span class="card-label">The Rotary</span></div>
+
+  <!-- 86 -->
+  <div class="card c86"><span class="card-num">86</span><div class="flex-col"><div class="compass"><span class="n">N</span><div class="needle"></div></div><div class="name">Aloud</div></div><span class="card-label">The Compass</span></div>
+
+  <!-- 87 -->
+  <div class="card c87"><span class="card-num">87</span><div class="flex-col"><div class="inf">&infin;</div><div class="name">Aloud</div></div><span class="card-label">The Infinity</span></div>
+
+  <!-- 88 -->
+  <div class="card c88"><span class="card-num">88</span><div class="flex-col"><div class="pool"><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div><div class="wave"></div></div><div class="name">Aloud</div></div><span class="card-label">The Wave Pool</span></div>
+
+  <!-- 89 -->
+  <div class="card c89"><span class="card-num">89</span><div class="flex-col"><div class="logo">ALOUD</div><div class="sub">Interference</div></div><span class="card-label">The Static</span></div>
+
+  <!-- 90 -->
+  <div class="card c90"><span class="card-num">90</span><div class="flex-col"><div class="apt"><div class="blade"></div><div class="blade"></div><div class="blade"></div><div class="blade"></div><div class="center"></div></div><div class="name">Aloud</div></div><span class="card-label">The Aperture</span></div>
+
+  <!-- 91 -->
+  <div class="card c91"><span class="card-num">91</span><div class="flex-col"><div class="eq"><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div><div class="logo">Aloud</div></div><span class="card-label">The Equalizer</span></div>
+
+  <!-- 92 -->
+  <div class="card c92"><span class="card-num">92</span><div class="flex-col"><div class="particles"><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div><div class="p"></div></div><div class="logo">Aloud</div></div><span class="card-label">The Particle</span></div>
+
+  <!-- 93 -->
+  <div class="card c93"><span class="card-num">93</span><div class="flex-col"><div class="logo">ALOUD</div><div class="sub">X-Ray Vision</div></div><span class="card-label">The X-Ray</span></div>
+
+  <!-- 94 -->
+  <div class="card c94"><span class="card-num">94</span><div class="flex-col"><div class="logo">Aloud</div></div><span class="card-label">The Fluorescent</span></div>
+
+  <!-- 95 -->
+  <div class="card c95"><span class="card-num">95</span><div class="flex-col"><div class="duo"><span class="left">AL</span><span class="right">OUD</span></div></div><span class="card-label">The Duotone</span></div>
+
+  <!-- 96 -->
+  <div class="card c96"><span class="card-num">96</span><div class="flex-col"><div class="mirror-wrap"><div class="top-text">ALOUD</div><div class="bot-text">ALOUD</div></div></div><span class="card-label">The Mirror</span></div>
+
+  <!-- 97 -->
+  <div class="card c97"><span class="card-num">97</span><div class="flex-col"><div class="vox"><div></div><div></div><div></div><div></div><div></div></div><div class="name">Aloud</div></div><span class="card-label">The Voxel</span></div>
+
+  <!-- 98 -->
+  <div class="card c98"><span class="card-num">98</span><div class="flex-col"><div class="sonar-wrap"><div class="sonar"></div><div class="sonar"></div><div class="sonar"></div><div class="center"></div></div><div class="name">Aloud</div></div><span class="card-label">The Sonar</span></div>
+
+  <!-- 99 -->
+  <div class="card c99"><span class="card-num">99</span><div class="flex-col"><div class="crest"><div class="top-rule"></div><div class="wings"><span class="wing">&laquo;</span><span class="initial">A</span><span class="wing">&raquo;</span></div><div class="bot-rule"></div></div><div class="name">Aloud</div></div><span class="card-label">The Crest</span></div>
+
+  <!-- 100 -->
+  <div class="card c100"><span class="card-num">100</span><div class="aurora"></div><div class="flex-col"><div class="logo">ALOUD</div><div class="sub">Northern Lights Edition</div></div><span class="card-label">The Aurora</span></div>
+
+</div>
+
+<footer class="footer">
+  <p><span style="color:var(--cyan)">Aloud</span> &mdash; Concepts 51&ndash;100 &mdash; 2026</p>
+</footer>
+
+</body>
+</html>
