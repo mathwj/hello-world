@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aloud — Brand Identity Concepts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+
+  /* ── Reset & Base ── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cyan: #00FFFF;
+    --cyan-dim: #00cccc;
+    --cyan-glow: rgba(0, 255, 255, 0.15);
+    --black: #0a0a0a;
+    --dark: #111111;
+    --darker: #0d0d0d;
+    --grain-opacity: 0.06;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ── Grain Overlay (global) ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px 180px;
+  }
+
+  /* ── Hero / Intro ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    background: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(0,255,255,0.06) 0%, transparent 70%);
+  }
+
+  .hero-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 2rem;
+    opacity: 0.8;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 span {
+    color: var(--cyan);
+    text-shadow: 0 0 60px rgba(0,255,255,0.3);
+  }
+
+  .hero p {
+    max-width: 500px;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.5);
+    font-weight: 300;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255,255,255,0.25);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .scroll-hint .line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--cyan), transparent);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+  }
+
+  /* ── Section Layout ── */
+  .brand-section {
+    min-height: 100vh;
+    padding: 6rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .brand-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .brand-inner {
+    max-width: 1200px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  .brand-info { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .brand-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    opacity: 0.7;
+  }
+
+  .brand-name {
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-tagline {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  .brand-description {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.8;
+    max-width: 440px;
+  }
+
+  .brand-tokens {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .token {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(0,255,255,0.2);
+    border-radius: 100px;
+    color: var(--cyan);
+    opacity: 0.7;
+  }
+
+  /* ── Brand Preview Card ── */
+  .brand-preview {
+    aspect-ratio: 4 / 3;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .brand-preview::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 150px;
+    border-radius: inherit;
+  }
+
+  /* ══════════════════════════════════════════
+     CONCEPT 1 — The Minimal Wordmark
+     ══════════════════════════════════════════ */
+  #concept1 .brand-name { font-family: 'Inter', sans-serif; }
+
+  #concept1 .brand-preview {
+    background: linear-gradient(160deg, #0d0d0d 0%, #111 100%);
+  }
+
+  .c1-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+  }
+
+  .c1-wordmark {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: clamp(3rem, 6vw, 5rem);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #fff;
+    position: relative;
+  }
+
+  .c1-wordmark .letter-a {
+    color: var(--cyan);
+    text-shadow: 0 0 40px rgba(0,255,255,0.4);
+  }
+
+  .c1-rule {
+    width: 60px;
+    height: 2px;
+    background: var(--cyan);
+    box-shadow: 0 0 20px rgba(0,255,255,0.5);
+  }
+
+  .c1-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+
+  /* ══════════════════════════════════════════
+     CONCEPT 2 — The Soundwave
+     ══════════════════════════════════════════ */
+  #concept2 .brand-name { font-family: 'Space Grotesk', sans-serif; }
+
+  #concept2 .brand-preview {
+    background: linear-gradient(135deg, #0a0a0a, #0f1a1a);
+  }
+
+  .c2-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .c2-wave {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 60px;
+  }
+
+  .c2-wave .bar {
+    width: 4px;
+    border-radius: 100px;
+    background: var(--cyan);
+    animation: wave 1.5s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(0,255,255,0.3);
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+
+  .c2-wave .bar:nth-child(1) { height: 20px; animation-delay: 0s; }
+  .c2-wave .bar:nth-child(2) { height: 35px; animation-delay: 0.1s; }
+  .c2-wave .bar:nth-child(3) { height: 50px; animation-delay: 0.2s; }
+  .c2-wave .bar:nth-child(4) { height: 60px; animation-delay: 0.3s; }
+  .c2-wave .bar:nth-child(5) { height: 45px; animation-delay: 0.4s; }
+  .c2-wave .bar:nth-child(6) { height: 55px; animation-delay: 0.15s; }
+  .c2-wave .bar:nth-child(7) { height: 30px; animation-delay: 0.35s; }
+  .c2-wave .bar:nth-child(8) { height: 50px; animation-delay: 0.25s; }
+  .c2-wave .bar:nth-child(9) { height: 20px; animation-delay: 0.45s; }
+
+  .c2-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  .c2-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .c2-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(0,255,255,0.6);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ══════════════════════════════════════════
+     CONCEPT 3 — The Serif Editorial
+     ══════════════════════════════════════════ */
+  #concept3 .brand-name { font-family: 'Playfair Display', serif; }
+
+  #concept3 .brand-preview {
+    background: linear-gradient(180deg, #0d0d0d, #111);
+  }
+
+  .c3-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 2rem;
+  }
+
+  .c3-frame {
+    border: 1px solid rgba(0,255,255,0.15);
+    padding: 2.5rem 3.5rem;
+    position: relative;
+  }
+
+  .c3-frame::before,
+  .c3-frame::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: var(--cyan);
+    border-style: solid;
+  }
+
+  .c3-frame::before {
+    top: -1px;
+    left: -1px;
+    border-width: 2px 0 0 2px;
+  }
+
+  .c3-frame::after {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 2px 2px 0;
+  }
+
+  .c3-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 6vw, 5rem);
+    font-weight: 900;
+    font-style: italic;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .c3-title span {
+    color: var(--cyan);
+    text-shadow: 0 0 50px rgba(0,255,255,0.25);
+  }
+
+  .c3-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    margin: 0.5rem 0;
+  }
+
+  .c3-divider .line {
+    flex: 1;
+    height: 1px;
+    background: rgba(0,255,255,0.15);
+  }
+
+  .c3-divider .diamond {
+    width: 6px;
+    height: 6px;
+    background: var(--cyan);
+    transform: rotate(45deg);
+    box-shadow: 0 0 15px rgba(0,255,255,0.4);
+  }
+
+  .c3-subtitle {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+  }
+
+  /* ══════════════════════════════════════════
+     CONCEPT 4 — The Geometric/Brutalist
+     ══════════════════════════════════════════ */
+  #concept4 .brand-name { font-family: 'Syne', sans-serif; }
+
+  #concept4 .brand-preview {
+    background: var(--darker);
+  }
+
+  .c4-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .c4-icon {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .c4-circle {
+    width: 80px;
+    height: 80px;
+    border: 2px solid var(--cyan);
+    border-radius: 50%;
+    position: absolute;
+    box-shadow: 0 0 30px rgba(0,255,255,0.15);
+  }
+
+  .c4-letter {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--cyan);
+    text-shadow: 0 0 30px rgba(0,255,255,0.4);
+    z-index: 1;
+  }
+
+  .c4-text {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #fff;
+  }
+
+  .c4-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+
+  .c4-grid .cell {
+    width: 8px;
+    height: 8px;
+    background: var(--cyan);
+    opacity: 0.3;
+  }
+
+  .c4-grid .cell.active {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(0,255,255,0.5);
+  }
+
+  .c4-tagline {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.55rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 1rem;
+  }
+
+  /* ══════════════════════════════════════════
+     CONCEPT 5 — The Flowing Script
+     ══════════════════════════════════════════ */
+  #concept5 .brand-name { font-family: 'DM Sans', sans-serif; }
+
+  #concept5 .brand-preview {
+    background: radial-gradient(ellipse at 30% 50%, rgba(0,255,255,0.05), transparent 60%),
+                linear-gradient(135deg, #0a0a0a, #0f0f0f);
+  }
+
+  .c5-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .c5-mark {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .c5-ring {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,255,255,0.12);
+    position: absolute;
+  }
+
+  .c5-ring:nth-child(2) {
+    width: 130px;
+    height: 130px;
+    border-color: rgba(0,255,255,0.06);
+  }
+
+  .c5-ring:nth-child(3) {
+    width: 160px;
+    height: 160px;
+    border-color: rgba(0,255,255,0.03);
+  }
+
+  .c5-a {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 900;
+    font-style: italic;
+    color: var(--cyan);
+    text-shadow: 0 0 40px rgba(0,255,255,0.35);
+    z-index: 1;
+  }
+
+  .c5-wordmark {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #fff;
+  }
+
+  .c5-wordmark em {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--cyan);
+    text-shadow: 0 0 30px rgba(0,255,255,0.2);
+  }
+
+  .c5-desc {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    max-width: 200px;
+    line-height: 1.8;
+  }
+
+  .c5-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .c5-dots .d {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--cyan);
+    opacity: 0.4;
+  }
+
+  .c5-dots .d:nth-child(2) { opacity: 0.7; }
+  .c5-dots .d:nth-child(3) { opacity: 1; box-shadow: 0 0 10px rgba(0,255,255,0.5); }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 6rem 2rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .footer p {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+  }
+
+  .footer .cyan { color: var(--cyan); }
+
+  /* ── Responsive ── */
+  @media (max-width: 800px) {
+    .brand-inner {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+
+    .brand-section { padding: 4rem 1.5rem; min-height: auto; }
+
+    .brand-info { order: 2; }
+    .brand-preview { order: 1; }
+
+    .brand-preview { aspect-ratio: 3 / 2; }
+
+    .c3-frame { padding: 1.5rem 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <p class="hero-label">Brand Identity Exploration</p>
+  <h1><span>Aloud</span></h1>
+  <p>Five distinct brand directions for an online English course that speaks volumes.</p>
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="line"></div>
+  </div>
+</section>
+
+<!-- ═══════════ CONCEPT 1 — Minimal Wordmark ═══════════ -->
+<section class="brand-section" id="concept1">
+  <div class="brand-inner">
+    <div class="brand-info">
+      <span class="brand-number">Concept 01 / 05</span>
+      <h2 class="brand-name">The Minimal<br>Wordmark</h2>
+      <p class="brand-tagline">"Clarity speaks louder than noise."</p>
+      <p class="brand-description">
+        A stripped-back, confident identity built around typography alone. The highlighted
+        opening letter 'A' in cyan becomes the singular accent — a bold first breath
+        before speaking aloud. Clean, modern, authoritative.
+      </p>
+      <div class="brand-tokens">
+        <span class="token">Minimalist</span>
+        <span class="token">Bold</span>
+        <span class="token">Professional</span>
+        <span class="token">Clean</span>
+      </div>
+    </div>
+    <div class="brand-preview">
+      <div class="c1-logo">
+        <div class="c1-wordmark"><span class="letter-a">A</span>LOUD</div>
+        <div class="c1-rule"></div>
+        <div class="c1-sub">Online English Course</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONCEPT 2 — Soundwave ═══════════ -->
+<section class="brand-section" id="concept2">
+  <div class="brand-inner">
+    <div class="brand-preview">
+      <div class="c2-logo">
+        <div class="c2-wave">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+        <div class="c2-text">aloud</div>
+        <div class="c2-badge">
+          <span class="dot"></span>
+          <span>Now Speaking</span>
+        </div>
+      </div>
+    </div>
+    <div class="brand-info">
+      <span class="brand-number">Concept 02 / 05</span>
+      <h2 class="brand-name">The<br>Soundwave</h2>
+      <p class="brand-tagline">"Your voice, visualized."</p>
+      <p class="brand-description">
+        The animated soundwave captures the act of speaking — the core experience of
+        learning a language. Paired with a tech-forward geometric sans-serif, this
+        identity feels like a living, breathing app. The pulsing "Now Speaking" indicator
+        reinforces active participation.
+      </p>
+      <div class="brand-tokens">
+        <span class="token">Dynamic</span>
+        <span class="token">Tech-Forward</span>
+        <span class="token">Energetic</span>
+        <span class="token">Interactive</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONCEPT 3 — Serif Editorial ═══════════ -->
+<section class="brand-section" id="concept3">
+  <div class="brand-inner">
+    <div class="brand-info">
+      <span class="brand-number">Concept 03 / 05</span>
+      <h2 class="brand-name">The Serif<br>Editorial</h2>
+      <p class="brand-tagline">"Language is an art form."</p>
+      <p class="brand-description">
+        Inspired by literary journals and editorial design, this identity elevates English
+        learning into a cultural pursuit. The ornamental frame and italic serif wordmark
+        evoke the beauty of language itself — expressive, elegant, and timeless.
+      </p>
+      <div class="brand-tokens">
+        <span class="token">Elegant</span>
+        <span class="token">Literary</span>
+        <span class="token">Prestigious</span>
+        <span class="token">Refined</span>
+      </div>
+    </div>
+    <div class="brand-preview">
+      <div class="c3-logo">
+        <div class="c3-frame">
+          <div class="c3-title"><span>A</span>loud</div>
+        </div>
+        <div class="c3-divider">
+          <div class="line"></div>
+          <div class="diamond"></div>
+          <div class="line"></div>
+        </div>
+        <div class="c3-subtitle">The Art of Speaking English</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONCEPT 4 — Geometric / Brutalist ═══════════ -->
+<section class="brand-section" id="concept4">
+  <div class="brand-inner">
+    <div class="brand-preview">
+      <div class="c4-logo">
+        <div class="c4-icon">
+          <div class="c4-circle"></div>
+          <span class="c4-letter">A</span>
+        </div>
+        <div class="c4-text">Aloud</div>
+        <div class="c4-grid">
+          <div class="cell active"></div>
+          <div class="cell"></div>
+          <div class="cell active"></div>
+          <div class="cell"></div>
+          <div class="cell active"></div>
+          <div class="cell"></div>
+          <div class="cell active"></div>
+          <div class="cell"></div>
+          <div class="cell active"></div>
+        </div>
+        <div class="c4-tagline">Speak · Learn · Repeat</div>
+      </div>
+    </div>
+    <div class="brand-info">
+      <span class="brand-number">Concept 04 / 05</span>
+      <h2 class="brand-name">The Geometric<br>Brutalist</h2>
+      <p class="brand-tagline">"Structured learning, unlimited potential."</p>
+      <p class="brand-description">
+        A bold, structured identity rooted in geometric shapes and systematic design. The
+        circled monogram acts as an app icon, while the grid pattern suggests methodology
+        and progress. The heavy display typeface commands attention — you can't ignore it.
+      </p>
+      <div class="brand-tokens">
+        <span class="token">Structured</span>
+        <span class="token">Bold</span>
+        <span class="token">Systematic</span>
+        <span class="token">Modern</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONCEPT 5 — Flowing / Premium ═══════════ -->
+<section class="brand-section" id="concept5">
+  <div class="brand-inner">
+    <div class="brand-info">
+      <span class="brand-number">Concept 05 / 05</span>
+      <h2 class="brand-name">The Flowing<br>Premium</h2>
+      <p class="brand-tagline">"Where confidence finds its voice."</p>
+      <p class="brand-description">
+        A premium, aspirational brand that blends modern sans-serif with classic italic
+        accents. Concentric rings radiate outward from the monogram like sound
+        waves — or ripples of influence. This identity speaks to ambitious learners
+        seeking a refined, high-end experience.
+      </p>
+      <div class="brand-tokens">
+        <span class="token">Premium</span>
+        <span class="token">Aspirational</span>
+        <span class="token">Warm</span>
+        <span class="token">Sophisticated</span>
+      </div>
+    </div>
+    <div class="brand-preview">
+      <div class="c5-logo">
+        <div class="c5-mark">
+          <div class="c5-ring"></div>
+          <div class="c5-ring"></div>
+          <div class="c5-ring"></div>
+          <span class="c5-a">A</span>
+        </div>
+        <div class="c5-wordmark"><em>A</em>loud</div>
+        <div class="c5-dots">
+          <div class="d"></div>
+          <div class="d"></div>
+          <div class="d"></div>
+        </div>
+        <div class="c5-desc">Online English Course</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <p><span class="cyan">Aloud</span> &mdash; Brand Identity Concepts &mdash; 2026</p>
+</footer>
+
+</body>
+</html>
