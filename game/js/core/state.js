@@ -302,7 +302,7 @@ class GameState {
   regenEnergy() {
     const now = Utils.now();
     const elapsed = now - this.state.player.lastEnergyRegen;
-    const regenRate = 180; // 1 energy per 3 minutes
+    const regenRate = 3; // 1 energy per 3 seconds
     const gained = Math.floor(elapsed / regenRate);
     if (gained > 0) {
       this.state.player.energy = Math.min(

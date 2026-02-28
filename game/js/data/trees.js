@@ -2,7 +2,7 @@
 const TREES_DATA = {
   apple: {
     id: 'apple', name: 'Apple Tree', icon: '🍎',
-    cost: 100, matureTime: 3600, fruitCycle: 14400,
+    cost: 100, matureTime: 60, fruitCycle: 240,
     fruitSellPrice: 30, fruitIcon: '🍎', fruitName: 'Apple',
     xpPerHarvest: 15, unlockLevel: 3,
     stages: ['🌱', '🌳', '🍎'],
@@ -11,7 +11,7 @@ const TREES_DATA = {
   },
   orange: {
     id: 'orange', name: 'Orange Tree', icon: '🍊',
-    cost: 200, matureTime: 7200, fruitCycle: 21600,
+    cost: 200, matureTime: 120, fruitCycle: 360,
     fruitSellPrice: 50, fruitIcon: '🍊', fruitName: 'Orange',
     xpPerHarvest: 25, unlockLevel: 6,
     stages: ['🌱', '🌳', '🍊'],
@@ -20,7 +20,7 @@ const TREES_DATA = {
   },
   cherry: {
     id: 'cherry', name: 'Cherry Tree', icon: '🍒',
-    cost: 350, matureTime: 10800, fruitCycle: 28800,
+    cost: 350, matureTime: 180, fruitCycle: 480,
     fruitSellPrice: 80, fruitIcon: '🍒', fruitName: 'Cherry',
     xpPerHarvest: 40, unlockLevel: 10,
     stages: ['🌱', '🌳', '🍒'],
@@ -29,7 +29,7 @@ const TREES_DATA = {
   },
   cocoa: {
     id: 'cocoa', name: 'Cocoa Tree', icon: '🍫',
-    cost: 500, matureTime: 14400, fruitCycle: 43200,
+    cost: 500, matureTime: 240, fruitCycle: 720,
     fruitSellPrice: 130, fruitIcon: '🍫', fruitName: 'Cocoa',
     xpPerHarvest: 65, unlockLevel: 15,
     stages: ['🌱', '🌳', '🍫'],
@@ -38,7 +38,7 @@ const TREES_DATA = {
   },
   coconut: {
     id: 'coconut', name: 'Coconut Palm', icon: '🥥',
-    cost: 800, matureTime: 21600, fruitCycle: 86400,
+    cost: 800, matureTime: 360, fruitCycle: 1440,
     fruitSellPrice: 250, fruitIcon: '🥥', fruitName: 'Coconut',
     xpPerHarvest: 100, unlockLevel: 20,
     stages: ['🌱', '🌴', '🥥'],
