@@ -59,6 +59,12 @@ class PanelManager {
       case 'mastery': return this.buildMasteryPanel();
       case 'pet': return this.buildPetPanel();
       case 'market': return this.buildMarketPanel();
+      // Guild & Competition panels
+      case 'guild': return this.buildGuildPanel();
+      case 'guild_raid': return this.buildGuildRaidPanel();
+      case 'leaderboard': return this.buildLeaderboardPanel();
+      case 'tournament': return this.buildTournamentPanel();
+      case 'challenge': return this.buildChallengePanel(data);
       default: return null;
     }
   }
@@ -1525,5 +1531,592 @@ class PanelManager {
     html += `<button class="btn btn-confirm" style="margin-top:16px;" onclick="game.panels.close()">Let's Farm! 🌱</button></div>`;
     panel.body.innerHTML = html;
     return panel;
+  }
+
+  // ==================== GUILD PANEL ====================
+  buildGuildPanel() {
+    const panel = this.createPanelFrame('Guild', '🏰');
+    const guild = this.game.guild.ensureState();
+
+    if (!guild.joined) {
+      // Show create/join screen
+      let html = '<div class="guild-welcome">';
+      html += '<h3>Join a Guild!</h3>';
+      html += '<p>Team up with other farmers for bonuses, raids, and rewards!</p>';
+
+      // Create guild section
+      html += '<div class="guild-create-section">';
+      html += '<h4>Create New Guild (500 coins)</h4>';
+      html += '<input type="text" id="guild-name-input" placeholder="Guild Name" maxlength="20" class="guild-input">';
+      html += '<input type="text" id="guild-motto-input" placeholder="Guild Motto" maxlength="40" class="guild-input">';
+      html += '<button class="btn btn-primary guild-create-btn" onclick="';
+      html += "const name=document.getElementById('guild-name-input').value.trim();";
+      html += "const motto=document.getElementById('guild-motto-input').value.trim();";
+      html += "if(!name){game.notify.warn('Enter a guild name!');return;}";
+      html += "const r=game.guild.createGuild(name,'🏰',motto);";
+      html += "game.notify.toast(r.message,r.success?'reward':'error');";
+      html += "if(r.success)game.panels.open('guild');";
+      html += '">Create Guild 🏰</button>';
+      html += '</div>';
+
+      // Join existing guilds
+      html += '<div class="guild-join-section"><h4>Or Join an Existing Guild</h4>';
+      GUILD_TEMPLATES.forEach((template, idx) => {
+        html += `<div class="guild-template" onclick="
+          const r=game.guild.joinGuild(${idx});
+          game.notify.toast(r.message,r.success?'reward':'error');
+          if(r.success)game.panels.open('guild');
+        ">`;
+        html += `<div class="guild-template-header">`;
+        html += `<span class="guild-template-icon">${template.icon}</span>`;
+        html += `<span class="guild-template-name">${template.name}</span>`;
+        html += `<span class="guild-template-level">Lv.${template.level}</span>`;
+        html += `</div>`;
+        html += `<div class="guild-template-motto">"${template.motto}"</div>`;
+        html += `<div class="guild-template-members">${template.memberIds.length} members</div>`;
+        html += `</div>`;
+      });
+      html += '</div></div>';
+
+      panel.body.innerHTML = html;
+      return panel;
+    }
+
+    // Guild is joined - show tabs
+    const tabs = document.createElement('div');
+    tabs.className = 'panel-tabs';
+    const tabNames = [
+      { id: 'info', label: '🏰 Info' },
+      { id: 'members', label: '👥 Members' },
+      { id: 'chat', label: '💬 Chat' },
+      { id: 'perks', label: '⭐ Perks' },
+      { id: 'raid', label: '⚔️ Raid' },
+      { id: 'shop', label: '🛒 Shop' }
+    ];
+
+    let activeTab = 'info';
+    const renderTab = (tabId) => {
+      activeTab = tabId;
+      tabs.querySelectorAll('.panel-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.tab === tabId)
+      );
+      panel.body.innerHTML = '';
+      switch (tabId) {
+        case 'info': this.renderGuildInfoTab(panel.body); break;
+        case 'members': this.renderGuildMembersTab(panel.body); break;
+        case 'chat': this.renderGuildChatTab(panel.body); break;
+        case 'perks': this.renderGuildPerksTab(panel.body); break;
+        case 'raid': this.renderGuildRaidTab(panel.body); break;
+        case 'shop': this.renderGuildShopTab(panel.body); break;
+      }
+    };
+
+    tabNames.forEach(t => {
+      const tab = document.createElement('div');
+      tab.className = 'panel-tab' + (t.id === activeTab ? ' active' : '');
+      tab.textContent = t.label;
+      tab.dataset.tab = t.id;
+      tab.onclick = () => renderTab(t.id);
+      tabs.appendChild(tab);
+    });
+
+    panel.insertBefore(tabs, panel.body);
+    renderTab('info');
+    return panel;
+  }
+
+  renderGuildInfoTab(container) {
+    const guild = this.game.guild.ensureState();
+    const xpNeeded = GUILD_LEVEL_XP[guild.level] || 999999;
+    const xpPct = Math.min(100, Math.floor((guild.xp / xpNeeded) * 100));
+
+    let html = '<div class="guild-info">';
+    html += `<div class="guild-header-big">`;
+    html += `<span class="guild-icon-big">${guild.icon}</span>`;
+    html += `<div><h3>${guild.name}</h3><p class="guild-motto">"${guild.motto}"</p></div>`;
+    html += `</div>`;
+
+    html += `<div class="guild-stats-grid">`;
+    html += `<div class="guild-stat"><span class="guild-stat-label">Level</span><span class="guild-stat-value">${guild.level}</span></div>`;
+    html += `<div class="guild-stat"><span class="guild-stat-label">Members</span><span class="guild-stat-value">${guild.members.length + 1}</span></div>`;
+    html += `<div class="guild-stat"><span class="guild-stat-label">Medals</span><span class="guild-stat-value">🎖️ ${Utils.formatNumber(guild.medals)}</span></div>`;
+    html += `<div class="guild-stat"><span class="guild-stat-label">Donated</span><span class="guild-stat-value">🪙 ${Utils.formatNumber(guild.totalDonated)}</span></div>`;
+    html += `</div>`;
+
+    html += `<div class="guild-xp-section">`;
+    html += `<div class="guild-xp-label">Guild XP: ${Utils.formatNumber(guild.xp)} / ${Utils.formatNumber(xpNeeded)}</div>`;
+    html += `<div class="guild-xp-bar"><div class="guild-xp-fill" style="width:${xpPct}%"></div></div>`;
+    html += `</div>`;
+
+    // Donate section
+    html += `<div class="guild-donate-section">`;
+    html += `<h4>💰 Donate Coins</h4>`;
+    const amounts = [100, 500, 1000, 5000];
+    html += `<div class="donate-buttons">`;
+    amounts.forEach(amt => {
+      html += `<button class="btn btn-donate" onclick="
+        const r=game.guild.donate(${amt});
+        game.notify.toast(r.message,r.success?'reward':'error');
+        game.panels.open('guild');
+      ">🪙 ${Utils.formatNumber(amt)}</button>`;
+    });
+    html += `</div></div>`;
+
+    // Leave guild
+    html += `<button class="btn btn-danger guild-leave-btn" onclick="
+      if(confirm('Leave this guild?')){game.guild.leaveGuild();game.panels.open('guild');}
+    ">Leave Guild</button>`;
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  renderGuildMembersTab(container) {
+    const members = this.game.guild.getMemberList();
+    let html = '<div class="guild-members-list">';
+
+    members.forEach((member, idx) => {
+      const statusDot = member.isOnline ? '🟢' : '⚫';
+      html += `<div class="guild-member ${member.isPlayer ? 'is-player' : ''}">`;
+      html += `<span class="member-rank">#${idx + 1}</span>`;
+      html += `<span class="member-icon">${member.icon}</span>`;
+      html += `<div class="member-info">`;
+      html += `<span class="member-name">${statusDot} ${member.name}${member.isPlayer ? ' (You)' : ''}</span>`;
+      html += `<span class="member-details">Lv.${member.level} • Power: ${Utils.formatNumber(member.farmPower)}</span>`;
+      html += `</div>`;
+      if (!member.isPlayer) {
+        html += `<button class="btn btn-small btn-challenge" onclick="game.panels.open('challenge',{opponentId:'${member.id}'})">⚔️</button>`;
+      }
+      html += `</div>`;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  renderGuildChatTab(container) {
+    const guild = this.game.guild.ensureState();
+    let html = '<div class="guild-chat">';
+    html += '<div class="guild-chat-messages" id="guild-chat-messages">';
+
+    guild.chatLog.forEach(msg => {
+      const timeAgo = Math.floor(Utils.now() - msg.time);
+      const timeStr = timeAgo < 60 ? 'now' : timeAgo < 3600 ? `${Math.floor(timeAgo / 60)}m` : `${Math.floor(timeAgo / 3600)}h`;
+      const isSystem = msg.from === 'System';
+      html += `<div class="chat-msg ${isSystem ? 'system' : ''}">`;
+      html += `<span class="chat-name">${msg.from}</span>`;
+      html += `<span class="chat-text">${msg.message}</span>`;
+      html += `<span class="chat-time">${timeStr}</span>`;
+      html += `</div>`;
+    });
+
+    html += '</div>';
+
+    // Quick chat buttons
+    html += '<div class="guild-chat-actions">';
+    const quickMessages = ['Hey everyone! 👋', 'Great job! ⭐', 'Let\'s raid! ⚔️', 'Need help! 🆘'];
+    quickMessages.forEach(msg => {
+      html += `<button class="btn btn-chat" onclick="
+        game.guild.addChatMessage(game.state.get().player.name,'${msg.replace(/'/g, "\\'")}');
+        game.guild.simulateNPCReaction('reaction');
+        setTimeout(()=>game.panels.open('guild'),500);
+      ">${msg}</button>`;
+    });
+    html += '</div></div>';
+    container.innerHTML = html;
+
+    // Scroll chat to bottom
+    setTimeout(() => {
+      const chatEl = document.getElementById('guild-chat-messages');
+      if (chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+    }, 50);
+  }
+
+  renderGuildPerksTab(container) {
+    const guild = this.game.guild.ensureState();
+    let html = '<div class="guild-perks-list">';
+
+    const sortedPerks = Object.entries(GUILD_PERKS).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    sortedPerks.forEach(([lvl, perk]) => {
+      const unlocked = guild.level >= parseInt(lvl);
+      html += `<div class="guild-perk ${unlocked ? 'unlocked' : 'locked'}">`;
+      html += `<span class="perk-level">Lv.${lvl}</span>`;
+      html += `<span class="perk-icon">${perk.icon}</span>`;
+      html += `<div class="perk-info">`;
+      html += `<span class="perk-name">${perk.name}</span>`;
+      html += `<span class="perk-desc">${perk.desc}</span>`;
+      html += `</div>`;
+      html += `<span class="perk-status">${unlocked ? '✅' : '🔒'}</span>`;
+      html += `</div>`;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  renderGuildRaidTab(container) {
+    const guild = this.game.guild.ensureState();
+    const raidStatus = this.game.guild.getRaidStatus();
+
+    let html = '<div class="guild-raid-section">';
+
+    if (raidStatus) {
+      // Active raid
+      const hpPct = Math.floor(raidStatus.hpPercent * 100);
+      html += `<div class="raid-active">`;
+      html += `<div class="raid-boss-display">`;
+      html += `<span class="raid-boss-big-icon">${raidStatus.boss.icon}</span>`;
+      html += `<h3>${raidStatus.boss.name}</h3>`;
+      html += `<p class="raid-phase">${raidStatus.phase.name} — ${raidStatus.phase.ability}</p>`;
+      html += `</div>`;
+      html += `<div class="raid-hp-display">`;
+      html += `<div class="raid-hp-bar-big"><div class="raid-hp-fill-big" style="width:${hpPct}%"></div></div>`;
+      html += `<span>${Utils.formatNumber(raidStatus.currentHp)} / ${Utils.formatNumber(raidStatus.maxHp)}</span>`;
+      html += `</div>`;
+      html += `<div class="raid-timer-big">⏱️ ${Utils.formatTime(raidStatus.timeRemaining)}</div>`;
+
+      // Participants
+      html += `<div class="raid-participants"><h4>Damage Dealt</h4>`;
+      const sorted = Object.entries(raidStatus.participants).sort((a, b) => b[1] - a[1]);
+      sorted.forEach(([name, dmg]) => {
+        html += `<div class="raid-participant"><span>${name}</span><span>${Utils.formatNumber(dmg)} dmg</span></div>`;
+      });
+      html += `</div>`;
+
+      html += `<p class="raid-tip">Harvest crops and sell items to deal damage!</p>`;
+      html += `</div>`;
+    } else {
+      // Boss selection
+      const canRaid = guild.level >= 20;
+      if (!canRaid) {
+        html += `<div class="raid-locked"><p>🔒 Raids unlock at Guild Level 20 (current: ${guild.level})</p></div>`;
+      } else {
+        const cooldownRemaining = Math.max(0, 300 - (Utils.now() - guild.raidCooldown));
+        if (cooldownRemaining > 0) {
+          html += `<p class="raid-cooldown">⏱️ Raid cooldown: ${Utils.formatTime(cooldownRemaining)}</p>`;
+        }
+
+        html += `<h4>Choose a Boss</h4>`;
+        Object.values(RAID_BOSSES).forEach(boss => {
+          const canFight = guild.level >= boss.minGuildLevel && cooldownRemaining <= 0;
+          html += `<div class="raid-boss-card ${canFight ? '' : 'locked'}">`;
+          html += `<div class="raid-boss-header">`;
+          html += `<span class="raid-boss-icon">${boss.icon}</span>`;
+          html += `<div><strong>${boss.name}</strong><br><small>${boss.description}</small></div>`;
+          html += `</div>`;
+          html += `<div class="raid-boss-stats">`;
+          html += `<span>HP: ${Utils.formatNumber(boss.hp)}</span>`;
+          html += `<span>Time: ${Utils.formatTime(boss.timeLimit)}</span>`;
+          html += `<span>Req: Lv.${boss.minGuildLevel}</span>`;
+          html += `</div>`;
+          html += `<div class="raid-boss-rewards">`;
+          html += `<span>🪙 ${Utils.formatNumber(boss.rewards.coins)}</span>`;
+          html += `<span>⭐ ${Utils.formatNumber(boss.rewards.xp)}</span>`;
+          html += `<span>🎖️ ${boss.rewards.medals}</span>`;
+          html += `</div>`;
+          if (canFight) {
+            html += `<button class="btn btn-primary raid-start-btn" onclick="
+              const r=game.guild.startRaid('${boss.id}');
+              game.notify.toast(r.message,r.success?'reward':'error');
+              if(r.success)game.panels.open('guild');
+            ">Start Raid ⚔️</button>`;
+          } else if (guild.level < boss.minGuildLevel) {
+            html += `<span class="raid-req-locked">🔒 Guild Lv.${boss.minGuildLevel}</span>`;
+          }
+          html += `</div>`;
+        });
+      }
+
+      // Raid history
+      if (guild.raidHistory.length > 0) {
+        html += `<div class="raid-history"><h4>Recent Raids</h4>`;
+        guild.raidHistory.slice(-5).reverse().forEach(raid => {
+          const boss = RAID_BOSSES[raid.bossId];
+          html += `<div class="raid-history-entry ${raid.success ? 'success' : 'failed'}">`;
+          html += `<span>${boss?.icon || '?'} ${boss?.name || raid.bossId}</span>`;
+          html += `<span>${raid.success ? '✅ Victory' : '❌ Failed'}</span>`;
+          html += `<span>${Utils.formatNumber(raid.damage)} dmg</span>`;
+          html += `</div>`;
+        });
+        html += `</div>`;
+      }
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  renderGuildShopTab(container) {
+    const guild = this.game.guild.ensureState();
+    const items = this.game.guild.getAvailableShopItems();
+
+    let html = '<div class="guild-shop-section">';
+    html += `<p class="guild-medals-display">🎖️ Guild Medals: <strong>${Utils.formatNumber(guild.medals)}</strong></p>`;
+
+    if (items.length === 0) {
+      html += '<p class="guild-shop-locked">🔒 Guild Shop unlocks at Guild Level 10</p>';
+    } else {
+      html += '<div class="guild-shop-grid">';
+      items.forEach(item => {
+        const canAfford = guild.medals >= item.cost;
+        html += `<div class="guild-shop-item ${canAfford ? '' : 'locked'}">`;
+        html += `<span class="shop-item-icon">${item.icon}</span>`;
+        html += `<span class="shop-item-name">${item.name}</span>`;
+        html += `<span class="shop-item-desc">${item.desc}</span>`;
+        html += `<button class="btn ${canAfford ? 'btn-primary' : 'btn-disabled'}" ${canAfford ? `onclick="
+          const r=game.guild.buyShopItem('${item.id}');
+          game.notify.toast(r.message,r.success?'reward':'error');
+          game.panels.open('guild');
+        "` : 'disabled'}>🎖️ ${item.cost}</button>`;
+        html += `</div>`;
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // ==================== LEADERBOARD PANEL ====================
+  buildLeaderboardPanel() {
+    const panel = this.createPanelFrame('Leaderboards', '🏆');
+
+    const tabs = document.createElement('div');
+    tabs.className = 'panel-tabs';
+    const tabNames = [
+      { id: 'rankings', label: '🏆 Rankings' },
+      { id: 'tournaments', label: '🎯 Tournaments' },
+      { id: 'challenges', label: '⚔️ Challenges' }
+    ];
+
+    let activeTab = 'rankings';
+    const renderTab = (tabId) => {
+      activeTab = tabId;
+      tabs.querySelectorAll('.panel-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.tab === tabId)
+      );
+      panel.body.innerHTML = '';
+      switch (tabId) {
+        case 'rankings': this.renderRankingsTab(panel.body); break;
+        case 'tournaments': this.renderTournamentsTab(panel.body); break;
+        case 'challenges': this.renderChallengesTab(panel.body); break;
+      }
+    };
+
+    tabNames.forEach(t => {
+      const tab = document.createElement('div');
+      tab.className = 'panel-tab' + (t.id === activeTab ? ' active' : '');
+      tab.textContent = t.label;
+      tab.dataset.tab = t.id;
+      tab.onclick = () => renderTab(t.id);
+      tabs.appendChild(tab);
+    });
+
+    panel.insertBefore(tabs, panel.body);
+    renderTab('rankings');
+    return panel;
+  }
+
+  renderRankingsTab(container) {
+    let html = '<div class="leaderboard-section">';
+
+    // Category selector
+    html += '<div class="lb-categories">';
+    const categories = Object.values(LEADERBOARD_CATEGORIES);
+    const defaultCat = 'farmPower';
+
+    categories.forEach(cat => {
+      html += `<button class="btn btn-lb-cat ${cat.id === defaultCat ? 'active' : ''}" data-cat="${cat.id}" onclick="
+        document.querySelectorAll('.btn-lb-cat').forEach(b=>b.classList.remove('active'));
+        this.classList.add('active');
+        const entries=game.competition.generateLeaderboard('${cat.id}');
+        let h='';
+        entries.slice(0,15).forEach(e=>{
+          const medal=e.rank===1?'🥇':e.rank===2?'🥈':e.rank===3?'🥉':'';
+          h+='<div class=\\'lb-entry '+(e.isPlayer?'is-player':'')+'\\'>'+
+            '<span class=\\'lb-rank\\'>'+medal+(medal?'':'#'+e.rank)+'</span>'+
+            '<span class=\\'lb-icon\\'>'+e.icon+'</span>'+
+            '<div class=\\'lb-info\\'><span class=\\'lb-name\\'>'+e.name+'</span>'+(e.guildName?'<span class=\\'lb-guild\\'>'+e.guildName+'</span>':'')+'</div>'+
+            '<span class=\\'lb-score\\'>'+Utils.formatNumber(e.score)+'</span></div>';
+        });
+        document.getElementById('lb-entries').innerHTML=h;
+      ">${cat.icon} ${cat.name}</button>`;
+    });
+    html += '</div>';
+
+    // Initial leaderboard
+    const entries = this.game.competition.generateLeaderboard(defaultCat);
+    html += '<div class="lb-entries" id="lb-entries">';
+    entries.slice(0, 15).forEach(entry => {
+      const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : '';
+      html += `<div class="lb-entry ${entry.isPlayer ? 'is-player' : ''}">`;
+      html += `<span class="lb-rank">${medal || '#' + entry.rank}</span>`;
+      html += `<span class="lb-icon">${entry.icon}</span>`;
+      html += `<div class="lb-info"><span class="lb-name">${entry.name}</span>`;
+      if (entry.guildName) html += `<span class="lb-guild">${entry.guildName}</span>`;
+      html += `</div>`;
+      html += `<span class="lb-score">${Utils.formatNumber(entry.score)}</span>`;
+      html += `</div>`;
+    });
+    html += '</div></div>';
+
+    container.innerHTML = html;
+  }
+
+  renderTournamentsTab(container) {
+    const comp = this.game.competition.ensureState();
+    let html = '<div class="tournament-section">';
+
+    // Active tournament
+    const status = this.game.competition.getTournamentStatus();
+    if (status) {
+      html += `<div class="tournament-active">`;
+      html += `<h4>${status.type.icon} ${status.type.name} — In Progress!</h4>`;
+      html += `<p class="tourney-timer">⏱️ ${Utils.formatTime(status.timeRemaining)}</p>`;
+      html += `<div class="tourney-standings">`;
+      status.standings.slice(0, 8).forEach(s => {
+        html += `<div class="tourney-entry ${s.isPlayer ? 'is-player' : ''}">`;
+        html += `<span class="tourney-rank">#${s.rank}</span>`;
+        html += `<span class="tourney-name">${s.name}</span>`;
+        html += `<span class="tourney-score">${Utils.formatNumber(s.score)}</span>`;
+        html += `</div>`;
+      });
+      html += `</div></div>`;
+    } else {
+      // Tournament selection
+      html += `<h4>Start a Tournament</h4>`;
+      const cooldownRemaining = Math.max(0, 600 - (Utils.now() - comp.tournamentCooldown));
+      if (cooldownRemaining > 0) {
+        html += `<p class="tourney-cooldown">⏱️ Cooldown: ${Utils.formatTime(cooldownRemaining)}</p>`;
+      }
+
+      Object.values(TOURNAMENT_TYPES).forEach(type => {
+        const canStart = cooldownRemaining <= 0;
+        html += `<div class="tournament-card">`;
+        html += `<div class="tournament-header"><span>${type.icon}</span><strong>${type.name}</strong></div>`;
+        html += `<p>${type.description}</p>`;
+        html += `<div class="tournament-rewards">`;
+        type.rewards.slice(0, 3).forEach(r => {
+          const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉';
+          html += `<span>${medal} 🪙${Utils.formatNumber(r.coins)} 🎖️${r.medals}</span>`;
+        });
+        html += `</div>`;
+        if (canStart) {
+          html += `<button class="btn btn-primary" onclick="
+            const r=game.competition.startTournament('${type.id}');
+            game.notify.toast(r.message,r.success?'reward':'error');
+            if(r.success)game.panels.close();
+          ">Start ${type.name}!</button>`;
+        }
+        html += `</div>`;
+      });
+    }
+
+    // History
+    if (comp.tournamentHistory.length > 0) {
+      html += `<div class="tournament-history"><h4>Recent Results</h4>`;
+      comp.tournamentHistory.slice(-5).reverse().forEach(t => {
+        const type = TOURNAMENT_TYPES[t.typeId];
+        html += `<div class="tourney-history-entry">`;
+        html += `<span>${type?.icon || '🎯'} ${type?.name || t.typeId}</span>`;
+        html += `<span>Rank #${t.rank}</span>`;
+        html += `<span>Score: ${Utils.formatNumber(t.score)}</span>`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  renderChallengesTab(container) {
+    const comp = this.game.competition.ensureState();
+    const guild = this.game.guild.ensureState();
+    let html = '<div class="challenge-section">';
+
+    // Active challenge
+    const status = this.game.competition.getChallengeStatus();
+    if (status) {
+      html += `<div class="challenge-active">`;
+      html += `<h4>${status.type.icon} ${status.type.name}</h4>`;
+      html += `<p>vs ${status.opponentName}</p>`;
+      html += `<div class="challenge-scores">`;
+      html += `<div class="challenge-player ${status.isWinning ? 'winning' : ''}">`;
+      html += `<span>You</span><span class="challenge-score">${Utils.formatNumber(status.playerScore)}</span>`;
+      html += `</div>`;
+      html += `<span class="challenge-vs">VS</span>`;
+      html += `<div class="challenge-opponent ${!status.isWinning ? 'winning' : ''}">`;
+      html += `<span>${status.opponentName}</span><span class="challenge-score">${Utils.formatNumber(status.opponentScore)}</span>`;
+      html += `</div></div>`;
+      html += `<p class="challenge-timer">⏱️ ${Utils.formatTime(status.timeRemaining)}</p>`;
+      html += `</div>`;
+    } else if (guild.joined) {
+      html += `<h4>Challenge a Guild Member!</h4>`;
+      html += `<p>Pick a challenge type, then pick an opponent.</p>`;
+
+      Object.values(CHALLENGE_TYPES).forEach(type => {
+        html += `<div class="challenge-type-card">`;
+        html += `<span class="challenge-icon">${type.icon}</span>`;
+        html += `<div><strong>${type.name}</strong><br><small>${type.description}</small></div>`;
+        html += `<div class="challenge-reward-preview">Winner: 🪙${type.reward.winner.coins}</div>`;
+        html += `</div>`;
+      });
+
+      // Opponent selection
+      html += `<h4>Pick an Opponent</h4>`;
+      guild.members.forEach(memberId => {
+        const npc = NPC_GUILD_MEMBERS.find(n => n.id === memberId);
+        if (!npc) return;
+        html += `<div class="challenge-opponent-card">`;
+        html += `<span>${npc.icon}</span>`;
+        html += `<span>${npc.name} (Lv.${npc.level})</span>`;
+        html += `<div class="challenge-btns">`;
+        Object.values(CHALLENGE_TYPES).forEach(type => {
+          html += `<button class="btn btn-small" onclick="
+            const r=game.competition.startChallenge('${type.id}','${npc.id}');
+            game.notify.toast(r.message,r.success?'reward':'error');
+            if(r.success)game.panels.close();
+          ">${type.icon}</button>`;
+        });
+        html += `</div></div>`;
+      });
+    } else {
+      html += '<p>Join a guild to challenge other farmers!</p>';
+    }
+
+    // History
+    if (comp.challengeHistory.length > 0) {
+      html += `<div class="challenge-history"><h4>Recent Challenges</h4>`;
+      comp.challengeHistory.slice(-5).reverse().forEach(c => {
+        const type = CHALLENGE_TYPES[c.typeId];
+        html += `<div class="challenge-history-entry ${c.won ? 'won' : 'lost'}">`;
+        html += `<span>${type?.icon || '⚔️'} vs ${c.opponent}</span>`;
+        html += `<span>${c.won ? '✅ Won' : '❌ Lost'}</span>`;
+        html += `<span>${Utils.formatNumber(c.playerScore)} vs ${Utils.formatNumber(c.opponentScore)}</span>`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  // Stub panels for direct navigation
+  buildGuildRaidPanel() {
+    return this.buildGuildPanel();
+  }
+
+  buildTournamentPanel() {
+    return this.buildLeaderboardPanel();
+  }
+
+  buildChallengePanel(data) {
+    if (data && data.opponentId) {
+      // Quick-start a challenge panel
+      return this.buildLeaderboardPanel();
+    }
+    return this.buildLeaderboardPanel();
   }
 }

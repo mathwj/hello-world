@@ -84,6 +84,11 @@
         </button>
         <button class="hud-btn" id="btn-achievements" title="Achievements">&#x1F3C6;</button>
         <button class="hud-btn" id="btn-collections" title="Collections">&#x1F4DA;</button>
+        <button class="hud-btn" id="btn-guild" title="Guild">
+          &#x1F3F0;
+          <span class="badge" id="guild-badge" style="display:none"></span>
+        </button>
+        <button class="hud-btn" id="btn-leaderboard" title="Leaderboards">&#x1F3C6;</button>
         <button class="hud-btn" id="btn-settings" title="Settings">&#x2699;&#xFE0F;</button>
       </div>
 
@@ -123,6 +128,11 @@
       <span class="frenzy-text">x1</span>
     </div>
 
+    <!-- Guild & Competition HUD -->
+    <div id="hud-raid" class="hud-raid" style="display:none"></div>
+    <div id="hud-tournament" class="hud-tournament" style="display:none"></div>
+    <div id="hud-challenge" class="hud-challenge" style="display:none"></div>
+
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
@@ -140,6 +150,7 @@
   <script src="js/data/levels.js"></script>
   <script src="js/data/achievements.js"></script>
   <script src="js/data/orders.js"></script>
+  <script src="js/data/guilds.js"></script>
 
   <!-- Core -->
   <script src="js/core/utils.js"></script>
@@ -150,6 +161,8 @@
   <!-- Systems -->
   <script src="js/systems/orders.js"></script>
   <script src="js/systems/achievements.js"></script>
+  <script src="js/systems/guild.js"></script>
+  <script src="js/systems/competition.js"></script>
 
   <!-- UI -->
   <script src="js/ui/notifications.js"></script>

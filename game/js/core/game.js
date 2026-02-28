@@ -19,6 +19,10 @@ class Game {
     this.loginRewards = new LoginRewardSystem(this);
     this.market = new MarketSystem(this);
 
+    // Guild & Competition systems
+    this.guild = new GuildSystem(this);
+    this.competition = new CompetitionSystem(this);
+
     // Interaction state
     this.currentTool = 'select';
     this.selectedCrop = null;
@@ -130,6 +134,8 @@ class Game {
     this.orders.update();
     this.market.update();
     this.pet.ensureState();
+    this.guild.ensureState();
+    this.competition.ensureState();
 
     // Step 5: Center camera and start
     loadingBar.style.width = '100%';
@@ -205,9 +211,10 @@ class Game {
         if (!cropData) continue;
 
         const elapsed = Utils.now() - crop.plantedAt;
-        // Apply mastery time reduction
+        // Apply mastery time reduction + guild speed boost
         const timeReduction = this.mastery.getTimeReduction(crop.cropId);
-        const totalTime = cropData.growthTime * (1 - timeReduction);
+        const guildSpeedBonus = this.guild.getPerkBonus('growthSpeed');
+        const totalTime = cropData.growthTime * (1 - timeReduction) * (1 - guildSpeedBonus);
 
         // Update stage
         const stages = cropData.stages.length;
@@ -276,6 +283,10 @@ class Game {
 
     // Update pet system
     this.pet.update();
+
+    // === GUILD & COMPETITION UPDATES ===
+    this.guild.update();
+    this.competition.update();
 
     // === IDLE TYCOON UPDATES ===
 
@@ -429,6 +440,13 @@ class Game {
 
   addScreenShake(intensity) {
     this.screenShake.intensity = Math.min(intensity, 15);
+  }
+
+  // Wrapper for adding XP (used by guild/competition systems)
+  addXP(amount) {
+    const levelUps = this.state.addXP(amount);
+    if (levelUps > 0) this.handleLevelUp(levelUps);
+    return levelUps;
   }
 
   // ==================== RENDERING ====================
@@ -888,10 +906,11 @@ class Game {
     const cropData = CROPS_DATA[tile.content.cropId];
     if (!cropData) return;
 
-    // Check if ready (with mastery reduction)
+    // Check if ready (with mastery reduction + guild speed)
     const elapsed = Utils.now() - tile.content.plantedAt;
     const timeReduction = this.mastery.getTimeReduction(tile.content.cropId);
-    const totalTime = cropData.growthTime * (1 - timeReduction);
+    const guildSpeedBonus = this.guild.getPerkBonus('growthSpeed');
+    const totalTime = cropData.growthTime * (1 - timeReduction) * (1 - guildSpeedBonus);
     if (elapsed < totalTime) {
       this.notify.warn(`${cropData.name} isn't ready yet!`);
       return;
@@ -916,9 +935,10 @@ class Game {
       return;
     }
 
-    // Apply combo + frenzy multiplier to XP
+    // Apply combo + frenzy + guild multiplier to XP
     const totalMult = this.getTotalMultiplier();
-    const xpGain = Math.floor(cropData.xp * totalMult);
+    const guildXpBonus = 1 + this.guild.getPerkBonus('xpBoost');
+    const xpGain = Math.floor(cropData.xp * totalMult * guildXpBonus);
     const levelUps = this.state.addXP(xpGain);
 
     // Save cropId before clearing
@@ -937,6 +957,9 @@ class Game {
 
     // Combo tracking
     this.addCombo();
+
+    // Deal raid damage on harvest
+    this.guild.dealRaidDamage(cropData.xp * 2);
 
     // Effects - more particles for higher combos
     Audio.sfx('harvest');
@@ -1519,12 +1542,13 @@ class Game {
 
     this.state.removeItem(itemId, actual);
 
-    // Apply mastery sell bonus + market price + frenzy/combo
+    // Apply mastery sell bonus + market price + frenzy/combo + guild
     const masteryBonus = this.mastery.getSellBonus(itemId);
     const basePrice = info.sellPrice;
     const marketPrice = this.market.getModifiedPrice(itemId, basePrice);
     const totalMult = this.getTotalMultiplier();
-    const finalPrice = Math.floor(marketPrice * (1 + masteryBonus) * totalMult);
+    const guildCoinBonus = 1 + this.guild.getPerkBonus('coinBoost');
+    const finalPrice = Math.floor(marketPrice * (1 + masteryBonus) * totalMult * guildCoinBonus);
     const total = finalPrice * actual;
 
     this.state.addCoins(total);
@@ -1554,12 +1578,14 @@ class Game {
 
     const totalMult = this.getTotalMultiplier();
 
+    const guildCoinBonus = 1 + this.guild.getPerkBonus('coinBoost');
+
     for (const [id, qty] of Object.entries({ ...inv })) {
       const info = this.panels.getItemInfo(id);
       if (!info) continue;
       const masteryBonus = this.mastery.getSellBonus(id);
       const marketPrice = this.market.getModifiedPrice(id, info.sellPrice);
-      const finalPrice = Math.floor(marketPrice * (1 + masteryBonus) * totalMult);
+      const finalPrice = Math.floor(marketPrice * (1 + masteryBonus) * totalMult * guildCoinBonus);
       totalCoins += finalPrice * qty;
       totalItems += qty;
       this.updateQuestProgress('sell', id, qty);
@@ -1974,6 +2000,64 @@ class Game {
       ordersBadge.style.display = completableOrders > 0 ? 'flex' : 'none';
       ordersBadge.textContent = completableOrders;
     }
+
+    // Raid indicator
+    const raidIndicator = document.getElementById('hud-raid');
+    if (raidIndicator) {
+      const raidStatus = this.guild.getRaidStatus();
+      if (raidStatus) {
+        raidIndicator.style.display = 'flex';
+        const hpPct = Math.floor(raidStatus.hpPercent * 100);
+        raidIndicator.innerHTML = `
+          <span class="raid-boss-icon">${raidStatus.boss.icon}</span>
+          <div class="raid-hp-bar"><div class="raid-hp-fill" style="width:${hpPct}%"></div></div>
+          <span class="raid-timer">${Utils.formatTime(raidStatus.timeRemaining)}</span>
+        `;
+      } else {
+        raidIndicator.style.display = 'none';
+      }
+    }
+
+    // Tournament indicator
+    const tourneyIndicator = document.getElementById('hud-tournament');
+    if (tourneyIndicator) {
+      const tourneyStatus = this.competition.getTournamentStatus();
+      if (tourneyStatus) {
+        tourneyIndicator.style.display = 'flex';
+        tourneyIndicator.innerHTML = `
+          <span class="tourney-icon">${tourneyStatus.type.icon}</span>
+          <span class="tourney-rank">#${tourneyStatus.playerRank}</span>
+          <span class="tourney-timer">${Utils.formatTime(tourneyStatus.timeRemaining)}</span>
+        `;
+      } else {
+        tourneyIndicator.style.display = 'none';
+      }
+    }
+
+    // Challenge indicator
+    const challengeIndicator = document.getElementById('hud-challenge');
+    if (challengeIndicator) {
+      const challengeStatus = this.competition.getChallengeStatus();
+      if (challengeStatus) {
+        challengeIndicator.style.display = 'flex';
+        const statusIcon = challengeStatus.isWinning ? '🟢' : '🔴';
+        challengeIndicator.innerHTML = `
+          <span>${challengeStatus.type.icon} vs ${challengeStatus.opponentName}</span>
+          <span>${statusIcon} ${Utils.formatTime(challengeStatus.timeRemaining)}</span>
+        `;
+      } else {
+        challengeIndicator.style.display = 'none';
+      }
+    }
+
+    // Guild badge on button
+    const guildBadge = document.getElementById('guild-badge');
+    if (guildBadge) {
+      const guild = this.guild.ensureState();
+      const hasRaid = !!guild.activeRaid;
+      guildBadge.style.display = hasRaid ? 'flex' : 'none';
+      if (hasRaid) guildBadge.textContent = '⚔️';
+    }
   }
 
   setupHUDButtons() {
@@ -2003,6 +2087,10 @@ class Game {
     document.getElementById('btn-orders')?.addEventListener('click', () => this.panels.open('orders'));
     document.getElementById('btn-achievements')?.addEventListener('click', () => this.panels.open('achievements'));
     document.getElementById('btn-collections')?.addEventListener('click', () => this.panels.open('collections'));
+
+    // Guild & Competition buttons
+    document.getElementById('btn-guild')?.addEventListener('click', () => this.panels.open('guild'));
+    document.getElementById('btn-leaderboard')?.addEventListener('click', () => this.panels.open('leaderboard'));
   }
 
   setTool(tool) {
