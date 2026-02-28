@@ -2052,7 +2052,7 @@ class Game {
       }
     }
 
-    // Guild badge on button
+    // Guild badge on nav tab
     const guildBadge = document.getElementById('guild-badge');
     if (guildBadge) {
       const guild = this.guild.ensureState();
@@ -2060,10 +2060,13 @@ class Game {
       guildBadge.style.display = hasRaid ? 'flex' : 'none';
       if (hasRaid) guildBadge.textContent = '⚔️';
     }
+
+    // Update FAB
+    this.updateFAB();
   }
 
   setupHUDButtons() {
-    // Tool buttons
+    // Context bar tool buttons (replaces old bottom toolbar)
     document.querySelectorAll('[data-tool]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tool = btn.dataset.tool;
@@ -2077,22 +2080,190 @@ class Game {
       });
     });
 
-    // Side buttons
-    document.getElementById('btn-shop')?.addEventListener('click', () => this.panels.open('shop'));
-    document.getElementById('btn-inventory')?.addEventListener('click', () => this.panels.open('inventory'));
-    document.getElementById('btn-quests')?.addEventListener('click', () => this.panels.open('quests'));
-    document.getElementById('btn-settings')?.addEventListener('click', () => this.panels.open('settings'));
-    document.getElementById('btn-avatar')?.addEventListener('click', () => this.panels.open('avatar'));
+    // Avatar button
     document.getElementById('hud-avatar-btn')?.addEventListener('click', () => this.panels.open('avatar'));
 
-    // New system buttons
-    document.getElementById('btn-orders')?.addEventListener('click', () => this.panels.open('orders'));
-    document.getElementById('btn-achievements')?.addEventListener('click', () => this.panels.open('achievements'));
-    document.getElementById('btn-collections')?.addEventListener('click', () => this.panels.open('collections'));
+    // More menu buttons
+    document.getElementById('btn-inventory')?.addEventListener('click', () => { this.closeMoreMenu(); this.panels.open('inventory'); });
+    document.getElementById('btn-orders')?.addEventListener('click', () => { this.closeMoreMenu(); this.panels.open('orders'); });
+    document.getElementById('btn-achievements')?.addEventListener('click', () => { this.closeMoreMenu(); this.panels.open('achievements'); });
+    document.getElementById('btn-collections')?.addEventListener('click', () => { this.closeMoreMenu(); this.panels.open('collections'); });
+    document.getElementById('btn-settings')?.addEventListener('click', () => { this.closeMoreMenu(); this.panels.open('settings'); });
 
-    // Guild & Competition buttons
-    document.getElementById('btn-guild')?.addEventListener('click', () => this.panels.open('guild'));
-    document.getElementById('btn-leaderboard')?.addEventListener('click', () => this.panels.open('leaderboard'));
+    // Bottom navigation tabs
+    this.activeNav = 'farm';
+    document.querySelectorAll('[data-nav]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const nav = tab.dataset.nav;
+        this.handleNavTab(nav);
+      });
+    });
+
+    // FAB (Floating Action Button)
+    document.getElementById('fab-btn')?.addEventListener('click', () => this.handleFAB());
+
+    // Close more menu on outside click
+    document.addEventListener('click', (e) => {
+      const moreMenu = document.getElementById('more-menu');
+      const moreTab = document.querySelector('[data-nav="more"]');
+      if (moreMenu && moreMenu.style.display !== 'none' &&
+          !moreMenu.contains(e.target) && !moreTab?.contains(e.target)) {
+        this.closeMoreMenu();
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (this.panels.isOpen()) return; // Don't handle when panel is open
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (e.key.toLowerCase()) {
+        case 'h': this.harvestAll(); break;
+        case 'p': this.setTool('plant'); break;
+        case 'b': this.setTool('build'); break;
+        case 's': this.setTool('select'); break;
+        case 'f': this.plantAll(); break;
+        case '1': this.handleNavTab('farm'); break;
+        case '2': this.handleNavTab('quests'); break;
+        case '3': this.handleNavTab('shop'); break;
+        case '4': this.handleNavTab('battle'); break;
+        case '5': this.handleNavTab('social'); break;
+      }
+    });
+  }
+
+  handleNavTab(nav) {
+    this.closeMoreMenu();
+
+    // Update tab highlight
+    document.querySelectorAll('[data-nav]').forEach(t => {
+      t.classList.toggle('active', t.dataset.nav === nav);
+    });
+
+    switch (nav) {
+      case 'farm':
+        // Show context bar with farm tools, close any panel
+        this.activeNav = 'farm';
+        this.showFarmContext();
+        if (this.panels.isOpen()) this.panels.close();
+        break;
+      case 'quests':
+        this.activeNav = 'quests';
+        this.panels.open('quests');
+        break;
+      case 'shop':
+        this.activeNav = 'shop';
+        this.panels.open('shop');
+        break;
+      case 'battle':
+        this.activeNav = 'battle';
+        this.panels.open('leaderboard');
+        break;
+      case 'social':
+        this.activeNav = 'social';
+        this.panels.open('guild');
+        break;
+      case 'more':
+        this.toggleMoreMenu();
+        break;
+    }
+  }
+
+  showFarmContext() {
+    const bar = document.getElementById('context-bar');
+    if (bar) {
+      bar.classList.remove('hidden');
+    }
+  }
+
+  hideFarmContext() {
+    const bar = document.getElementById('context-bar');
+    if (bar) {
+      bar.classList.add('hidden');
+    }
+  }
+
+  toggleMoreMenu() {
+    const menu = document.getElementById('more-menu');
+    if (!menu) return;
+    if (menu.style.display === 'none') {
+      menu.style.display = 'block';
+    } else {
+      menu.style.display = 'none';
+    }
+  }
+
+  closeMoreMenu() {
+    const menu = document.getElementById('more-menu');
+    if (menu) menu.style.display = 'none';
+  }
+
+  handleFAB() {
+    // Smart action: harvest if crops ready, otherwise plant
+    const s = this.state.get();
+    let readyCrops = 0;
+    let emptyPlots = 0;
+
+    for (const [key, tile] of Object.entries(s.farm.tiles)) {
+      if (tile.content && tile.content.type === 'crop') {
+        const crop = tile.content;
+        const cropData = CROPS_DATA[crop.cropId];
+        if (cropData) {
+          const elapsed = Utils.now() - crop.plantedAt;
+          const timeReduction = this.mastery.getTimeReduction(crop.cropId);
+          const guildSpeedBonus = this.guild.getPerkBonus('growthSpeed');
+          const totalTime = cropData.growthTime * (1 - timeReduction) * (1 - guildSpeedBonus);
+          if (elapsed >= totalTime && !crop.withered) readyCrops++;
+        }
+      } else if (!tile.content && !tile.building) {
+        emptyPlots++;
+      }
+    }
+
+    if (readyCrops > 0) {
+      this.harvestAll();
+    } else if (emptyPlots > 0) {
+      this.plantAll();
+    }
+  }
+
+  updateFAB() {
+    const fab = document.getElementById('fab-btn');
+    if (!fab) return;
+
+    const s = this.state.get();
+    let readyCrops = 0;
+    let emptyPlots = 0;
+
+    for (const [key, tile] of Object.entries(s.farm.tiles)) {
+      if (tile.content && tile.content.type === 'crop') {
+        const crop = tile.content;
+        const cropData = CROPS_DATA[crop.cropId];
+        if (cropData) {
+          const elapsed = Utils.now() - crop.plantedAt;
+          const timeReduction = this.mastery.getTimeReduction(crop.cropId);
+          const guildSpeedBonus = this.guild.getPerkBonus('growthSpeed');
+          const totalTime = cropData.growthTime * (1 - timeReduction) * (1 - guildSpeedBonus);
+          if (elapsed >= totalTime && !crop.withered) readyCrops++;
+        }
+      } else if (!tile.content && !tile.building) {
+        emptyPlots++;
+      }
+    }
+
+    if (readyCrops > 0) {
+      fab.innerHTML = '&#x1F33E;';
+      fab.title = `Harvest ${readyCrops} crops`;
+      fab.className = 'fab harvest';
+    } else if (emptyPlots > 0) {
+      fab.innerHTML = '&#x1F331;';
+      fab.title = `Plant ${emptyPlots} plots`;
+      fab.className = 'fab plant';
+    } else {
+      fab.innerHTML = '&#x1F33E;';
+      fab.title = 'Quick Action';
+      fab.className = 'fab';
+    }
   }
 
   setTool(tool) {

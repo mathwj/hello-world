@@ -36,13 +36,12 @@
 
     <!-- HUD -->
     <div id="hud">
-      <!-- Top Bar -->
+      <!-- Top Display Bar (thin, display-only) -->
       <div class="hud-top-bar">
         <div class="hud-player-info">
           <div class="hud-avatar" id="hud-avatar-btn">
             <span id="hud-avatar">&#x1F468;&#x200D;&#x1F33E;</span>
           </div>
-          <span class="hud-player-name" id="hud-player-name">Farmer</span>
           <span class="hud-level-badge" id="hud-level">Lv.1</span>
         </div>
 
@@ -70,49 +69,90 @@
         </div>
       </div>
 
-      <!-- Side Buttons -->
-      <div class="hud-side-buttons">
-        <button class="hud-btn" id="btn-shop" title="Shop">&#x1F6D2;</button>
-        <button class="hud-btn" id="btn-inventory" title="Barn/Inventory">&#x1F3DA;&#xFE0F;</button>
-        <button class="hud-btn" id="btn-orders" title="Order Board">
-          &#x1F4E6;
-          <span class="badge" id="orders-badge" style="display:none">0</span>
-        </button>
-        <button class="hud-btn" id="btn-quests" title="Quests">
-          &#x1F4DC;
-          <span class="badge" id="quest-badge" style="display:none">0</span>
-        </button>
-        <button class="hud-btn" id="btn-achievements" title="Achievements">&#x1F3C6;</button>
-        <button class="hud-btn" id="btn-collections" title="Collections">&#x1F4DA;</button>
-        <button class="hud-btn" id="btn-guild" title="Guild">
-          &#x1F3F0;
-          <span class="badge" id="guild-badge" style="display:none"></span>
-        </button>
-        <button class="hud-btn" id="btn-leaderboard" title="Leaderboards">&#x1F3C6;</button>
-        <button class="hud-btn" id="btn-settings" title="Settings">&#x2699;&#xFE0F;</button>
+      <!-- Context Action Bar (dynamic, above bottom nav) -->
+      <div class="context-bar" id="context-bar">
+        <div class="context-bar-content" id="context-bar-content">
+          <!-- Farm tools (default) -->
+          <button class="ctx-btn active" data-tool="select" title="Select">
+            &#x1F446;
+            <span>Select</span>
+          </button>
+          <button class="ctx-btn" data-tool="plant" title="Plant">
+            &#x1F331;
+            <span>Plant</span>
+          </button>
+          <button class="ctx-btn" data-tool="harvest-all" title="Harvest All">
+            &#x1F33E;
+            <span>Harvest</span>
+          </button>
+          <button class="ctx-btn" data-tool="plant-all" title="Fill All">
+            &#x1F33B;
+            <span>Fill All</span>
+          </button>
+          <button class="ctx-btn" data-tool="build" title="Build">
+            &#x1F3D7;&#xFE0F;
+            <span>Build</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Bottom Toolbar -->
-      <div class="hud-bottom-bar">
-        <button class="tool-btn active" data-tool="select" title="Select/Interact">
-          &#x1F446;
-          <span>Select</span>
+      <!-- FAB (Floating Action Button) -->
+      <button class="fab" id="fab-btn" title="Quick Action">
+        &#x1F33E;
+      </button>
+
+      <!-- Bottom Navigation Bar (6 tabs) -->
+      <div class="bottom-nav" id="bottom-nav">
+        <button class="nav-tab active" data-nav="farm" title="Farm">
+          <span class="nav-icon">&#x1F33E;</span>
+          <span class="nav-label">Farm</span>
         </button>
-        <button class="tool-btn" data-tool="plant" title="Plant Mode">
-          &#x1F331;
-          <span>Plant</span>
+        <button class="nav-tab" data-nav="quests" title="Quests">
+          <span class="nav-icon">&#x1F4DC;</span>
+          <span class="nav-label">Quests</span>
+          <span class="nav-badge" id="quest-badge" style="display:none">0</span>
         </button>
-        <button class="tool-btn" data-tool="harvest-all" title="Harvest All Ready Crops">
-          &#x1F33E;
-          <span>Harvest</span>
+        <button class="nav-tab" data-nav="shop" title="Shop">
+          <span class="nav-icon">&#x1F6D2;</span>
+          <span class="nav-label">Shop</span>
         </button>
-        <button class="tool-btn" data-tool="plant-all" title="Plant All Empty Plots">
-          &#x1F33B;
-          <span>Fill All</span>
+        <button class="nav-tab" data-nav="battle" title="Battle">
+          <span class="nav-icon">&#x2694;&#xFE0F;</span>
+          <span class="nav-label">Battle</span>
         </button>
-        <button class="tool-btn" data-tool="build" title="Build Mode">
-          &#x1F3D7;&#xFE0F;
-          <span>Build</span>
+        <button class="nav-tab" data-nav="social" title="Social">
+          <span class="nav-icon">&#x1F3F0;</span>
+          <span class="nav-label">Social</span>
+          <span class="nav-badge" id="guild-badge" style="display:none"></span>
+        </button>
+        <button class="nav-tab" data-nav="more" title="More">
+          <span class="nav-icon">&#x2022;&#x2022;&#x2022;</span>
+          <span class="nav-label">More</span>
+        </button>
+      </div>
+
+      <!-- More Menu (overflow) -->
+      <div class="more-menu" id="more-menu" style="display:none">
+        <button class="more-item" id="btn-inventory">
+          <span class="more-icon">&#x1F3DA;&#xFE0F;</span>
+          <span>Barn</span>
+        </button>
+        <button class="more-item" id="btn-orders">
+          <span class="more-icon">&#x1F4E6;</span>
+          <span>Orders</span>
+          <span class="more-badge" id="orders-badge" style="display:none">0</span>
+        </button>
+        <button class="more-item" id="btn-achievements">
+          <span class="more-icon">&#x1F3C6;</span>
+          <span>Achievements</span>
+        </button>
+        <button class="more-item" id="btn-collections">
+          <span class="more-icon">&#x1F4DA;</span>
+          <span>Collections</span>
+        </button>
+        <button class="more-item" id="btn-settings">
+          <span class="more-icon">&#x2699;&#xFE0F;</span>
+          <span>Settings</span>
         </button>
       </div>
 

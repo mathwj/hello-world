@@ -33,6 +33,14 @@ class PanelManager {
   close() {
     this.overlay.classList.remove('active');
     this.activePanel = null;
+    // Restore farm tab as active when panel closes
+    if (this.game) {
+      this.game.activeNav = 'farm';
+      document.querySelectorAll('[data-nav]').forEach(t => {
+        t.classList.toggle('active', t.dataset.nav === 'farm');
+      });
+      this.game.showFarmContext();
+    }
   }
 
   isOpen() {
