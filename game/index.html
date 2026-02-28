@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#4CAF50">
+  <title>Mini Farm 🌾</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="logo">🌾 Mini Farm 🐄</div>
+    <div class="loading-bar-container">
+      <div class="loading-bar"></div>
+    </div>
+    <div class="loading-tip">Loading your farm...</div>
+  </div>
+
+  <!-- Game Container -->
+  <div id="game-container">
+    <!-- Game Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <!-- Top Bar -->
+      <div class="hud-top-bar">
+        <div class="hud-player-info">
+          <div class="hud-avatar" id="hud-avatar-btn">
+            <span id="hud-avatar">👨‍🌾</span>
+          </div>
+          <span class="hud-player-name" id="hud-player-name">Farmer</span>
+          <span class="hud-level-badge" id="hud-level">Lv.1</span>
+        </div>
+
+        <div class="hud-xp-container">
+          <div class="hud-xp-bar-outer">
+            <div class="hud-xp-bar-inner" id="hud-xp-bar" style="width: 0%"></div>
+            <div class="hud-xp-text" id="hud-xp-text">0 / 50</div>
+          </div>
+        </div>
+
+        <div class="hud-currencies">
+          <div class="hud-currency coins">
+            <span class="icon">🪙</span>
+            <span id="hud-coins">100</span>
+          </div>
+          <div class="hud-currency gems">
+            <span class="icon">💎</span>
+            <span id="hud-gems">5</span>
+          </div>
+          <div class="energy-bar">
+            <span class="icon">⚡</span>
+            <span id="hud-energy">20/20</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side Buttons -->
+      <div class="hud-side-buttons">
+        <button class="hud-btn" id="btn-shop" title="Shop">🛒</button>
+        <button class="hud-btn" id="btn-inventory" title="Barn/Inventory">🏚️</button>
+        <button class="hud-btn" id="btn-quests" title="Quests">
+          📜
+          <span class="badge" id="quest-badge" style="display:none">0</span>
+        </button>
+        <button class="hud-btn" id="btn-settings" title="Settings">⚙️</button>
+      </div>
+
+      <!-- Bottom Toolbar -->
+      <div class="hud-bottom-bar">
+        <button class="tool-btn active" data-tool="select" title="Select/Interact">
+          👆
+          <span>Select</span>
+        </button>
+        <button class="tool-btn" data-tool="plant" title="Plant Mode">
+          🌱
+          <span>Plant</span>
+        </button>
+        <button class="tool-btn" data-tool="harvest-all" title="Harvest All Ready Crops">
+          🌾
+          <span>Harvest</span>
+        </button>
+        <button class="tool-btn" data-tool="plant-all" title="Plant All Empty Plots">
+          🌻
+          <span>Fill All</span>
+        </button>
+        <button class="tool-btn" data-tool="build" title="Build Mode">
+          🏗️
+          <span>Build</span>
+        </button>
+      </div>
+
+      <!-- Tile Info Tooltip -->
+      <div id="tile-tooltip" style="
+        position: absolute;
+        bottom: 68px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(62, 39, 35, 0.9);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 16px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        pointer-events: none;
+        display: none;
+        backdrop-filter: blur(8px);
+      "></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Panel Overlay -->
+    <div id="panel-overlay" class="panel-overlay"></div>
+  </div>
+
+  <!-- Data Files -->
+  <script src="js/data/crops.js"></script>
+  <script src="js/data/animals.js"></script>
+  <script src="js/data/buildings.js"></script>
+  <script src="js/data/trees.js"></script>
+  <script src="js/data/decorations.js"></script>
+  <script src="js/data/quests.js"></script>
+  <script src="js/data/levels.js"></script>
+
+  <!-- Core -->
+  <script src="js/core/utils.js"></script>
+  <script src="js/core/audio.js"></script>
+  <script src="js/core/renderer.js"></script>
+  <script src="js/core/state.js"></script>
+
+  <!-- UI -->
+  <script src="js/ui/notifications.js"></script>
+  <script src="js/ui/panels.js"></script>
+
+  <!-- Main Game -->
+  <script src="js/core/game.js"></script>
+</body>
+</html>
