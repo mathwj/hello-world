@@ -445,7 +445,9 @@ class Game {
   // Wrapper for adding XP (used by guild/competition systems)
   addXP(amount) {
     const levelUps = this.state.addXP(amount);
-    if (levelUps > 0) this.handleLevelUp(levelUps);
+    if (levelUps && levelUps.length > 0) {
+      levelUps.forEach(lu => this.handleLevelUp(lu));
+    }
     return levelUps;
   }
 
