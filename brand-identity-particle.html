@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aloud — The Particle — Brand Identity System</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--cyan:#00FFFF;--black:#0A0A0A;--deep:#111111;--nebula:#0D2B2B;--dust:#1A3A3A;--white:#F0F0F0;--sans:'Outfit',sans-serif;--body:'Inter',sans-serif;--mono:'Space Mono',monospace;--grotesk:'Space Grotesk',sans-serif}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:var(--body);line-height:1.6;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:0.06;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-repeat:repeat;background-size:180px}
+::selection{background:rgba(0,255,255,0.2);color:#fff}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,10,0.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.04);padding:0 2rem;display:flex;align-items:center;height:56px;gap:2rem}
+.nav-brand{font-family:var(--sans);font-weight:700;font-size:1rem;color:var(--cyan);letter-spacing:0.05em;white-space:nowrap}
+.nav-links{display:flex;gap:0.2rem;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);text-decoration:none;padding:0.4rem 0.6rem;border-radius:4px;white-space:nowrap;transition:all 0.2s}
+.nav-links a:hover{color:var(--cyan);background:rgba(0,255,255,0.05)}
+
+/* SECTIONS */
+.section{padding:8rem 2rem;max-width:1200px;margin:0 auto}
+.section:first-of-type{padding-top:10rem}
+.sec-header{display:flex;align-items:baseline;gap:1rem;margin-bottom:3rem}
+.sec-num{font-family:var(--mono);font-size:0.65rem;color:var(--cyan);opacity:0.5;letter-spacing:0.1em}
+.sec-title{font-family:var(--sans);font-size:1.5rem;font-weight:700;color:#fff;letter-spacing:0.02em}
+.sec-line{flex:1;height:1px;background:rgba(255,255,255,0.06)}
+.sec-desc{font-size:0.85rem;color:rgba(255,255,255,0.35);max-width:600px;margin-bottom:2.5rem;line-height:1.7}
+
+/* GRIDS */
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem}
+.grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:1.5rem}
+@media(max-width:900px){.grid-2,.grid-3,.grid-4,.grid-6{grid-template-columns:1fr}}
+@media(min-width:900px) and (max-width:1100px){.grid-4,.grid-6{grid-template-columns:repeat(3,1fr)}}
+
+/* CARDS */
+.card{background:var(--deep);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:2rem;position:relative;overflow:hidden;transition:border-color 0.3s}
+.card:hover{border-color:rgba(0,255,255,0.12)}
+.card::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0.05;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:150px;border-radius:inherit}
+
+/* PARTICLES */
+@keyframes float1{0%,100%{transform:translate(0,0)}25%{transform:translate(5px,-8px)}50%{transform:translate(-3px,-12px)}75%{transform:translate(7px,-4px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}25%{transform:translate(-6px,5px)}50%{transform:translate(4px,10px)}75%{transform:translate(-8px,3px)}}
+@keyframes float3{0%,100%{transform:translate(0,0)}25%{transform:translate(8px,6px)}50%{transform:translate(-5px,-7px)}75%{transform:translate(3px,9px)}}
+@keyframes pulse{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes glow{0%,100%{box-shadow:0 0 4px rgba(0,255,255,0.3)}50%{box-shadow:0 0 12px rgba(0,255,255,0.6)}}
+@keyframes connect{0%{opacity:0;width:0}50%{opacity:0.3;width:100%}100%{opacity:0;width:100%}}
+@keyframes scatter{0%{transform:translate(0) scale(1);opacity:1}100%{transform:translate(var(--sx,20px),var(--sy,-20px)) scale(0);opacity:0}}
+@keyframes breathe{0%,100%{box-shadow:0 0 8px rgba(0,255,255,0.2)}50%{box-shadow:0 0 25px rgba(0,255,255,0.5)}}
+.particle{position:absolute;border-radius:50%;background:var(--cyan);pointer-events:none}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;padding:2rem}
+.hero canvas{position:absolute;inset:0;z-index:0}
+.hero-content{position:relative;z-index:1}
+.hero-label{font-family:var(--grotesk);font-size:0.6rem;letter-spacing:0.5em;text-transform:uppercase;color:var(--cyan);opacity:0.6;margin-bottom:2rem}
+.hero h1{font-family:var(--sans);font-size:clamp(4rem,10vw,8rem);font-weight:800;letter-spacing:-0.02em;line-height:1;margin-bottom:1rem;background:linear-gradient(180deg,#fff 40%,rgba(0,255,255,0.6));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-family:var(--grotesk);font-size:0.7rem;letter-spacing:0.4em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:0.5rem}
+.hero-sub2{font-size:0.65rem;color:rgba(255,255,255,0.15);letter-spacing:0.2em}
+
+/* LOGO */
+.logo-showcase{display:flex;align-items:center;justify-content:center;min-height:300px;position:relative;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(0,255,255,0.03),transparent);border-radius:16px;border:1px solid rgba(255,255,255,0.04)}
+.logo-main{font-family:var(--sans);font-size:4rem;font-weight:600;color:#fff;position:relative;letter-spacing:0.05em}
+.logo-main .p{position:absolute;width:var(--s,4px);height:var(--s,4px);border-radius:50%;background:var(--cyan);box-shadow:0 0 8px rgba(0,255,255,0.4);animation:float1 var(--d,4s) ease-in-out infinite;animation-delay:var(--del,0s)}
+.logo-line{position:absolute;height:1px;background:rgba(0,255,255,0.1);transform-origin:left center}
+.logo-var-card{aspect-ratio:3/2;display:flex;align-items:center;justify-content:center;border-radius:12px;border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden}
+.logo-var-card .label{position:absolute;bottom:10px;left:12px;font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-family:var(--grotesk)}
+.logo-var-card .logo-text{font-family:var(--sans);font-weight:600;font-size:2rem;letter-spacing:0.05em}
+.clearspace-box{display:flex;align-items:center;justify-content:center;padding:5rem;position:relative}
+.clearspace-inner{position:relative;padding:2rem 3rem;border:1px dashed rgba(0,255,255,0.3)}
+.clearspace-inner::before{content:'1x';position:absolute;top:-1.5rem;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:0.5rem;color:var(--cyan);opacity:0.5}
+.clearspace-inner::after{content:'1x';position:absolute;right:-2rem;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:0.5rem;color:var(--cyan);opacity:0.5}
+.misuse-card{aspect-ratio:3/2;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--deep);border:1px solid rgba(255,70,70,0.15);position:relative;overflow:hidden}
+.misuse-card::before{content:'';position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,70,70,0.4);background:transparent}
+.misuse-card::after{content:'';position:absolute;top:17px;right:12px;width:12px;height:2px;background:rgba(255,70,70,0.4);transform:rotate(-45deg)}
+.misuse-card .label{position:absolute;bottom:10px;left:12px;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,70,70,0.5);font-family:var(--grotesk)}
+
+/* COLORS */
+.swatch{border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.05)}
+.swatch-color{height:140px;display:flex;align-items:flex-end;padding:1rem}
+.swatch-info{padding:1rem;background:var(--deep)}
+.swatch-name{font-family:var(--sans);font-weight:600;font-size:0.85rem;margin-bottom:0.3rem}
+.swatch-hex{font-family:var(--mono);font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:0.15rem}
+.swatch-rgb{font-family:var(--mono);font-size:0.6rem;color:rgba(255,255,255,0.25)}
+
+/* TYPOGRAPHY */
+.type-block{margin-bottom:3rem;padding-bottom:3rem;border-bottom:1px solid rgba(255,255,255,0.04)}
+.type-block:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.type-name{font-family:var(--grotesk);font-size:0.6rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--cyan);opacity:0.5;margin-bottom:1rem}
+.type-sample{margin-bottom:0.5rem;color:rgba(255,255,255,0.6)}
+.type-alphabet{font-size:1.2rem;color:rgba(255,255,255,0.3);margin-bottom:1rem;letter-spacing:0.05em;line-height:1.8;word-break:break-all}
+.type-weights{display:flex;flex-wrap:wrap;gap:1.5rem;margin-bottom:1.5rem}
+.type-weights span{color:rgba(255,255,255,0.4)}
+.type-scale .scale-row{display:flex;align-items:baseline;gap:1.5rem;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.type-scale .scale-label{font-family:var(--mono);font-size:0.6rem;color:rgba(0,255,255,0.4);min-width:80px;white-space:nowrap}
+
+/* ICONS */
+.icon-card{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.8rem;border-radius:12px;background:var(--deep);border:1px solid rgba(255,255,255,0.05)}
+.icon-card .icon-shape{width:40px;height:40px;position:relative;display:flex;align-items:center;justify-content:center}
+.icon-card .icon-label{font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-family:var(--grotesk)}
+
+/* PATTERN */
+.pattern-box{height:300px;border-radius:16px;border:1px solid rgba(255,255,255,0.04);background:var(--black);position:relative;overflow:hidden}
+.pattern-box .particle{animation:float1 var(--d,5s) ease-in-out infinite;animation-delay:var(--del,0s)}
+
+/* MOCKUPS */
+.biz-card{aspect-ratio:1.75/1;border-radius:8px;padding:1.5rem;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.biz-card::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:150px}
+.letterhead{aspect-ratio:8.5/11;border-radius:8px;background:#0d0d0d;border:1px solid rgba(255,255,255,0.05);padding:2rem;display:flex;flex-direction:column;position:relative;overflow:hidden;max-width:500px;margin:0 auto}
+.letterhead::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:150px}
+
+/* SOCIAL */
+.social-pfp{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--black);border:2px solid rgba(0,255,255,0.2);position:relative;margin:0 auto 1.5rem}
+.social-banner{aspect-ratio:3/1;border-radius:12px;background:var(--black);border:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:1.5rem}
+.social-post{aspect-ratio:1;border-radius:12px;background:var(--black);border:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;max-width:300px;margin:0 auto}
+
+/* APP ICON */
+.app-icon{width:120px;height:120px;border-radius:26px;background:var(--black);border:1px solid rgba(0,255,255,0.15);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin:0 auto;box-shadow:0 0 40px rgba(0,255,255,0.1)}
+.app-icon .letter{font-family:var(--sans);font-size:3rem;font-weight:800;color:var(--cyan);z-index:1;text-shadow:0 0 20px rgba(0,255,255,0.4)}
+
+/* UI COMPONENTS */
+.btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.7rem 1.5rem;border-radius:8px;font-family:var(--sans);font-size:0.8rem;font-weight:600;letter-spacing:0.05em;border:none;cursor:pointer;transition:all 0.2s}
+.btn-primary{background:var(--cyan);color:var(--black)}
+.btn-primary:hover{box-shadow:0 0 20px rgba(0,255,255,0.3)}
+.btn-secondary{background:transparent;color:var(--cyan);border:1px solid rgba(0,255,255,0.3)}
+.btn-secondary:hover{background:rgba(0,255,255,0.05);border-color:var(--cyan)}
+.btn-ghost{background:transparent;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.1)}
+.btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,0.2)}
+.input-field{width:100%;padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#fff;font-family:var(--body);font-size:0.85rem;outline:none;transition:border-color 0.2s}
+.input-field:focus{border-color:rgba(0,255,255,0.3)}
+.input-field::placeholder{color:rgba(255,255,255,0.2)}
+.ui-tag{display:inline-flex;align-items:center;gap:0.3rem;padding:0.3rem 0.8rem;border-radius:20px;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;font-family:var(--grotesk)}
+.ui-tag-cyan{background:rgba(0,255,255,0.1);color:var(--cyan);border:1px solid rgba(0,255,255,0.2)}
+.toggle{width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background 0.2s}
+.toggle.active{background:rgba(0,255,255,0.3)}
+.toggle .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s}
+.toggle.active .knob{transform:translateX(20px);background:var(--cyan);box-shadow:0 0 8px rgba(0,255,255,0.4)}
+
+/* MOTION */
+.motion-card{aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.motion-demo{width:80px;height:80px;position:relative;display:flex;align-items:center;justify-content:center}
+
+/* MERCH */
+.merch-card{aspect-ratio:4/5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;border-radius:12px;background:var(--deep);border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden}
+.merch-label{font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);font-family:var(--grotesk);position:absolute;bottom:12px}
+
+/* VOICE */
+.voice-card{padding:2rem;border-radius:12px;background:var(--deep);border:1px solid rgba(255,255,255,0.05);text-align:center}
+.voice-card .bold{font-family:var(--sans);font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:0.3rem}
+.voice-card .not{font-family:var(--body);font-size:0.75rem;color:rgba(255,255,255,0.3);font-style:italic}
+
+/* DO / DON'T */
+.do-card{border-radius:12px;padding:1.5rem;border:1px solid rgba(0,255,255,0.15);background:rgba(0,255,255,0.02)}
+.do-card .tag{font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--cyan);margin-bottom:0.8rem}
+.dont-card{border-radius:12px;padding:1.5rem;border:1px solid rgba(255,70,70,0.15);background:rgba(255,70,70,0.02)}
+.dont-card .tag{font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,70,70,0.6);margin-bottom:0.8rem}
+
+/* PHOTO */
+.photo-card{aspect-ratio:4/3;border-radius:12px;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:1.5rem}
+.photo-card .overlay-label{font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);z-index:1}
+
+/* FOOTER */
+.footer{text-align:center;padding:4rem 2rem;border-top:1px solid rgba(255,255,255,0.04);margin-top:4rem}
+.footer p{font-size:0.6rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(255,255,255,0.15)}
+.footer .ver{color:rgba(0,255,255,0.3);margin-top:0.3rem}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <span class="nav-brand">Aloud</span>
+  <div class="nav-links">
+    <a href="#story">Story</a>
+    <a href="#logo">Logo</a>
+    <a href="#colors">Colors</a>
+    <a href="#typography">Type</a>
+    <a href="#icons">Icons</a>
+    <a href="#pattern">Pattern</a>
+    <a href="#photo">Photo</a>
+    <a href="#bizcard">Cards</a>
+    <a href="#letterhead">Stationery</a>
+    <a href="#social">Social</a>
+    <a href="#appicon">App</a>
+    <a href="#ui">UI</a>
+    <a href="#motion">Motion</a>
+    <a href="#merch">Merch</a>
+    <a href="#voice">Voice</a>
+    <a href="#dos">Guidelines</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="particleCanvas"></canvas>
+  <div class="hero-content">
+    <p class="hero-label">Brand Identity System</p>
+    <h1>Aloud</h1>
+    <p class="hero-sub">The Particle</p>
+    <p class="hero-sub2">Version 1.0 &mdash; February 2026</p>
+  </div>
+</section>
+
+<!-- 01 BRAND STORY -->
+<section class="section" id="story">
+  <div class="sec-header"><span class="sec-num">01</span><span class="sec-title">Brand Story</span><span class="sec-line"></span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center">
+    <div>
+      <p style="font-family:var(--sans);font-size:2rem;font-weight:300;line-height:1.4;color:rgba(255,255,255,0.7);margin-bottom:1.5rem">Every voice is a <span style="color:var(--cyan);font-weight:600">particle</span> &mdash; small on its own, but together they form <span style="color:var(--cyan);font-weight:600">constellations</span>.</p>
+      <p style="font-size:0.85rem;color:rgba(255,255,255,0.35);line-height:1.8;margin-bottom:1rem">Aloud exists to amplify the unheard. We believe that every thought spoken aloud creates a ripple &mdash; a particle of energy that connects, resonates, and builds something greater than itself.</p>
+      <p style="font-size:0.85rem;color:rgba(255,255,255,0.35);line-height:1.8">Our identity draws from the physics of particles: individual points of light drifting through space, forming bonds, creating patterns. Like voices in conversation, particles alone are quiet. Together, they illuminate.</p>
+    </div>
+    <div style="position:relative;height:250px;border-radius:16px;background:radial-gradient(ellipse at 50% 50%,rgba(0,255,255,0.04),transparent);border:1px solid rgba(255,255,255,0.04);overflow:hidden">
+      <div class="particle" style="width:6px;height:6px;top:20%;left:25%;animation:float1 5s ease-in-out infinite;box-shadow:0 0 10px rgba(0,255,255,0.5)"></div>
+      <div class="particle" style="width:4px;height:4px;top:60%;left:15%;animation:float2 6s ease-in-out infinite;box-shadow:0 0 8px rgba(0,255,255,0.4)"></div>
+      <div class="particle" style="width:5px;height:5px;top:35%;left:55%;animation:float3 4s ease-in-out infinite;box-shadow:0 0 8px rgba(0,255,255,0.4)"></div>
+      <div class="particle" style="width:3px;height:3px;top:70%;left:70%;animation:float1 7s ease-in-out infinite;box-shadow:0 0 6px rgba(0,255,255,0.3)"></div>
+      <div class="particle" style="width:4px;height:4px;top:45%;left:80%;animation:float2 5s ease-in-out infinite;box-shadow:0 0 8px rgba(0,255,255,0.4)"></div>
+      <div class="particle" style="width:7px;height:7px;top:80%;left:45%;animation:float3 6s ease-in-out infinite;box-shadow:0 0 12px rgba(0,255,255,0.5)"></div>
+      <div class="particle" style="width:3px;height:3px;top:15%;left:75%;animation:float1 4s ease-in-out infinite 0.5s;box-shadow:0 0 6px rgba(0,255,255,0.3)"></div>
+      <div style="position:absolute;top:22%;left:27%;width:120px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.15),transparent);transform:rotate(25deg)"></div>
+      <div style="position:absolute;top:38%;left:57%;width:80px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.1),transparent);transform:rotate(-15deg)"></div>
+      <div style="position:absolute;top:65%;left:18%;width:150px;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,255,0.08),transparent);transform:rotate(10deg)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 PRIMARY LOGO -->
+<section class="section" id="logo">
+  <div class="sec-header"><span class="sec-num">02</span><span class="sec-title">Primary Logo</span><span class="sec-line"></span></div>
+  <p class="sec-desc">The Aloud wordmark is set in Outfit SemiBold, surrounded by six floating particles connected by faint lines &mdash; representing voices forming connections.</p>
+  <div class="logo-showcase">
+    <div class="logo-main">
+      Aloud
+      <div class="p" style="--s:6px;top:-15px;left:10px;--d:5s;--del:0s;animation-name:float1"></div>
+      <div class="p" style="--s:4px;top:5px;right:-20px;--d:6s;--del:0.5s;animation-name:float2"></div>
+      <div class="p" style="--s:5px;bottom:-10px;left:40%;--d:4s;--del:1s;animation-name:float3"></div>
+      <div class="p" style="--s:3px;top:50%;left:-25px;--d:7s;--del:0.3s;animation-name:float1"></div>
+      <div class="p" style="--s:4px;top:-20px;right:30%;--d:5s;--del:0.8s;animation-name:float2"></div>
+      <div class="p" style="--s:5px;bottom:-15px;right:10px;--d:6s;--del:1.2s;animation-name:float3"></div>
+      <div class="logo-line" style="top:0;left:15px;width:80px;transform:rotate(20deg)"></div>
+      <div class="logo-line" style="top:50%;right:-15px;width:60px;transform:rotate(-10deg)"></div>
+      <div class="logo-line" style="bottom:0;left:40%;width:70px;transform:rotate(-25deg)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 LOGO VARIATIONS -->
+<section class="section" id="logovars">
+  <div class="sec-header"><span class="sec-num">03</span><span class="sec-title">Logo Variations</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Four approved configurations of the Aloud mark for different contexts and backgrounds.</p>
+  <div class="grid-2">
+    <div class="logo-var-card" style="background:var(--black)">
+      <span class="logo-text" style="color:#fff">Aloud</span>
+      <div class="particle" style="width:4px;height:4px;top:30%;left:25%;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float1 5s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;top:55%;right:20%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float2 6s ease-in-out infinite"></div>
+      <span class="label">Primary &mdash; Dark</span>
+    </div>
+    <div class="logo-var-card" style="background:var(--cyan)">
+      <span class="logo-text" style="color:var(--black)">Aloud</span>
+      <div class="particle" style="width:4px;height:4px;top:30%;left:25%;background:var(--black);box-shadow:0 0 6px rgba(0,0,0,0.2);animation:float1 5s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;top:55%;right:20%;background:var(--black);box-shadow:0 0 5px rgba(0,0,0,0.15);animation:float2 6s ease-in-out infinite"></div>
+      <span class="label" style="color:rgba(0,0,0,0.4)">Reversed &mdash; Cyan</span>
+    </div>
+    <div class="logo-var-card" style="background:var(--black)">
+      <span class="logo-text" style="color:#fff">Aloud</span>
+      <span class="label">Monochrome</span>
+    </div>
+    <div class="logo-var-card" style="background:var(--black)">
+      <span style="font-family:var(--sans);font-weight:800;font-size:3rem;color:var(--cyan)">A</span>
+      <div class="particle" style="width:5px;height:5px;top:25%;left:40%;box-shadow:0 0 8px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;top:65%;left:55%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float2 5s ease-in-out infinite"></div>
+      <div class="particle" style="width:4px;height:4px;top:40%;right:30%;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float3 6s ease-in-out infinite"></div>
+      <span class="label">Icon Only</span>
+    </div>
+  </div>
+</section>
+
+<!-- 04 CLEAR SPACE -->
+<section class="section">
+  <div class="sec-header"><span class="sec-num">04</span><span class="sec-title">Logo Clear Space</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Maintain a minimum clear space equal to the cap height of the &ldquo;A&rdquo; on all sides of the logo to ensure visual integrity.</p>
+  <div class="card" style="display:flex;align-items:center;justify-content:center;min-height:250px">
+    <div class="clearspace-inner">
+      <span style="font-family:var(--sans);font-weight:600;font-size:2.5rem;color:#fff;letter-spacing:0.05em">Aloud</span>
+      <div style="position:absolute;left:0;top:0;bottom:0;width:1px;border-left:1px dashed rgba(0,255,255,0.2)"></div>
+      <div style="position:absolute;right:0;top:0;bottom:0;width:1px;border-right:1px dashed rgba(0,255,255,0.2)"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:1px;border-top:1px dashed rgba(0,255,255,0.2)"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:1px;border-bottom:1px dashed rgba(0,255,255,0.2)"></div>
+      <span style="position:absolute;left:-1.5rem;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:0.5rem;color:var(--cyan);opacity:0.5">1x</span>
+      <span style="position:absolute;bottom:-1.5rem;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:0.5rem;color:var(--cyan);opacity:0.5">1x</span>
+    </div>
+  </div>
+</section>
+
+<!-- 05 LOGO MISUSE -->
+<section class="section">
+  <div class="sec-header"><span class="sec-num">05</span><span class="sec-title">Logo Misuse</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Never alter the logo in these ways. Maintaining consistency protects brand recognition.</p>
+  <div class="grid-4">
+    <div class="misuse-card">
+      <span style="font-family:var(--sans);font-weight:600;font-size:1.5rem;color:rgba(255,255,255,0.4);transform:scaleX(1.5)">Aloud</span>
+      <span class="label">Do not stretch</span>
+    </div>
+    <div class="misuse-card">
+      <span style="font-family:var(--sans);font-weight:600;font-size:1.5rem;color:#ff4444">Aloud</span>
+      <span class="label">Do not recolor</span>
+    </div>
+    <div class="misuse-card">
+      <span style="font-family:var(--sans);font-weight:600;font-size:1.5rem;color:rgba(255,255,255,0.4);transform:rotate(-15deg)">Aloud</span>
+      <span class="label">Do not rotate</span>
+    </div>
+    <div class="misuse-card">
+      <span style="font-family:var(--sans);font-weight:600;font-size:1.5rem;color:rgba(255,255,255,0.4)">Aloud</span>
+      <span class="label">Do not remove particles</span>
+    </div>
+  </div>
+</section>
+
+<!-- 06 COLOR PALETTE -->
+<section class="section" id="colors">
+  <div class="sec-header"><span class="sec-num">06</span><span class="sec-title">Color Palette</span><span class="sec-line"></span></div>
+  <p class="sec-desc">A deliberately restrained palette anchored in darkness and illuminated by cyan. Each color evokes the depth of space and the energy of connection.</p>
+  <div class="grid-6">
+    <div class="swatch"><div class="swatch-color" style="background:#0A0A0A;border-bottom:1px solid rgba(255,255,255,0.06)"></div><div class="swatch-info"><div class="swatch-name">Void Black</div><div class="swatch-hex">#0A0A0A</div><div class="swatch-rgb">RGB 10, 10, 10</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#00FFFF"></div><div class="swatch-info"><div class="swatch-name">Particle Cyan</div><div class="swatch-hex">#00FFFF</div><div class="swatch-rgb">RGB 0, 255, 255</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#111111;border-bottom:1px solid rgba(255,255,255,0.06)"></div><div class="swatch-info"><div class="swatch-name">Deep Space</div><div class="swatch-hex">#111111</div><div class="swatch-rgb">RGB 17, 17, 17</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#0D2B2B"></div><div class="swatch-info"><div class="swatch-name">Nebula</div><div class="swatch-hex">#0D2B2B</div><div class="swatch-rgb">RGB 13, 43, 43</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#1A3A3A"></div><div class="swatch-info"><div class="swatch-name">Stardust</div><div class="swatch-hex">#1A3A3A</div><div class="swatch-rgb">RGB 26, 58, 58</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#F0F0F0"></div><div class="swatch-info"><div class="swatch-name">Signal White</div><div class="swatch-hex">#F0F0F0</div><div class="swatch-rgb">RGB 240, 240, 240</div></div></div>
+  </div>
+</section>
+
+<!-- 07 TYPOGRAPHY -->
+<section class="section" id="typography">
+  <div class="sec-header"><span class="sec-num">07</span><span class="sec-title">Typography</span><span class="sec-line"></span></div>
+  <p class="sec-desc">A three-tier type system: Outfit for display and headings, Inter for body text, and Space Mono for technical details.</p>
+
+  <div class="type-block">
+    <div class="type-name">Primary &mdash; Outfit</div>
+    <div class="type-alphabet" style="font-family:var(--sans)">ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789</div>
+    <div class="type-weights">
+      <span style="font-family:var(--sans);font-weight:300">Light 300</span>
+      <span style="font-family:var(--sans);font-weight:400">Regular 400</span>
+      <span style="font-family:var(--sans);font-weight:600">SemiBold 600</span>
+      <span style="font-family:var(--sans);font-weight:800">ExtraBold 800</span>
+    </div>
+    <p class="type-sample" style="font-family:var(--sans);font-size:2rem;font-weight:700;color:rgba(255,255,255,0.7)">Every voice matters.</p>
+    <p class="type-sample" style="font-family:var(--sans);font-size:1.2rem;font-weight:400;color:rgba(255,255,255,0.4)">Every voice matters when it is spoken aloud.</p>
+  </div>
+
+  <div class="type-block">
+    <div class="type-name">Secondary &mdash; Inter</div>
+    <div class="type-alphabet" style="font-family:var(--body)">ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789</div>
+    <div class="type-weights">
+      <span style="font-family:var(--body);font-weight:300">Light 300</span>
+      <span style="font-family:var(--body);font-weight:400">Regular 400</span>
+      <span style="font-family:var(--body);font-weight:600">SemiBold 600</span>
+      <span style="font-family:var(--body);font-weight:800">ExtraBold 800</span>
+    </div>
+    <p class="type-sample" style="font-family:var(--body);font-size:1rem;color:rgba(255,255,255,0.5);max-width:500px;line-height:1.8">Aloud is a platform for authentic expression. We connect voices across distances, making the world feel smaller and more human.</p>
+  </div>
+
+  <div class="type-block">
+    <div class="type-name">Monospace &mdash; Space Mono</div>
+    <div class="type-alphabet" style="font-family:var(--mono)">ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789</div>
+    <div class="type-weights">
+      <span style="font-family:var(--mono);font-weight:400">Regular 400</span>
+      <span style="font-family:var(--mono);font-weight:700">Bold 700</span>
+    </div>
+    <p class="type-sample" style="font-family:var(--mono);font-size:0.8rem;color:rgba(0,255,255,0.4)">v1.0.0 &mdash; particle-identity &mdash; 2026</p>
+  </div>
+</section>
+
+<!-- 08 TYPE SCALE -->
+<section class="section">
+  <div class="sec-header"><span class="sec-num">08</span><span class="sec-title">Type Scale</span><span class="sec-line"></span></div>
+  <div class="type-scale">
+    <div class="scale-row"><span class="scale-label">H1 &mdash; 3.5rem / 56px</span><span style="font-family:var(--sans);font-size:3.5rem;font-weight:800;color:#fff">Aloud</span></div>
+    <div class="scale-row"><span class="scale-label">H2 &mdash; 2.5rem / 40px</span><span style="font-family:var(--sans);font-size:2.5rem;font-weight:700;color:rgba(255,255,255,0.8)">Speak freely</span></div>
+    <div class="scale-row"><span class="scale-label">H3 &mdash; 1.75rem / 28px</span><span style="font-family:var(--sans);font-size:1.75rem;font-weight:600;color:rgba(255,255,255,0.7)">Your voice, amplified</span></div>
+    <div class="scale-row"><span class="scale-label">H4 &mdash; 1.25rem / 20px</span><span style="font-family:var(--sans);font-size:1.25rem;font-weight:600;color:rgba(255,255,255,0.6)">Connect through sound</span></div>
+    <div class="scale-row"><span class="scale-label">H5 &mdash; 1rem / 16px</span><span style="font-family:var(--sans);font-size:1rem;font-weight:600;color:rgba(255,255,255,0.5)">Particles in motion</span></div>
+    <div class="scale-row"><span class="scale-label">H6 &mdash; 0.85rem / 14px</span><span style="font-family:var(--sans);font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.45);letter-spacing:0.05em;text-transform:uppercase">System caption</span></div>
+    <div class="scale-row"><span class="scale-label">Body &mdash; 0.95rem / 15px</span><span style="font-family:var(--body);font-size:0.95rem;color:rgba(255,255,255,0.4);line-height:1.7">Every particle of sound carries meaning. When voices converge, they create constellations of thought.</span></div>
+    <div class="scale-row"><span class="scale-label">Small &mdash; 0.75rem / 12px</span><span style="font-family:var(--body);font-size:0.75rem;color:rgba(255,255,255,0.3)">Metadata, captions, and timestamps</span></div>
+    <div class="scale-row"><span class="scale-label">Code &mdash; 0.8rem / 13px</span><span style="font-family:var(--mono);font-size:0.8rem;color:rgba(0,255,255,0.4)">font-family: 'Outfit', sans-serif;</span></div>
+  </div>
+</section>
+
+<!-- 09 ICONOGRAPHY -->
+<section class="section" id="icons">
+  <div class="sec-header"><span class="sec-num">09</span><span class="sec-title">Iconography</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Icons built from particles and lines &mdash; minimal, geometric, using only dots and strokes in the brand palette.</p>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem">
+    <!-- Microphone -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div style="width:14px;height:22px;border:2px solid var(--cyan);border-radius:7px;position:relative">
+          <div class="particle" style="width:3px;height:3px;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px rgba(0,255,255,0.5)"></div>
+        </div>
+        <div style="position:absolute;bottom:2px;width:2px;height:8px;background:rgba(0,255,255,0.4);left:50%;transform:translateX(-50%)"></div>
+        <div style="position:absolute;bottom:0;width:14px;height:2px;background:rgba(0,255,255,0.3);left:50%;transform:translateX(-50%);border-radius:1px"></div>
+      </div>
+      <span class="icon-label">Microphone</span>
+    </div>
+    <!-- Speaker -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div style="width:10px;height:14px;background:rgba(0,255,255,0.6);position:absolute;left:6px;top:13px;border-radius:2px"></div>
+        <div style="position:absolute;left:16px;top:8px;width:0;height:0;border-top:12px solid transparent;border-bottom:12px solid transparent;border-left:10px solid rgba(0,255,255,0.6)"></div>
+        <div class="particle" style="width:3px;height:3px;right:2px;top:12px;box-shadow:0 0 4px rgba(0,255,255,0.4);animation:pulse 2s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;right:-1px;top:18px;box-shadow:0 0 4px rgba(0,255,255,0.3);animation:pulse 2s ease-in-out infinite 0.3s"></div>
+      </div>
+      <span class="icon-label">Speaker</span>
+    </div>
+    <!-- Headphones -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div style="width:30px;height:16px;border:2px solid rgba(0,255,255,0.5);border-bottom:none;border-radius:15px 15px 0 0;position:absolute;top:8px;left:5px"></div>
+        <div style="width:8px;height:12px;background:rgba(0,255,255,0.5);border-radius:3px;position:absolute;bottom:5px;left:5px"></div>
+        <div style="width:8px;height:12px;background:rgba(0,255,255,0.5);border-radius:3px;position:absolute;bottom:5px;right:5px"></div>
+      </div>
+      <span class="icon-label">Headphones</span>
+    </div>
+    <!-- Play -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:22px solid var(--cyan);margin-left:4px;filter:drop-shadow(0 0 6px rgba(0,255,255,0.4))"></div>
+      </div>
+      <span class="icon-label">Play</span>
+    </div>
+    <!-- Waveform -->
+    <div class="icon-card card">
+      <div class="icon-shape" style="display:flex;align-items:center;gap:3px">
+        <div style="width:3px;height:8px;background:var(--cyan);border-radius:1px;opacity:0.4"></div>
+        <div style="width:3px;height:18px;background:var(--cyan);border-radius:1px;opacity:0.6"></div>
+        <div style="width:3px;height:28px;background:var(--cyan);border-radius:1px;opacity:0.9"></div>
+        <div style="width:3px;height:14px;background:var(--cyan);border-radius:1px;opacity:0.7"></div>
+        <div style="width:3px;height:22px;background:var(--cyan);border-radius:1px;opacity:0.8"></div>
+        <div style="width:3px;height:10px;background:var(--cyan);border-radius:1px;opacity:0.5"></div>
+        <div style="width:3px;height:16px;background:var(--cyan);border-radius:1px;opacity:0.6"></div>
+      </div>
+      <span class="icon-label">Waveform</span>
+    </div>
+    <!-- Volume -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div style="width:8px;height:10px;background:rgba(0,255,255,0.6);position:absolute;left:6px;top:15px;border-radius:1px"></div>
+        <div style="position:absolute;left:14px;top:12px;width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:8px solid rgba(0,255,255,0.6)"></div>
+        <div style="position:absolute;right:4px;top:10px;width:12px;height:20px;border:2px solid rgba(0,255,255,0.3);border-left:none;border-radius:0 10px 10px 0"></div>
+      </div>
+      <span class="icon-label">Volume</span>
+    </div>
+    <!-- Record -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(0,255,255,0.3);display:flex;align-items:center;justify-content:center">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px rgba(0,255,255,0.5);animation:pulse 2s ease-in-out infinite"></div>
+        </div>
+      </div>
+      <span class="icon-label">Record</span>
+    </div>
+    <!-- Share -->
+    <div class="icon-card card">
+      <div class="icon-shape">
+        <div class="particle" style="width:8px;height:8px;top:5px;right:5px;box-shadow:0 0 6px rgba(0,255,255,0.5)"></div>
+        <div class="particle" style="width:8px;height:8px;bottom:2px;right:5px;box-shadow:0 0 6px rgba(0,255,255,0.5)"></div>
+        <div class="particle" style="width:8px;height:8px;top:50%;left:5px;transform:translateY(-50%);box-shadow:0 0 6px rgba(0,255,255,0.5)"></div>
+        <div style="position:absolute;top:9px;left:10px;width:18px;height:1px;background:rgba(0,255,255,0.3);transform:rotate(-20deg)"></div>
+        <div style="position:absolute;bottom:6px;left:10px;width:18px;height:1px;background:rgba(0,255,255,0.3);transform:rotate(20deg)"></div>
+      </div>
+      <span class="icon-label">Share</span>
+    </div>
+  </div>
+</section>
+
+<!-- 10 PATTERN -->
+<section class="section" id="pattern">
+  <div class="sec-header"><span class="sec-num">10</span><span class="sec-title">Brand Pattern</span><span class="sec-line"></span></div>
+  <p class="sec-desc">The signature particle field: randomly scattered dots at varying sizes connected by hairline strokes. Used as backgrounds, textures, and decorative elements.</p>
+  <div class="pattern-box">
+    <div class="particle" style="width:5px;height:5px;top:10%;left:8%;--d:6s;animation-name:float1;box-shadow:0 0 8px rgba(0,255,255,0.4)"></div>
+    <div class="particle" style="width:3px;height:3px;top:25%;left:22%;--d:5s;--del:0.5s;animation-name:float2;box-shadow:0 0 5px rgba(0,255,255,0.3)"></div>
+    <div class="particle" style="width:6px;height:6px;top:15%;left:40%;--d:7s;animation-name:float3;box-shadow:0 0 10px rgba(0,255,255,0.5)"></div>
+    <div class="particle" style="width:4px;height:4px;top:50%;left:15%;--d:4s;--del:1s;animation-name:float1;box-shadow:0 0 6px rgba(0,255,255,0.3)"></div>
+    <div class="particle" style="width:3px;height:3px;top:60%;left:35%;--d:6s;--del:0.8s;animation-name:float2;box-shadow:0 0 5px rgba(0,255,255,0.3)"></div>
+    <div class="particle" style="width:5px;height:5px;top:40%;left:55%;--d:5s;--del:0.3s;animation-name:float3;box-shadow:0 0 8px rgba(0,255,255,0.4)"></div>
+    <div class="particle" style="width:4px;height:4px;top:70%;left:60%;--d:7s;--del:1.2s;animation-name:float1;box-shadow:0 0 6px rgba(0,255,255,0.3)"></div>
+    <div class="particle" style="width:6px;height:6px;top:20%;left:72%;--d:4s;--del:0.6s;animation-name:float2;box-shadow:0 0 10px rgba(0,255,255,0.5)"></div>
+    <div class="particle" style="width:3px;height:3px;top:80%;left:80%;--d:6s;animation-name:float3;box-shadow:0 0 5px rgba(0,255,255,0.3)"></div>
+    <div class="particle" style="width:5px;height:5px;top:45%;left:88%;--d:5s;--del:0.9s;animation-name:float1;box-shadow:0 0 8px rgba(0,255,255,0.4)"></div>
+    <div class="particle" style="width:4px;height:4px;top:85%;left:25%;--d:6s;--del:0.4s;animation-name:float2;box-shadow:0 0 6px rgba(0,255,255,0.3)"></div>
+    <div class="particle" style="width:3px;height:3px;top:30%;left:92%;--d:5s;--del:1.5s;animation-name:float3;box-shadow:0 0 5px rgba(0,255,255,0.3)"></div>
+    <!-- Connection lines -->
+    <div style="position:absolute;top:12%;left:10%;width:130px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.12),transparent);transform:rotate(8deg)"></div>
+    <div style="position:absolute;top:18%;left:42%;width:180px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.08),transparent);transform:rotate(-5deg)"></div>
+    <div style="position:absolute;top:52%;left:17%;width:150px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.1),transparent);transform:rotate(15deg)"></div>
+    <div style="position:absolute;top:42%;left:57%;width:200px;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,255,0.08),transparent);transform:rotate(-12deg)"></div>
+    <div style="position:absolute;top:72%;left:62%;width:120px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.1),transparent);transform:rotate(22deg)"></div>
+    <div style="position:absolute;top:82%;left:27%;width:160px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.06),transparent);transform:rotate(-8deg)"></div>
+  </div>
+</section>
+
+<!-- 11 PHOTOGRAPHY STYLE -->
+<section class="section" id="photo">
+  <div class="sec-header"><span class="sec-num">11</span><span class="sec-title">Photography Style</span><span class="sec-line"></span></div>
+  <p class="sec-desc">All photography receives one of three treatments to maintain brand cohesion: dark overlay, cyan duotone, or particle overlay.</p>
+  <div class="grid-3">
+    <div class="photo-card" style="background:linear-gradient(180deg,rgba(10,10,10,0.3) 0%,rgba(10,10,10,0.9) 100%),linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)">
+      <span class="overlay-label">Dark Overlay</span>
+    </div>
+    <div class="photo-card" style="background:linear-gradient(135deg,rgba(0,255,255,0.15),rgba(0,80,80,0.3)),linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)">
+      <span class="overlay-label">Cyan Duotone</span>
+    </div>
+    <div class="photo-card" style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);position:relative">
+      <div class="particle" style="width:4px;height:4px;top:20%;left:20%;box-shadow:0 0 6px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;top:50%;left:60%;box-shadow:0 0 5px rgba(0,255,255,0.4);animation:float2 5s ease-in-out infinite"></div>
+      <div class="particle" style="width:5px;height:5px;top:70%;left:35%;box-shadow:0 0 8px rgba(0,255,255,0.5);animation:float3 6s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;top:30%;right:25%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float1 5s ease-in-out infinite 0.5s"></div>
+      <div style="position:absolute;top:25%;left:22%;width:100px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.1),transparent);transform:rotate(20deg)"></div>
+      <span class="overlay-label">Particle Overlay</span>
+    </div>
+  </div>
+</section>
+
+<!-- 12 BUSINESS CARD -->
+<section class="section" id="bizcard">
+  <div class="sec-header"><span class="sec-num">12</span><span class="sec-title">Business Card</span><span class="sec-line"></span></div>
+  <p class="sec-desc">3.5 x 2 inch cards printed on matte black stock with spot UV on the particles.</p>
+  <div class="grid-2">
+    <div class="biz-card" style="background:var(--black);border:1px solid rgba(255,255,255,0.06)">
+      <div>
+        <span style="font-family:var(--sans);font-weight:600;font-size:1.2rem;color:#fff;letter-spacing:0.05em">Aloud</span>
+        <div class="particle" style="width:4px;height:4px;top:18px;left:80px;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float1 5s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;top:28px;left:95px;box-shadow:0 0 4px rgba(0,255,255,0.3);animation:float2 6s ease-in-out infinite"></div>
+      </div>
+      <div>
+        <p style="font-family:var(--sans);font-weight:600;font-size:0.75rem;color:rgba(255,255,255,0.7);margin-bottom:2px">Jane Doe</p>
+        <p style="font-size:0.6rem;color:rgba(255,255,255,0.3);letter-spacing:0.1em">Creative Director</p>
+      </div>
+    </div>
+    <div class="biz-card" style="background:var(--black);border:1px solid rgba(255,255,255,0.06);align-items:center;justify-content:center;display:flex;flex-direction:column;gap:1.5rem">
+      <div style="position:relative">
+        <span style="font-family:var(--sans);font-weight:800;font-size:2.5rem;color:var(--cyan)">A</span>
+        <div class="particle" style="width:5px;height:5px;top:-8px;right:-12px;box-shadow:0 0 8px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;bottom:-5px;left:-10px;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float2 5s ease-in-out infinite"></div>
+        <div class="particle" style="width:4px;height:4px;top:5px;left:-15px;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float3 6s ease-in-out infinite"></div>
+      </div>
+      <div style="text-align:center">
+        <p style="font-family:var(--mono);font-size:0.5rem;color:rgba(255,255,255,0.3);margin-bottom:3px">jane@aloud.io</p>
+        <p style="font-family:var(--mono);font-size:0.5rem;color:rgba(255,255,255,0.2)">+1 (555) 012-3456</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 LETTERHEAD -->
+<section class="section" id="letterhead">
+  <div class="sec-header"><span class="sec-num">13</span><span class="sec-title">Letterhead</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Letterhead uses the logo at top-left with a vertical particle accent strip along the left margin.</p>
+  <div class="letterhead">
+    <!-- Left particle strip -->
+    <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--cyan),rgba(0,255,255,0.1),transparent)"></div>
+    <div class="particle" style="width:3px;height:3px;left:8px;top:15%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float1 6s ease-in-out infinite"></div>
+    <div class="particle" style="width:2px;height:2px;left:12px;top:35%;box-shadow:0 0 4px rgba(0,255,255,0.2);animation:float2 5s ease-in-out infinite"></div>
+    <div class="particle" style="width:3px;height:3px;left:6px;top:55%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float3 7s ease-in-out infinite"></div>
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3rem;position:relative;z-index:1">
+      <span style="font-family:var(--sans);font-weight:600;font-size:1rem;color:#fff;letter-spacing:0.05em">Aloud</span>
+      <div style="text-align:right">
+        <p style="font-family:var(--mono);font-size:0.4rem;color:rgba(255,255,255,0.25)">123 Signal Street</p>
+        <p style="font-family:var(--mono);font-size:0.4rem;color:rgba(255,255,255,0.25)">San Francisco, CA 94105</p>
+      </div>
+    </div>
+    <!-- Body -->
+    <div style="flex:1;position:relative;z-index:1">
+      <p style="font-size:0.5rem;color:rgba(255,255,255,0.15);margin-bottom:1rem">February 28, 2026</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        <div style="height:4px;width:80%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:4px;width:95%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:4px;width:90%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:4px;width:85%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:4px;width:60%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:12px"></div>
+        <div style="height:4px;width:92%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:4px;width:88%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+        <div style="height:4px;width:75%;background:rgba(255,255,255,0.04);border-radius:2px"></div>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div style="display:flex;justify-content:space-between;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.04);position:relative;z-index:1">
+      <span style="font-family:var(--mono);font-size:0.35rem;color:rgba(0,255,255,0.25)">aloud.io</span>
+      <span style="font-family:var(--mono);font-size:0.35rem;color:rgba(255,255,255,0.15)">hello@aloud.io</span>
+    </div>
+  </div>
+</section>
+
+<!-- 14 SOCIAL MEDIA -->
+<section class="section" id="social">
+  <div class="sec-header"><span class="sec-num">14</span><span class="sec-title">Social Media Assets</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Consistent social presence across platforms: profile picture, cover banner, and post template.</p>
+  <div style="display:flex;flex-direction:column;gap:2rem">
+    <!-- Profile Picture -->
+    <div>
+      <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Profile Picture</p>
+      <div class="social-pfp">
+        <span style="font-family:var(--sans);font-weight:800;font-size:2.5rem;color:var(--cyan)">A</span>
+        <div class="particle" style="width:4px;height:4px;top:10px;right:15px;box-shadow:0 0 6px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;bottom:15px;left:10px;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float2 5s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;top:25px;left:8px;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float3 6s ease-in-out infinite"></div>
+      </div>
+    </div>
+    <!-- Banner -->
+    <div>
+      <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Cover Banner</p>
+      <div class="social-banner" style="background:radial-gradient(ellipse at 30% 50%,rgba(0,255,255,0.04),transparent)">
+        <span style="font-family:var(--sans);font-weight:700;font-size:2rem;color:#fff;letter-spacing:0.1em;z-index:1">Aloud</span>
+        <div class="particle" style="width:5px;height:5px;top:20%;left:10%;box-shadow:0 0 8px rgba(0,255,255,0.4);animation:float1 5s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;top:60%;left:20%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float2 6s ease-in-out infinite"></div>
+        <div class="particle" style="width:4px;height:4px;top:35%;right:15%;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float3 4s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;bottom:25%;right:30%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float1 7s ease-in-out infinite"></div>
+        <div class="particle" style="width:6px;height:6px;top:45%;left:65%;box-shadow:0 0 10px rgba(0,255,255,0.5);animation:float2 5s ease-in-out infinite"></div>
+        <div style="position:absolute;top:30%;left:12%;width:200px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.1),transparent);transform:rotate(5deg)"></div>
+        <div style="position:absolute;top:50%;right:18%;width:150px;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,255,0.08));transform:rotate(-8deg)"></div>
+      </div>
+    </div>
+    <!-- Post -->
+    <div>
+      <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Post Template</p>
+      <div class="social-post">
+        <div style="width:75%;height:75%;border:1px dashed rgba(0,255,255,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;z-index:1">
+          <span style="font-size:0.55rem;color:rgba(255,255,255,0.15);letter-spacing:0.1em;text-transform:uppercase">Content Area</span>
+        </div>
+        <div class="particle" style="width:4px;height:4px;top:8%;left:8%;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float1 5s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;top:12%;right:10%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float2 6s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;bottom:10%;left:12%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float3 4s ease-in-out infinite"></div>
+        <div class="particle" style="width:4px;height:4px;bottom:8%;right:8%;box-shadow:0 0 6px rgba(0,255,255,0.4);animation:float1 5s ease-in-out infinite 0.5s"></div>
+        <div style="position:absolute;bottom:6%;left:50%;transform:translateX(-50%);font-family:var(--sans);font-weight:600;font-size:0.5rem;color:rgba(0,255,255,0.3);letter-spacing:0.1em">ALOUD</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 APP ICON -->
+<section class="section" id="appicon">
+  <div class="sec-header"><span class="sec-num">15</span><span class="sec-title">App Icon</span><span class="sec-line"></span></div>
+  <p class="sec-desc">The app icon distills the brand to its essence: the &ldquo;A&rdquo; letterform surrounded by glowing particles on void black.</p>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:2rem">
+    <div class="app-icon">
+      <span class="letter">A</span>
+      <div class="particle" style="width:5px;height:5px;top:12px;right:18px;box-shadow:0 0 8px rgba(0,255,255,0.6);animation:float1 4s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;bottom:18px;left:15px;box-shadow:0 0 5px rgba(0,255,255,0.4);animation:float2 5s ease-in-out infinite"></div>
+      <div class="particle" style="width:4px;height:4px;top:20px;left:20px;box-shadow:0 0 6px rgba(0,255,255,0.5);animation:float3 6s ease-in-out infinite"></div>
+      <div class="particle" style="width:3px;height:3px;bottom:25px;right:22px;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float1 5s ease-in-out infinite 0.5s"></div>
+      <div style="position:absolute;top:15px;right:20px;width:30px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.15),transparent);transform:rotate(30deg)"></div>
+      <div style="position:absolute;bottom:20px;left:18px;width:25px;height:1px;background:linear-gradient(90deg,rgba(0,255,255,0.1),transparent);transform:rotate(-20deg)"></div>
+    </div>
+    <div style="display:flex;gap:1.5rem;align-items:flex-end">
+      <div class="app-icon" style="width:80px;height:80px;border-radius:18px">
+        <span class="letter" style="font-size:2rem">A</span>
+        <div class="particle" style="width:3px;height:3px;top:10px;right:12px;box-shadow:0 0 5px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+        <div class="particle" style="width:2px;height:2px;bottom:12px;left:10px;box-shadow:0 0 4px rgba(0,255,255,0.3);animation:float2 5s ease-in-out infinite"></div>
+      </div>
+      <div class="app-icon" style="width:50px;height:50px;border-radius:12px">
+        <span class="letter" style="font-size:1.3rem">A</span>
+        <div class="particle" style="width:2px;height:2px;top:8px;right:8px;box-shadow:0 0 4px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+      </div>
+      <div class="app-icon" style="width:32px;height:32px;border-radius:8px">
+        <span class="letter" style="font-size:0.9rem">A</span>
+      </div>
+    </div>
+    <p style="font-family:var(--mono);font-size:0.55rem;color:rgba(255,255,255,0.2)">120px &middot; 80px &middot; 50px &middot; 32px</p>
+  </div>
+</section>
+
+<!-- 16 UI COMPONENTS -->
+<section class="section" id="ui">
+  <div class="sec-header"><span class="sec-num">16</span><span class="sec-title">UI Components</span><span class="sec-line"></span></div>
+  <p class="sec-desc">A component library built for the Aloud interface &mdash; buttons, inputs, cards, tags, and toggles in the particle aesthetic.</p>
+
+  <div style="display:flex;flex-direction:column;gap:3rem">
+    <!-- Buttons -->
+    <div>
+      <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Buttons</p>
+      <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary">Get Started</button>
+        <button class="btn btn-secondary">Learn More</button>
+        <button class="btn btn-ghost">Cancel</button>
+      </div>
+    </div>
+    <!-- Input -->
+    <div>
+      <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Input Field</p>
+      <div style="max-width:400px">
+        <label style="display:block;font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:0.4rem;font-family:var(--sans);font-weight:500">Email Address</label>
+        <input class="input-field" type="text" placeholder="hello@aloud.io">
+      </div>
+    </div>
+    <!-- Card -->
+    <div>
+      <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Card Component</p>
+      <div class="card" style="max-width:350px;padding:1.5rem">
+        <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,255,255,0.1);border:1px solid rgba(0,255,255,0.2);display:flex;align-items:center;justify-content:center">
+            <span style="font-family:var(--sans);font-weight:700;font-size:0.8rem;color:var(--cyan)">A</span>
+          </div>
+          <div>
+            <p style="font-family:var(--sans);font-weight:600;font-size:0.85rem;color:#fff">Audio Channel</p>
+            <p style="font-size:0.65rem;color:rgba(255,255,255,0.3)">3 participants online</p>
+          </div>
+        </div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.6;margin-bottom:1rem">A collaborative space where voices connect and ideas form constellations.</p>
+        <button class="btn btn-secondary" style="font-size:0.7rem;padding:0.5rem 1rem">Join Channel</button>
+      </div>
+    </div>
+    <!-- Tags & Toggles -->
+    <div style="display:flex;gap:3rem;flex-wrap:wrap">
+      <div>
+        <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Tags / Badges</p>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <span class="ui-tag ui-tag-cyan">Live</span>
+          <span class="ui-tag" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.08)">Archived</span>
+          <span class="ui-tag" style="background:rgba(0,255,255,0.05);color:rgba(0,255,255,0.6);border:1px solid rgba(0,255,255,0.1)">New</span>
+        </div>
+      </div>
+      <div>
+        <p style="font-family:var(--grotesk);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:1rem">Toggle Switch</p>
+        <div style="display:flex;gap:1rem;align-items:center">
+          <div class="toggle"><div class="knob"></div></div>
+          <div class="toggle active"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 MOTION PRINCIPLES -->
+<section class="section" id="motion">
+  <div class="sec-header"><span class="sec-num">17</span><span class="sec-title">Motion Principles</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Four core animation principles that govern all movement in the Aloud experience.</p>
+  <div class="grid-4">
+    <div class="card motion-card">
+      <div class="motion-demo">
+        <div class="particle" style="width:6px;height:6px;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(0,255,255,0.5);animation:float1 4s ease-in-out infinite"></div>
+        <div class="particle" style="width:4px;height:4px;top:20%;left:30%;box-shadow:0 0 6px rgba(0,255,255,0.3);animation:float2 5s ease-in-out infinite"></div>
+        <div class="particle" style="width:3px;height:3px;bottom:20%;right:25%;box-shadow:0 0 5px rgba(0,255,255,0.3);animation:float3 6s ease-in-out infinite"></div>
+      </div>
+      <p style="font-family:var(--sans);font-weight:600;font-size:0.9rem;color:#fff">Float</p>
+      <p style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-align:center;line-height:1.5">Gentle, ambient drift. Particles move slowly and never stop.</p>
+    </div>
+    <div class="card motion-card">
+      <div class="motion-demo">
+        <div class="particle" style="width:5px;height:5px;top:20%;left:15%;box-shadow:0 0 8px rgba(0,255,255,0.5)"></div>
+        <div class="particle" style="width:5px;height:5px;bottom:20%;right:15%;box-shadow:0 0 8px rgba(0,255,255,0.5)"></div>
+        <div style="position:absolute;top:24%;left:20%;width:50px;height:1px;background:rgba(0,255,255,0.3);transform:rotate(40deg);animation:connect 3s ease-in-out infinite"></div>
+      </div>
+      <p style="font-family:var(--sans);font-weight:600;font-size:0.9rem;color:#fff">Connect</p>
+      <p style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-align:center;line-height:1.5">Lines draw between points to show relationships forming.</p>
+    </div>
+    <div class="card motion-card">
+      <div class="motion-demo">
+        <div style="width:20px;height:20px;border-radius:50%;background:var(--cyan);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:breathe 3s ease-in-out infinite"></div>
+      </div>
+      <p style="font-family:var(--sans);font-weight:600;font-size:0.9rem;color:#fff">Pulse</p>
+      <p style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-align:center;line-height:1.5">Glow expands and contracts like breathing. Shows life and energy.</p>
+    </div>
+    <div class="card motion-card">
+      <div class="motion-demo">
+        <div class="particle" style="width:4px;height:4px;top:50%;left:50%;box-shadow:0 0 6px rgba(0,255,255,0.5);animation:scatter 2s ease-out infinite;--sx:-20px;--sy:-15px"></div>
+        <div class="particle" style="width:3px;height:3px;top:50%;left:50%;box-shadow:0 0 5px rgba(0,255,255,0.4);animation:scatter 2s ease-out infinite 0.15s;--sx:15px;--sy:-20px"></div>
+        <div class="particle" style="width:4px;height:4px;top:50%;left:50%;box-shadow:0 0 6px rgba(0,255,255,0.5);animation:scatter 2s ease-out infinite 0.3s;--sx:20px;--sy:10px"></div>
+        <div class="particle" style="width:3px;height:3px;top:50%;left:50%;box-shadow:0 0 5px rgba(0,255,255,0.4);animation:scatter 2s ease-out infinite 0.45s;--sx:-15px;--sy:18px"></div>
+        <div class="particle" style="width:5px;height:5px;top:50%;left:50%;box-shadow:0 0 8px rgba(0,255,255,0.6);animation:scatter 2s ease-out infinite 0.1s;--sx:5px;--sy:-25px"></div>
+      </div>
+      <p style="font-family:var(--sans);font-weight:600;font-size:0.9rem;color:#fff">Scatter</p>
+      <p style="font-size:0.65rem;color:rgba(255,255,255,0.3);text-align:center;line-height:1.5">Particles burst outward from a point. Used for emphasis moments.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 18 MERCHANDISE -->
+<section class="section" id="merch">
+  <div class="sec-header"><span class="sec-num">18</span><span class="sec-title">Merchandise</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Branded merchandise extends the particle identity into physical products. Always on dark substrates.</p>
+  <div class="grid-3">
+    <div class="merch-card card">
+      <!-- T-Shirt -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0.5rem">
+        <div style="width:100px;height:110px;background:var(--black);border-radius:4px 4px 0 0;border:1px solid rgba(255,255,255,0.06);position:relative;display:flex;align-items:center;justify-content:center;clip-path:polygon(15% 0, 0 20%, 0 100%, 100% 100%, 100% 20%, 85% 0)">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem;margin-top:0.5rem">
+            <span style="font-family:var(--sans);font-weight:600;font-size:0.6rem;color:#fff;letter-spacing:0.05em">Aloud</span>
+            <div style="display:flex;gap:6px">
+              <div style="width:2px;height:2px;border-radius:50%;background:var(--cyan);box-shadow:0 0 3px rgba(0,255,255,0.5)"></div>
+              <div style="width:3px;height:3px;border-radius:50%;background:var(--cyan);box-shadow:0 0 4px rgba(0,255,255,0.5)"></div>
+              <div style="width:2px;height:2px;border-radius:50%;background:var(--cyan);box-shadow:0 0 3px rgba(0,255,255,0.4)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="merch-label">T-Shirt</span>
+    </div>
+    <div class="merch-card card">
+      <!-- Tote -->
+      <div style="width:90px;height:100px;background:var(--black);border:1px solid rgba(255,255,255,0.06);border-radius:0 0 4px 4px;position:relative;display:flex;align-items:center;justify-content:center">
+        <div style="position:absolute;top:-12px;left:20px;width:2px;height:14px;background:rgba(255,255,255,0.1);border-radius:1px;transform:rotate(-10deg)"></div>
+        <div style="position:absolute;top:-12px;right:20px;width:2px;height:14px;background:rgba(255,255,255,0.1);border-radius:1px;transform:rotate(10deg)"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0.3rem">
+          <span style="font-family:var(--sans);font-weight:600;font-size:0.5rem;color:#fff;letter-spacing:0.05em">Aloud</span>
+          <div class="particle" style="width:3px;height:3px;box-shadow:0 0 4px rgba(0,255,255,0.5);position:static;display:inline-block"></div>
+        </div>
+      </div>
+      <span class="merch-label">Tote Bag</span>
+    </div>
+    <div class="merch-card card">
+      <!-- Water Bottle -->
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:22px;height:8px;background:rgba(255,255,255,0.08);border-radius:2px 2px 0 0"></div>
+        <div style="width:35px;height:90px;background:var(--black);border:1px solid rgba(255,255,255,0.06);border-radius:3px;position:relative;display:flex;align-items:center;justify-content:center">
+          <div style="transform:rotate(-90deg);white-space:nowrap">
+            <span style="font-family:var(--sans);font-weight:600;font-size:0.4rem;color:#fff;letter-spacing:0.1em">ALOUD</span>
+          </div>
+          <div class="particle" style="width:2px;height:2px;top:15px;right:6px;box-shadow:0 0 3px rgba(0,255,255,0.5)"></div>
+          <div class="particle" style="width:2px;height:2px;bottom:15px;left:6px;box-shadow:0 0 3px rgba(0,255,255,0.4)"></div>
+        </div>
+      </div>
+      <span class="merch-label">Water Bottle</span>
+    </div>
+  </div>
+</section>
+
+<!-- 19 BRAND VOICE -->
+<section class="section" id="voice">
+  <div class="sec-header"><span class="sec-num">19</span><span class="sec-title">Brand Voice</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Our voice walks the line between opposing forces. Each principle is a balance, not an extreme.</p>
+  <div class="grid-4">
+    <div class="voice-card"><div class="bold">Bold</div><div class="not">but not aggressive</div><p style="font-size:0.7rem;color:rgba(255,255,255,0.25);margin-top:1rem;line-height:1.6">We speak with confidence and clarity. We never shout, threaten, or overwhelm.</p></div>
+    <div class="voice-card"><div class="bold">Clear</div><div class="not">but not cold</div><p style="font-size:0.7rem;color:rgba(255,255,255,0.25);margin-top:1rem;line-height:1.6">Precision matters, but warmth gives it meaning. Every message should feel human.</p></div>
+    <div class="voice-card"><div class="bold">Cosmic</div><div class="not">but grounded</div><p style="font-size:0.7rem;color:rgba(255,255,255,0.25);margin-top:1rem;line-height:1.6">We dream big and think in constellations, but we stay rooted in real human needs.</p></div>
+    <div class="voice-card"><div class="bold">Technical</div><div class="not">but human</div><p style="font-size:0.7rem;color:rgba(255,255,255,0.25);margin-top:1rem;line-height:1.6">We respect intelligence without alienating. Complex ideas, simple language.</p></div>
+  </div>
+</section>
+
+<!-- 20 DO'S AND DON'TS -->
+<section class="section" id="dos">
+  <div class="sec-header"><span class="sec-num">20</span><span class="sec-title">Do&rsquo;s &amp; Don&rsquo;ts</span><span class="sec-line"></span></div>
+  <p class="sec-desc">Quick reference for maintaining brand consistency across all touchpoints.</p>
+  <div class="grid-2" style="gap:2rem">
+    <div>
+      <div class="do-card" style="margin-bottom:1rem">
+        <div class="tag">Do</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);line-height:1.6">Use the particle system on dark backgrounds. The particles need contrast to glow.</p>
+      </div>
+      <div class="do-card" style="margin-bottom:1rem">
+        <div class="tag">Do</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);line-height:1.6">Maintain generous whitespace around the logo. Let the particles breathe.</p>
+      </div>
+      <div class="do-card" style="margin-bottom:1rem">
+        <div class="tag">Do</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);line-height:1.6">Use Outfit for headlines and Inter for body text. Keep the type system consistent.</p>
+      </div>
+      <div class="do-card">
+        <div class="tag">Do</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);line-height:1.6">Apply the grain texture overlay on all brand surfaces for tactile depth.</p>
+      </div>
+    </div>
+    <div>
+      <div class="dont-card" style="margin-bottom:1rem">
+        <div class="tag">Don&rsquo;t</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.6">Never place particles on light or white backgrounds. They lose all impact.</p>
+      </div>
+      <div class="dont-card" style="margin-bottom:1rem">
+        <div class="tag">Don&rsquo;t</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.6">Never use more than 8-10 particles in a single composition. Less is more.</p>
+      </div>
+      <div class="dont-card" style="margin-bottom:1rem">
+        <div class="tag">Don&rsquo;t</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.6">Never substitute brand colors with similar shades. Use exact hex values only.</p>
+      </div>
+      <div class="dont-card">
+        <div class="tag">Don&rsquo;t</div>
+        <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);line-height:1.6">Never make particle animations fast or jarring. Motion should always be calm and ambient.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 FOOTER -->
+<footer class="footer">
+  <p><span style="color:var(--cyan)">Aloud</span> &mdash; Brand Identity System &mdash; The Particle</p>
+  <p class="ver">v1.0 &mdash; February 2026</p>
+</footer>
+
+<!-- HERO PARTICLE CANVAS -->
+<script>
+(function(){
+  const c=document.getElementById('particleCanvas');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  let w,h;
+  const particles=[];
+  const N=60;
+  const DIST=120;
+
+  function resize(){w=c.width=c.parentElement.offsetWidth;h=c.height=c.parentElement.offsetHeight}
+  window.addEventListener('resize',resize);
+  resize();
+
+  for(let i=0;i<N;i++){
+    particles.push({
+      x:Math.random()*w,
+      y:Math.random()*h,
+      vx:(Math.random()-0.5)*0.4,
+      vy:(Math.random()-0.5)*0.4,
+      r:Math.random()*2+1
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    // lines
+    for(let i=0;i<N;i++){
+      for(let j=i+1;j<N;j++){
+        const dx=particles[i].x-particles[j].x;
+        const dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<DIST){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle='rgba(0,255,255,'+(0.12*(1-d/DIST))+')';
+          ctx.lineWidth=0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    // dots
+    for(const p of particles){
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>w)p.vx*=-1;
+      if(p.y<0||p.y>h)p.vy*=-1;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,255,255,0.6)';
+      ctx.shadowColor='rgba(0,255,255,0.4)';
+      ctx.shadowBlur=8;
+      ctx.fill();
+      ctx.shadowBlur=0;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
