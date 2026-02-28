@@ -1,5 +1,5 @@
 // =========================================
-// Main Game Controller (v2 - Enhanced)
+// Main Game Controller (v3 - Idle Tycoon)
 // =========================================
 
 class Game {
@@ -34,6 +34,41 @@ class Game {
     // Auto-save timer
     this.saveInterval = null;
     this.lastUpdate = Utils.now();
+
+    // === IDLE TYCOON SYSTEMS ===
+
+    // CPS (Coins Per Second) tracking
+    this.cpsTracker = {
+      history: [],       // Array of { time, coins } entries
+      windowSize: 10,    // Track over last 10 seconds
+      current: 0,        // Current CPS
+      lifetime: 0,       // Total coins earned ever
+      lastCoins: 0       // Coins at last check
+    };
+
+    // Combo system - chain harvests for multiplier
+    this.combo = {
+      count: 0,          // Current combo count
+      multiplier: 1,     // Current combo multiplier
+      lastAction: 0,     // Timestamp of last harvest/action
+      timeout: 2,        // Seconds before combo resets
+      maxDisplay: 0,     // Highest combo this session
+      tier: 0            // Current tier (0-4)
+    };
+
+    // Frenzy system - sustained play multiplier
+    this.frenzy = {
+      active: false,
+      multiplier: 1,
+      sessionStart: Utils.now(),
+      actionsThisMinute: 0,
+      lastMinuteCheck: Utils.now(),
+      level: 0,          // 0-5 frenzy level
+      decayTimer: 0
+    };
+
+    // Screen shake for juicy feedback
+    this.screenShake = { x: 0, y: 0, intensity: 0, decay: 0.9 };
 
     // Bind methods
     this.update = this.update.bind(this);
@@ -242,14 +277,170 @@ class Game {
     // Update pet system
     this.pet.update();
 
+    // === IDLE TYCOON UPDATES ===
+
+    // Update CPS tracking
+    this.updateCPS();
+
+    // Update combo decay
+    this.updateCombo();
+
+    // Update frenzy system
+    this.updateFrenzy();
+
+    // Update screen shake
+    if (this.screenShake.intensity > 0.1) {
+      this.screenShake.x = (Math.random() - 0.5) * this.screenShake.intensity;
+      this.screenShake.y = (Math.random() - 0.5) * this.screenShake.intensity;
+      this.screenShake.intensity *= this.screenShake.decay;
+    } else {
+      this.screenShake.x = 0;
+      this.screenShake.y = 0;
+      this.screenShake.intensity = 0;
+    }
+
     // Update HUD periodically
     this.updateHUD();
+  }
+
+  // === CPS TRACKING ===
+  updateCPS() {
+    const s = this.state.get();
+    const now = Utils.now();
+    const currentCoins = s.player.coins;
+
+    // Track coin changes
+    if (this.cpsTracker.lastCoins === 0) {
+      this.cpsTracker.lastCoins = currentCoins;
+    }
+
+    const earned = Math.max(0, currentCoins - this.cpsTracker.lastCoins);
+    this.cpsTracker.lastCoins = currentCoins;
+
+    if (earned > 0) {
+      this.cpsTracker.history.push({ time: now, coins: earned });
+      this.cpsTracker.lifetime += earned;
+    }
+
+    // Clean old entries
+    this.cpsTracker.history = this.cpsTracker.history.filter(
+      e => now - e.time < this.cpsTracker.windowSize
+    );
+
+    // Calculate CPS
+    const totalInWindow = this.cpsTracker.history.reduce((sum, e) => sum + e.coins, 0);
+    this.cpsTracker.current = totalInWindow / this.cpsTracker.windowSize;
+  }
+
+  recordCoinEarning(amount) {
+    const now = Utils.now();
+    this.cpsTracker.history.push({ time: now, coins: amount });
+    this.cpsTracker.lifetime += amount;
+  }
+
+  // === COMBO SYSTEM ===
+  updateCombo() {
+    const now = Utils.now();
+    if (this.combo.count > 0 && (now - this.combo.lastAction) > this.combo.timeout) {
+      // Combo expired
+      if (this.combo.count > 10) {
+        this.notify.toast(`Combo ended: ${this.combo.count}x!`, 'warning');
+      }
+      this.combo.count = 0;
+      this.combo.multiplier = 1;
+      this.combo.tier = 0;
+    }
+  }
+
+  addCombo() {
+    this.combo.count++;
+    this.combo.lastAction = Utils.now();
+    if (this.combo.count > this.combo.maxDisplay) {
+      this.combo.maxDisplay = this.combo.count;
+    }
+
+    // Calculate tier and multiplier
+    if (this.combo.count >= 100) {
+      this.combo.tier = 4;
+      this.combo.multiplier = 5;
+    } else if (this.combo.count >= 50) {
+      this.combo.tier = 3;
+      this.combo.multiplier = 3;
+    } else if (this.combo.count >= 20) {
+      this.combo.tier = 2;
+      this.combo.multiplier = 2;
+    } else if (this.combo.count >= 10) {
+      this.combo.tier = 1;
+      this.combo.multiplier = 1.5;
+    } else if (this.combo.count >= 5) {
+      this.combo.tier = 0;
+      this.combo.multiplier = 1.2;
+    } else {
+      this.combo.tier = 0;
+      this.combo.multiplier = 1;
+    }
+
+    // Screen shake + burst on big combos
+    if (this.combo.count % 10 === 0 && this.combo.count >= 10) {
+      this.addScreenShake(3 + this.combo.tier * 2);
+      this.notify.toast(`${this.combo.count}x COMBO! ${Utils.formatMultiplier(this.combo.multiplier)}`, 'reward');
+      // Burst effect at screen center
+      this.renderer.addBurstParticle(
+        this.renderer.screenW / 2,
+        this.renderer.screenH / 2,
+        ['🔥', '⚡', '💥', '✨', '🌟'],
+        8 + this.combo.tier * 4
+      );
+    }
+
+    // Track frenzy actions
+    this.frenzy.actionsThisMinute++;
+  }
+
+  // === FRENZY SYSTEM ===
+  updateFrenzy() {
+    const now = Utils.now();
+
+    // Check actions per minute
+    if (now - this.frenzy.lastMinuteCheck >= 60) {
+      // Evaluate frenzy level based on actions in the last minute
+      if (this.frenzy.actionsThisMinute >= 30) {
+        this.frenzy.level = Math.min(5, this.frenzy.level + 1);
+      } else if (this.frenzy.actionsThisMinute >= 15) {
+        // Maintain current level
+      } else {
+        this.frenzy.level = Math.max(0, this.frenzy.level - 1);
+      }
+
+      this.frenzy.actionsThisMinute = 0;
+      this.frenzy.lastMinuteCheck = now;
+    }
+
+    // Calculate frenzy multiplier: level 0=1x, 1=1.5x, 2=2x, 3=2.5x, 4=3.5x, 5=5x
+    const frenzyMults = [1, 1.5, 2, 2.5, 3.5, 5];
+    this.frenzy.multiplier = frenzyMults[this.frenzy.level] || 1;
+    this.frenzy.active = this.frenzy.level > 0;
+  }
+
+  // Get total multiplier (combo * frenzy)
+  getTotalMultiplier() {
+    return this.combo.multiplier * this.frenzy.multiplier;
+  }
+
+  addScreenShake(intensity) {
+    this.screenShake.intensity = Math.min(intensity, 15);
   }
 
   // ==================== RENDERING ====================
   render() {
     const r = this.renderer;
     const s = this.state.get();
+
+    // Apply screen shake offset
+    if (this.screenShake.intensity > 0.1) {
+      r.ctx.save();
+      r.ctx.translate(this.screenShake.x, this.screenShake.y);
+    }
 
     r.clear();
     r.drawBackground();
@@ -384,6 +575,11 @@ class Game {
 
     // Draw day/night overlay
     r.drawDayNightOverlay();
+
+    // Restore from screen shake
+    if (this.screenShake.intensity > 0.1) {
+      r.ctx.restore();
+    }
   }
 
   renderTileContent(col, row, tile) {
@@ -720,7 +916,10 @@ class Game {
       return;
     }
 
-    const levelUps = this.state.addXP(cropData.xp);
+    // Apply combo + frenzy multiplier to XP
+    const totalMult = this.getTotalMultiplier();
+    const xpGain = Math.floor(cropData.xp * totalMult);
+    const levelUps = this.state.addXP(xpGain);
 
     // Save cropId before clearing
     const harvestedCropId = tile.content.cropId;
@@ -736,14 +935,23 @@ class Game {
     // Collection drop roll
     this.collections.rollForDrop('harvest');
 
-    // Effects
+    // Combo tracking
+    this.addCombo();
+
+    // Effects - more particles for higher combos
     Audio.sfx('harvest');
-    this.notify.showXP(cropData.xp, screenX, screenY);
+    this.notify.showXP(xpGain, screenX, screenY);
     if (harvestQty > 1) {
-      this.notify.toast(`🎉 Double harvest! x${harvestQty}`, 'reward');
+      this.notify.toast(`Double harvest! x${harvestQty}`, 'reward');
     }
     const pos = this.renderer.gridToScreen(col, row);
-    this.renderer.addParticle(pos.x, pos.y + 16, cropData.icon, 5);
+    const particleCount = 5 + Math.min(this.combo.tier * 3, 12);
+    this.renderer.addParticle(pos.x, pos.y + 16, cropData.icon, particleCount);
+
+    // Screen shake on combos
+    if (this.combo.count >= 5) {
+      this.addScreenShake(1 + this.combo.tier);
+    }
 
     // Quest progress
     this.updateQuestProgress('harvest', harvestedCropId, harvestQty);
@@ -809,13 +1017,16 @@ class Game {
           if (doubleChance > 0 && Math.random() < doubleChance) qty = 2;
 
           if (this.state.addItem(tile.content.cropId, qty)) {
-            const levelUps = this.state.addXP(cropData.xp);
+            const totalMult = this.getTotalMultiplier();
+            const xpGain = Math.floor(cropData.xp * totalMult);
+            const levelUps = this.state.addXP(xpGain);
             const cropId = tile.content.cropId;
             tile.content = null;
             s.statistics.cropsHarvested += qty;
             count += qty;
             this.mastery.addHarvest(cropId);
             this.collections.rollForDrop('harvest');
+            this.addCombo();
             this.updateQuestProgress('harvest', cropId, qty);
             this.updateQuestProgress('harvest', 'any', qty);
             levelUps.forEach(lu => this.handleLevelUp(lu));
@@ -1308,19 +1519,25 @@ class Game {
 
     this.state.removeItem(itemId, actual);
 
-    // Apply mastery sell bonus + market price
+    // Apply mastery sell bonus + market price + frenzy/combo
     const masteryBonus = this.mastery.getSellBonus(itemId);
     const basePrice = info.sellPrice;
     const marketPrice = this.market.getModifiedPrice(itemId, basePrice);
-    const finalPrice = Math.floor(marketPrice * (1 + masteryBonus));
+    const totalMult = this.getTotalMultiplier();
+    const finalPrice = Math.floor(marketPrice * (1 + masteryBonus) * totalMult);
     const total = finalPrice * actual;
 
     this.state.addCoins(total);
+    this.recordCoinEarning(total);
+
+    // Combo on sells too
+    this.addCombo();
 
     this.state.get().statistics.itemsSold += actual;
     this.state.get().player.totalItemsSold = (this.state.get().player.totalItemsSold || 0) + actual;
     Audio.sfx('sell');
-    this.notify.toast(`Sold ${info.icon} ${info.name} x${actual} for 🪙${total}!`, 'reward');
+    const multStr = totalMult > 1 ? ` (${Utils.formatMultiplier(totalMult)})` : '';
+    this.notify.toast(`Sold ${info.icon} ${info.name} x${actual} for 🪙${Utils.formatNumber(total)}!${multStr}`, 'reward');
 
     this.updateQuestProgress('sell', itemId, actual);
     this.updateQuestProgress('sell', 'any', actual);
@@ -1335,12 +1552,14 @@ class Game {
     let totalCoins = 0;
     let totalItems = 0;
 
+    const totalMult = this.getTotalMultiplier();
+
     for (const [id, qty] of Object.entries({ ...inv })) {
       const info = this.panels.getItemInfo(id);
       if (!info) continue;
       const masteryBonus = this.mastery.getSellBonus(id);
       const marketPrice = this.market.getModifiedPrice(id, info.sellPrice);
-      const finalPrice = Math.floor(marketPrice * (1 + masteryBonus));
+      const finalPrice = Math.floor(marketPrice * (1 + masteryBonus) * totalMult);
       totalCoins += finalPrice * qty;
       totalItems += qty;
       this.updateQuestProgress('sell', id, qty);
@@ -1354,12 +1573,21 @@ class Game {
 
     this.state.get().inventory.items = {};
     this.state.addCoins(totalCoins);
+    this.recordCoinEarning(totalCoins);
 
     this.state.get().statistics.itemsSold += totalItems;
     this.updateQuestProgress('earn_coins', 'any', totalCoins);
 
     Audio.sfx('sell');
-    this.notify.reward(`Sold everything for 🪙${totalCoins}!`);
+    const multStr = totalMult > 1 ? ` (${Utils.formatMultiplier(totalMult)})` : '';
+    this.notify.reward(`Sold everything for 🪙${Utils.formatNumber(totalCoins)}!${multStr}`);
+
+    // Coin shower for big sells
+    if (totalCoins >= 100) {
+      this.renderer.addCoinShower(this.renderer.screenW / 2, this.renderer.screenH / 2, Math.min(25, Math.floor(totalCoins / 50)));
+      this.addScreenShake(Math.min(8, totalCoins / 200));
+    }
+
     this.checkAchievements();
     this.state.save();
   }
@@ -1401,7 +1629,8 @@ class Game {
 
     if (rewards.coins) {
       this.state.addCoins(rewards.coins);
-      this.notify.toast(`🪙 +${rewards.coins} coins!`, 'reward');
+      this.recordCoinEarning(rewards.coins);
+      this.notify.toast(`🪙 +${Utils.formatNumber(rewards.coins)} coins!`, 'reward');
     }
     if (rewards.gems) {
       this.state.addGems(rewards.gems);
@@ -1682,6 +1911,49 @@ class Game {
     if (coinsEl) coinsEl.textContent = Utils.formatNumber(s.player.coins);
     if (gemsEl) gemsEl.textContent = Utils.formatNumber(s.player.gems);
     if (energyEl) energyEl.textContent = `${s.player.energy}/${s.player.maxEnergy}`;
+
+    // CPS display
+    const cpsEl = document.getElementById('hud-cps');
+    if (cpsEl) {
+      const cps = this.cpsTracker.current;
+      cpsEl.textContent = `${Utils.formatCPS(cps)}/s`;
+      cpsEl.classList.toggle('active', cps > 0);
+    }
+
+    // Combo display
+    const comboEl = document.getElementById('hud-combo');
+    if (comboEl) {
+      if (this.combo.count >= 5) {
+        comboEl.style.display = 'flex';
+        comboEl.textContent = `${this.combo.count}x`;
+        comboEl.className = `hud-combo tier-${this.combo.tier}`;
+      } else {
+        comboEl.style.display = 'none';
+      }
+    }
+
+    // Combo multiplier
+    const comboMultEl = document.getElementById('hud-combo-mult');
+    if (comboMultEl) {
+      if (this.combo.multiplier > 1) {
+        comboMultEl.style.display = 'block';
+        comboMultEl.textContent = Utils.formatMultiplier(this.combo.multiplier);
+      } else {
+        comboMultEl.style.display = 'none';
+      }
+    }
+
+    // Frenzy display
+    const frenzyEl = document.getElementById('hud-frenzy');
+    if (frenzyEl) {
+      if (this.frenzy.active) {
+        frenzyEl.style.display = 'flex';
+        frenzyEl.className = `hud-frenzy level-${this.frenzy.level}`;
+        frenzyEl.innerHTML = `<span class="frenzy-icon">🔥</span><span class="frenzy-text">${Utils.formatMultiplier(this.frenzy.multiplier)}</span>`;
+      } else {
+        frenzyEl.style.display = 'none';
+      }
+    }
 
     // Quest badge
     const questBadge = document.getElementById('quest-badge');

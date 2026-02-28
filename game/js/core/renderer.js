@@ -200,7 +200,46 @@ class Renderer {
         vx: (Math.random() - 0.5) * 3,
         vy: -Math.random() * 3 - 1,
         life: 1, decay: 0.02 + Math.random() * 0.02,
-        emoji: emoji, size: 12 + Math.random() * 8
+        emoji: emoji, size: 12 + Math.random() * 8,
+        type: 'normal'
+      });
+    }
+  }
+
+  // Burst particles for combos and big events
+  addBurstParticle(screenX, screenY, emojis, count = 10) {
+    const emojiArr = Array.isArray(emojis) ? emojis : [emojis];
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      this.particles.push({
+        x: screenX, y: screenY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 1, decay: 0.015 + Math.random() * 0.01,
+        emoji: emojiArr[i % emojiArr.length],
+        size: 14 + Math.random() * 10,
+        type: 'burst',
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.2
+      });
+    }
+  }
+
+  // Coin shower effect for big earnings
+  addCoinShower(screenX, screenY, count = 15) {
+    const coins = ['🪙', '💰', '✨'];
+    for (let i = 0; i < count; i++) {
+      this.particles.push({
+        x: screenX + (Math.random() - 0.5) * 60,
+        y: screenY - Math.random() * 20,
+        vx: (Math.random() - 0.5) * 2,
+        vy: -Math.random() * 5 - 2,
+        life: 1, decay: 0.012 + Math.random() * 0.008,
+        emoji: coins[Math.floor(Math.random() * coins.length)],
+        size: 10 + Math.random() * 12,
+        type: 'shower',
+        gravity: 0.08
       });
     }
   }
@@ -210,15 +249,28 @@ class Renderer {
     this.particles = this.particles.filter(p => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.05;
+      p.vy += p.gravity || 0.05;
       p.life -= p.decay;
       if (p.life <= 0) return false;
 
-      ctx.globalAlpha = p.life;
-      ctx.font = `${p.size}px serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(p.emoji, p.x, p.y);
-      ctx.globalAlpha = 1;
+      ctx.save();
+      ctx.globalAlpha = Math.min(p.life, 1);
+
+      if (p.type === 'burst' && p.rotation !== undefined) {
+        ctx.translate(p.x, p.y);
+        p.rotation += p.rotSpeed || 0;
+        ctx.rotate(p.rotation);
+        ctx.font = `${p.size * p.life}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(p.emoji, 0, 0);
+      } else {
+        const scale = p.type === 'shower' ? (0.5 + p.life * 0.5) : 1;
+        ctx.font = `${p.size * scale}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(p.emoji, p.x, p.y);
+      }
+
+      ctx.restore();
       return true;
     });
   }
