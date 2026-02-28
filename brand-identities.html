@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aloud — 50 Brand Identity Concepts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Unbounded:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Josefin+Sans:wght@300;400;600;700&family=Libre+Barcode+39+Text&family=Major+Mono+Display&family=Press+Start+2P&family=Silkscreen&family=DM+Serif+Display:ital@0;1&family=Abril+Fatface&family=Righteous&family=Orbitron:wght@400;500;600;700;800;900&family=Russo+One&family=Teko:wght@400;500;600;700&family=Michroma&family=Audiowide&family=Bowlby+One+SC&family=Bungee&family=Fascinate&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cyan: #00FFFF;
+    --black: #0a0a0a;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    background: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(0,255,255,0.05) 0%, transparent 70%);
+  }
+
+  .hero-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    opacity: 0.7;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 span { color: var(--cyan); text-shadow: 0 0 50px rgba(0,255,255,0.25); }
+
+  .hero p {
+    max-width: 460px;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.4);
+    font-weight: 300;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* ── Card ── */
+  .card {
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0d0d0d;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .card:hover {
+    border-color: rgba(0,255,255,0.15);
+    transform: translateY(-4px);
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 150px;
+    border-radius: inherit;
+  }
+
+  .card-label {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .card-num {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    color: rgba(0,255,255,0.3);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ═══ Utility ═══ */
+  .cyan { color: var(--cyan); }
+  .glow { text-shadow: 0 0 30px rgba(0,255,255,0.35); }
+  .glow-sm { text-shadow: 0 0 15px rgba(0,255,255,0.25); }
+  .glow-box { box-shadow: 0 0 20px rgba(0,255,255,0.15); }
+  .flex-col { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
+  .flex-row { display: flex; align-items: center; gap: 0.5rem; }
+
+  /* ═══════════════════════════════════════
+     50 CONCEPTS — Each unique
+     ═══════════════════════════════════════ */
+
+  /* 01 — The Neon Pulse */
+  .c01 .logo { font-family: 'Outfit', sans-serif; font-size: 3.5rem; font-weight: 900; color: var(--cyan); text-shadow: 0 0 10px var(--cyan), 0 0 40px var(--cyan), 0 0 80px rgba(0,255,255,0.3); animation: neonPulse 2s ease-in-out infinite; letter-spacing: 0.1em; }
+  @keyframes neonPulse { 0%,100%{ text-shadow: 0 0 10px var(--cyan), 0 0 40px var(--cyan), 0 0 80px rgba(0,255,255,0.3); } 50%{ text-shadow: 0 0 5px var(--cyan), 0 0 15px rgba(0,255,255,0.3); } }
+  .c01 .sub { font-size: 0.55rem; letter-spacing: 0.5em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+
+  /* 02 — The Stencil */
+  .c02 .logo { font-family: 'Bebas Neue', sans-serif; font-size: 5rem; letter-spacing: 0.25em; color: transparent; -webkit-text-stroke: 2px var(--cyan); }
+  .c02 .bar { width: 80px; height: 2px; background: rgba(0,255,255,0.3); }
+  .c02 .sub { font-family: 'Inter', sans-serif; font-size: 0.55rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.3); }
+
+  /* 03 — The Glitch */
+  .c03 { background: #080808 !important; }
+  .c03 .logo { font-family: 'Syne', sans-serif; font-size: 3.5rem; font-weight: 800; position: relative; text-transform: uppercase; letter-spacing: 0.1em; }
+  .c03 .logo::before, .c03 .logo::after { content: 'ALOUD'; position: absolute; left: 0; top: 0; }
+  .c03 .logo::before { color: var(--cyan); clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%); transform: translateX(3px); animation: glitch1 3s infinite; }
+  .c03 .logo::after { color: #ff0050; clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%); transform: translateX(-3px); animation: glitch2 3s infinite; }
+  @keyframes glitch1 { 0%,90%,100%{transform:translateX(3px)} 92%{transform:translateX(-3px)} 94%{transform:translateX(5px)} }
+  @keyframes glitch2 { 0%,90%,100%{transform:translateX(-3px)} 93%{transform:translateX(4px)} 95%{transform:translateX(-5px)} }
+
+  /* 04 — The Monospace */
+  .c04 .logo { font-family: 'Space Mono', monospace; font-size: 2.5rem; font-weight: 700; letter-spacing: 0.15em; }
+  .c04 .logo span { color: var(--cyan); }
+  .c04 .cursor { display: inline-block; width: 3px; height: 2rem; background: var(--cyan); margin-left: 4px; animation: cursorBlink 1s step-end infinite; }
+  @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .c04 .prompt { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: rgba(0,255,255,0.4); }
+
+  /* 05 — The Gradient Fade */
+  .c05 .logo { font-family: 'Outfit', sans-serif; font-size: 4rem; font-weight: 800; background: linear-gradient(135deg, #fff 0%, var(--cyan) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.05em; }
+  .c05 .sub { font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.3); }
+
+  /* 06 — The Circle Badge */
+  .c06 .badge { width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0,255,255,0.1), inset 0 0 30px rgba(0,255,255,0.05); }
+  .c06 .badge-text { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: var(--cyan); }
+
+  /* 07 — The Split Type */
+  .c07 .top { font-family: 'Playfair Display', serif; font-size: 3.5rem; font-weight: 900; font-style: italic; color: var(--cyan); line-height: 0.85; }
+  .c07 .bot { font-family: 'Inter', sans-serif; font-size: 3.5rem; font-weight: 900; text-transform: uppercase; color: #fff; line-height: 0.85; letter-spacing: 0.05em; }
+  .c07 .divider { width: 100%; max-width: 160px; height: 1px; background: rgba(0,255,255,0.2); }
+
+  /* 08 — The Outline */
+  .c08 .logo { font-family: 'Unbounded', sans-serif; font-size: 3rem; font-weight: 800; color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.7); letter-spacing: 0.08em; }
+  .c08 .logo span { -webkit-text-stroke-color: var(--cyan); }
+  .c08 .sub { font-size: 0.5rem; letter-spacing: 0.5em; text-transform: uppercase; color: rgba(0,255,255,0.35); }
+
+  /* 09 — The Stamp */
+  .c09 .stamp { border: 3px solid var(--cyan); padding: 1rem 2rem; position: relative; transform: rotate(-5deg); }
+  .c09 .stamp-text { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 0.2em; color: var(--cyan); }
+  .c09 .stamp-sub { font-size: 0.5rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(0,255,255,0.5); margin-top: 0.2rem; }
+
+  /* 10 — The Waveform Text */
+  .c10 .logo { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
+  .c10 .logo span { display: inline-block; color: var(--cyan); animation: waveLetter 2s ease-in-out infinite; }
+  .c10 .logo span:nth-child(1) { animation-delay: 0s; }
+  .c10 .logo span:nth-child(2) { animation-delay: 0.1s; }
+  .c10 .logo span:nth-child(3) { animation-delay: 0.2s; }
+  .c10 .logo span:nth-child(4) { animation-delay: 0.3s; }
+  .c10 .logo span:nth-child(5) { animation-delay: 0.4s; }
+  @keyframes waveLetter { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+  /* 11 — The Pixel */
+  .c11 .logo { font-family: 'Press Start 2P', monospace; font-size: 1.5rem; color: var(--cyan); text-shadow: 0 0 10px rgba(0,255,255,0.5); letter-spacing: 0.05em; }
+  .c11 .sub { font-family: 'Silkscreen', monospace; font-size: 0.55rem; color: rgba(255,255,255,0.3); letter-spacing: 0.2em; }
+
+  /* 12 — The Slash */
+  .c12 .logo { font-family: 'Inter', sans-serif; font-size: 3rem; font-weight: 800; letter-spacing: 0.05em; }
+  .c12 .slash { color: var(--cyan); font-weight: 300; margin: 0 0.1em; text-shadow: 0 0 20px rgba(0,255,255,0.4); }
+
+  /* 13 — The Bracket */
+  .c13 .logo { font-family: 'Space Mono', monospace; font-size: 2rem; font-weight: 700; }
+  .c13 .bracket { color: var(--cyan); font-weight: 400; opacity: 0.7; }
+  .c13 .sub { font-family: 'Space Mono', monospace; font-size: 0.5rem; color: rgba(255,255,255,0.25); letter-spacing: 0.15em; }
+
+  /* 14 — The Echo */
+  .c14 { overflow: hidden !important; }
+  .c14 .echo-wrap { position: relative; height: 60px; display: flex; align-items: center; justify-content: center; }
+  .c14 .echo { font-family: 'Outfit', sans-serif; font-size: 3rem; font-weight: 800; position: absolute; text-transform: uppercase; letter-spacing: 0.15em; }
+  .c14 .echo:nth-child(1) { color: rgba(0,255,255,0.06); transform: translateX(-20px); }
+  .c14 .echo:nth-child(2) { color: rgba(0,255,255,0.15); transform: translateX(-10px); }
+  .c14 .echo:nth-child(3) { color: var(--cyan); transform: translateX(0); text-shadow: 0 0 30px rgba(0,255,255,0.3); }
+
+  /* 15 — The Dot Matrix */
+  .c15 .dots { display: flex; gap: 6px; margin-bottom: 0.5rem; }
+  .c15 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px rgba(0,255,255,0.4); }
+  .c15 .dot:nth-child(even) { opacity: 0.4; }
+  .c15 .logo { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: #fff; }
+
+  /* 16 — The Ribbon */
+  .c16 .ribbon { background: var(--cyan); padding: 0.6rem 2.5rem; transform: skewX(-8deg); }
+  .c16 .ribbon-text { font-family: 'Inter', sans-serif; font-size: 1.8rem; font-weight: 900; color: #000; transform: skewX(8deg); letter-spacing: 0.1em; text-transform: uppercase; }
+  .c16 .sub { font-size: 0.55rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-top: 1rem; }
+
+  /* 17 — The Stack */
+  .c17 .stack { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; }
+  .c17 .stack span { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.4em; color: rgba(255,255,255,0.15); }
+  .c17 .stack span.active { color: var(--cyan); text-shadow: 0 0 20px rgba(0,255,255,0.3); }
+
+  /* 18 — The Arc */
+  .c18 .arc-text { font-family: 'Space Grotesk', sans-serif; font-size: 0.65rem; letter-spacing: 0.5em; text-transform: uppercase; color: rgba(0,255,255,0.5); }
+  .c18 .arc-main { font-family: 'DM Serif Display', serif; font-size: 3.5rem; color: #fff; font-style: italic; }
+  .c18 .arc-main span { color: var(--cyan); }
+  .c18 .arc-line { width: 120px; height: 60px; border: 1px solid rgba(0,255,255,0.15); border-radius: 120px 120px 0 0; border-bottom: 0; }
+
+  /* 19 — The Grid System */
+  .c19 .grid-logo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+  .c19 .grid-logo .cell { width: 14px; height: 14px; background: rgba(0,255,255,0.08); }
+  .c19 .grid-logo .cell.on { background: var(--cyan); box-shadow: 0 0 8px rgba(0,255,255,0.4); }
+  .c19 .name { font-family: 'Inter', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-top: 1rem; }
+
+  /* 20 — The Negative Space */
+  .c20 .logo { font-family: 'Outfit', sans-serif; font-size: 4rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; background: linear-gradient(180deg, var(--cyan) 50%, #fff 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  /* 21 — The Typewriter */
+  .c21 .paper { background: rgba(255,255,255,0.03); padding: 1.5rem 2rem; border-left: 2px solid var(--cyan); }
+  .c21 .typed { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; overflow: hidden; white-space: nowrap; border-right: 2px solid var(--cyan); animation: typing 3s steps(5) infinite, blinker 0.7s step-end infinite; width: 5ch; }
+  @keyframes typing { 0%,90%{width:0} 30%,80%{width:5ch} }
+  @keyframes blinker { 50%{border-color:transparent} }
+  .c21 .sub { font-family: 'Space Mono', monospace; font-size: 0.5rem; color: rgba(255,255,255,0.2); margin-top: 0.5rem; }
+
+  /* 22 — The Neon Sign */
+  .c22 { background: #050505 !important; }
+  .c22 .sign { font-family: 'Righteous', sans-serif; font-size: 3.5rem; color: var(--cyan); text-shadow: 0 0 7px var(--cyan), 0 0 10px var(--cyan), 0 0 21px var(--cyan), 0 0 42px rgba(0,255,255,0.5); }
+  .c22 .wire { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
+
+  /* 23 — The Blueprint */
+  .c23 { background: #0a1015 !important; background-image: linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px) !important; background-size: 20px 20px !important; }
+  .c23 .logo { font-family: 'Josefin Sans', sans-serif; font-size: 3rem; font-weight: 300; letter-spacing: 0.3em; color: rgba(0,255,255,0.7); text-transform: uppercase; }
+  .c23 .sub { font-family: 'Josefin Sans', sans-serif; font-size: 0.5rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(0,255,255,0.3); }
+
+  /* 24 — The Spectrum */
+  .c24 .bars { display: flex; align-items: flex-end; gap: 3px; height: 50px; }
+  .c24 .bars div { width: 6px; background: var(--cyan); border-radius: 2px 2px 0 0; }
+  .c24 .logo { font-family: 'Teko', sans-serif; font-size: 3rem; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: #fff; }
+
+  /* 25 — The Crosshair */
+  .c25 .target { width: 100px; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; }
+  .c25 .target::before, .c25 .target::after { content: ''; position: absolute; background: rgba(0,255,255,0.2); }
+  .c25 .target::before { width: 1px; height: 100%; }
+  .c25 .target::after { width: 100%; height: 1px; }
+  .c25 .target .ring { width: 60px; height: 60px; border: 1px solid rgba(0,255,255,0.2); border-radius: 50%; position: absolute; }
+  .c25 .target .letter { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--cyan); z-index: 1; }
+  .c25 .name { font-family: 'Orbitron', sans-serif; font-size: 0.7rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+
+  /* 26 — The Morse Code */
+  .c26 .morse { display: flex; align-items: center; gap: 4px; }
+  .c26 .morse .dash { width: 18px; height: 3px; background: var(--cyan); border-radius: 2px; }
+  .c26 .morse .dot { width: 6px; height: 6px; background: var(--cyan); border-radius: 50%; }
+  .c26 .morse .space { width: 8px; }
+  .c26 .logo { font-family: 'Inter', sans-serif; font-size: 2rem; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+
+  /* 27 — The Vinyl */
+  .c27 .vinyl { width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(0,255,255,0.1); background: repeating-radial-gradient(circle, transparent 0px, transparent 4px, rgba(0,255,255,0.03) 5px, transparent 6px); display: flex; align-items: center; justify-content: center; animation: spin 8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .c27 .vinyl .center { width: 30px; height: 30px; border-radius: 50%; background: var(--cyan); display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-size: 0.6rem; font-weight: 900; color: #000; }
+  .c27 .name { font-family: 'DM Sans', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.2em; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+
+  /* 28 — The Frequency */
+  .c28 .freq { font-family: 'Orbitron', sans-serif; font-size: 0.55rem; color: rgba(0,255,255,0.4); letter-spacing: 0.2em; }
+  .c28 .logo { font-family: 'Orbitron', sans-serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.2em; color: var(--cyan); text-shadow: 0 0 20px rgba(0,255,255,0.3); }
+  .c28 .hz { font-family: 'Orbitron', sans-serif; font-size: 0.6rem; color: rgba(255,255,255,0.2); letter-spacing: 0.3em; }
+
+  /* 29 — The Barcode */
+  .c29 .barcode { display: flex; gap: 2px; height: 60px; align-items: flex-end; }
+  .c29 .barcode div { background: var(--cyan); width: 3px; }
+  .c29 .logo { font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.5em; text-transform: uppercase; color: rgba(255,255,255,0.4); }
+
+  /* 30 — The Hexagonal */
+  .c30 .hex { width: 80px; height: 90px; background: var(--cyan); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); display: flex; align-items: center; justify-content: center; }
+  .c30 .hex-inner { width: 74px; height: 84px; background: #0d0d0d; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); display: flex; align-items: center; justify-content: center; }
+  .c30 .hex-letter { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: var(--cyan); }
+  .c30 .name { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+
+  /* 31 — The Parallax Layers */
+  .c31 .layers { position: relative; height: 50px; width: 200px; display: flex; align-items: center; justify-content: center; }
+  .c31 .layer { font-family: 'Outfit', sans-serif; font-size: 3rem; font-weight: 900; position: absolute; text-transform: uppercase; letter-spacing: 0.1em; }
+  .c31 .layer:nth-child(1) { color: rgba(0,255,255,0.08); transform: translate(-4px, -4px); }
+  .c31 .layer:nth-child(2) { color: rgba(0,255,255,0.2); transform: translate(-2px, -2px); }
+  .c31 .layer:nth-child(3) { color: #fff; }
+
+  /* 32 — The Origami */
+  .c32 .logo { font-family: 'Josefin Sans', sans-serif; font-size: 3rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; }
+  .c32 .logo span:nth-child(odd) { color: var(--cyan); }
+  .c32 .logo span:nth-child(even) { color: rgba(0,255,255,0.3); }
+
+  /* 33 — The Circuit */
+  .c33 .circuit { display: flex; align-items: center; gap: 0; }
+  .c33 .circuit .node { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px rgba(0,255,255,0.5); }
+  .c33 .circuit .wire { width: 25px; height: 2px; background: rgba(0,255,255,0.3); }
+  .c33 .logo { font-family: 'Michroma', sans-serif; font-size: 1.4rem; letter-spacing: 0.3em; color: #fff; text-transform: uppercase; }
+
+  /* 34 — The DNA */
+  .c34 .helix { display: flex; gap: 3px; align-items: center; height: 40px; }
+  .c34 .helix .strand { width: 4px; height: 100%; background: linear-gradient(180deg, var(--cyan), transparent, var(--cyan)); border-radius: 4px; animation: helixMove 2s ease-in-out infinite; }
+  .c34 .helix .strand:nth-child(even) { animation-delay: 1s; }
+  @keyframes helixMove { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(0.4)} }
+  .c34 .logo { font-family: 'DM Sans', sans-serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.8); }
+
+  /* 35 — The Constellation */
+  .c35 .stars { position: relative; width: 120px; height: 80px; }
+  .c35 .star { position: absolute; width: 4px; height: 4px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 6px rgba(0,255,255,0.6); }
+  .c35 .star:nth-child(1) { top: 10%; left: 20%; }
+  .c35 .star:nth-child(2) { top: 30%; left: 50%; width: 6px; height: 6px; }
+  .c35 .star:nth-child(3) { top: 60%; left: 80%; }
+  .c35 .star:nth-child(4) { top: 80%; left: 40%; }
+  .c35 .star:nth-child(5) { top: 15%; left: 75%; }
+  .c35 .name { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 700; font-style: italic; color: rgba(255,255,255,0.7); letter-spacing: 0.1em; }
+
+  /* 36 — The Ripple */
+  .c36 .ripple-wrap { position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center; }
+  .c36 .ripple { position: absolute; border-radius: 50%; border: 1px solid rgba(0,255,255,0.15); animation: rippleOut 3s ease-out infinite; }
+  .c36 .ripple:nth-child(1) { width: 40px; height: 40px; animation-delay: 0s; }
+  .c36 .ripple:nth-child(2) { width: 70px; height: 70px; animation-delay: 0.5s; }
+  .c36 .ripple:nth-child(3) { width: 100px; height: 100px; animation-delay: 1s; }
+  .c36 .ripple:nth-child(4) { width: 130px; height: 130px; animation-delay: 1.5s; }
+  @keyframes rippleOut { 0%{opacity:1;transform:scale(0.8)} 100%{opacity:0;transform:scale(1.3)} }
+  .c36 .letter { font-family: 'Abril Fatface', serif; font-size: 2.5rem; color: var(--cyan); z-index: 1; }
+
+  /* 37 — The Shutter */
+  .c37 .shutter { display: flex; gap: 3px; }
+  .c37 .shutter .blade { width: 6px; height: 50px; background: var(--cyan); opacity: 0.3; border-radius: 2px; }
+  .c37 .shutter .blade:nth-child(3) { opacity: 0.6; height: 60px; }
+  .c37 .shutter .blade:nth-child(4) { opacity: 1; height: 70px; box-shadow: 0 0 10px rgba(0,255,255,0.3); }
+  .c37 .shutter .blade:nth-child(5) { opacity: 0.6; height: 60px; }
+  .c37 .shutter .blade:nth-child(6) { opacity: 0.3; }
+  .c37 .logo { font-family: 'Teko', sans-serif; font-size: 2.5rem; font-weight: 500; letter-spacing: 0.4em; text-transform: uppercase; color: #fff; }
+
+  /* 38 — The Prism */
+  .c38 .prism { width: 0; height: 0; border-left: 40px solid transparent; border-right: 40px solid transparent; border-bottom: 70px solid rgba(0,255,255,0.15); position: relative; }
+  .c38 .prism::after { content: ''; position: absolute; top: 15px; left: -25px; width: 0; height: 0; border-left: 25px solid transparent; border-right: 25px solid transparent; border-bottom: 45px solid #0d0d0d; }
+  .c38 .logo { font-family: 'Outfit', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+
+  /* 39 — The Radar */
+  .c39 .radar { width: 100px; height: 100px; border-radius: 50%; border: 1px solid rgba(0,255,255,0.15); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .c39 .radar::before { content: ''; position: absolute; width: 50%; height: 50%; background: conic-gradient(from 0deg, transparent 0deg, rgba(0,255,255,0.2) 60deg, transparent 60deg); top: 0; right: 0; transform-origin: bottom left; animation: radarSweep 3s linear infinite; }
+  @keyframes radarSweep { to { transform: rotate(360deg); } }
+  .c39 .radar .center { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px rgba(0,255,255,0.6); z-index: 1; }
+  .c39 .name { font-family: 'Audiowide', sans-serif; font-size: 0.9rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(0,255,255,0.6); }
+
+  /* 40 — The Topographic */
+  .c40 { background: #0a0a0a !important; }
+  .c40 .topo { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .c40 .topo-line { height: 1px; background: rgba(0,255,255,0.1); border-radius: 50%; }
+  .c40 .logo { font-family: 'Josefin Sans', sans-serif; font-size: 2.5rem; font-weight: 300; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,0.6); }
+
+  /* 41 — The Kinetic */
+  .c41 .logo { font-family: 'Russo One', sans-serif; font-size: 3rem; text-transform: uppercase; letter-spacing: 0.1em; color: #fff; position: relative; }
+  .c41 .logo::after { content: 'ALOUD'; position: absolute; left: 4px; top: 4px; color: var(--cyan); z-index: -1; }
+
+  /* 42 — The Halftone */
+  .c42 .logo { font-family: 'Bowlby One SC', sans-serif; font-size: 2.5rem; color: var(--cyan); letter-spacing: 0.05em; filter: contrast(1.5); text-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
+
+  /* 43 — The Letterpress */
+  .c43 .press { background: rgba(0,255,255,0.05); padding: 1.2rem 2.5rem; border: 1px solid rgba(0,255,255,0.08); }
+  .c43 .logo { font-family: 'Cormorant Garamond', serif; font-size: 2.5rem; font-weight: 700; letter-spacing: 0.15em; color: #fff; text-transform: uppercase; }
+  .c43 .year { font-family: 'Cormorant Garamond', serif; font-size: 0.6rem; letter-spacing: 0.5em; color: rgba(0,255,255,0.4); margin-top: 0.3rem; }
+
+  /* 44 — The Abstract Mark */
+  .c44 .mark { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .c44 .mark div { width: 30px; height: 30px; }
+  .c44 .mark div:nth-child(1) { background: var(--cyan); border-radius: 50% 0 0 0; }
+  .c44 .mark div:nth-child(2) { background: rgba(0,255,255,0.5); border-radius: 0 50% 0 0; }
+  .c44 .mark div:nth-child(3) { background: rgba(0,255,255,0.3); border-radius: 0 0 0 50%; }
+  .c44 .mark div:nth-child(4) { background: rgba(0,255,255,0.1); border-radius: 0 0 50% 0; }
+  .c44 .name { font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+
+  /* 45 — The Capsule */
+  .c45 .capsule { border: 1.5px solid var(--cyan); border-radius: 100px; padding: 0.7rem 2.5rem; display: flex; align-items: center; gap: 0.8rem; }
+  .c45 .capsule .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px rgba(0,255,255,0.5); }
+  .c45 .capsule .text { font-family: 'Inter', sans-serif; font-size: 1.3rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #fff; }
+
+  /* 46 — The Signal */
+  .c46 .signal { display: flex; align-items: flex-end; gap: 4px; }
+  .c46 .signal div { width: 6px; background: var(--cyan); border-radius: 2px 2px 0 0; }
+  .c46 .signal div:nth-child(1) { height: 10px; opacity: 0.3; }
+  .c46 .signal div:nth-child(2) { height: 20px; opacity: 0.5; }
+  .c46 .signal div:nth-child(3) { height: 30px; opacity: 0.7; }
+  .c46 .signal div:nth-child(4) { height: 40px; opacity: 1; box-shadow: 0 0 8px rgba(0,255,255,0.4); }
+  .c46 .logo { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.15em; color: #fff; }
+
+  /* 47 — The Layered Serif */
+  .c47 .logo { font-family: 'Abril Fatface', serif; font-size: 3.5rem; color: transparent; -webkit-text-stroke: 1px rgba(0,255,255,0.4); position: relative; }
+  .c47 .logo span { position: absolute; left: 3px; top: 3px; -webkit-text-stroke: 0; color: var(--cyan); text-shadow: 0 0 20px rgba(0,255,255,0.3); }
+
+  /* 48 — The Perspective */
+  .c48 .logo { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #fff; transform: perspective(300px) rotateY(-8deg); }
+  .c48 .logo span { color: var(--cyan); }
+  .c48 .sub { font-size: 0.5rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(255,255,255,0.2); transform: perspective(300px) rotateY(-8deg); }
+
+  /* 49 — The Fragment */
+  .c49 .frag { display: flex; gap: 6px; }
+  .c49 .frag span { font-family: 'Unbounded', sans-serif; font-size: 2.5rem; font-weight: 700; display: inline-block; }
+  .c49 .frag span:nth-child(1) { color: var(--cyan); transform: translateY(-4px); }
+  .c49 .frag span:nth-child(2) { color: rgba(255,255,255,0.8); transform: translateY(4px); }
+  .c49 .frag span:nth-child(3) { color: var(--cyan); transform: translateY(-2px); opacity: 0.7; }
+  .c49 .frag span:nth-child(4) { color: rgba(255,255,255,0.6); transform: translateY(6px); }
+  .c49 .frag span:nth-child(5) { color: var(--cyan); transform: translateY(-6px); opacity: 0.5; }
+
+  /* 50 — The Crown */
+  .c50 .crown { display: flex; gap: 3px; align-items: flex-end; }
+  .c50 .crown div { width: 6px; background: var(--cyan); border-radius: 2px; }
+  .c50 .crown div:nth-child(1) { height: 20px; }
+  .c50 .crown div:nth-child(2) { height: 30px; }
+  .c50 .crown div:nth-child(3) { height: 40px; box-shadow: 0 0 10px rgba(0,255,255,0.4); }
+  .c50 .crown div:nth-child(4) { height: 30px; }
+  .c50 .crown div:nth-child(5) { height: 20px; }
+  .c50 .logo { font-family: 'Bungee', sans-serif; font-size: 2.2rem; color: #fff; letter-spacing: 0.08em; text-transform: uppercase; }
+  .c50 .sub { font-size: 0.5rem; letter-spacing: 0.4em; text-transform: uppercase; color: rgba(0,255,255,0.35); }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 4rem 2rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .footer p { font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.2); }
+
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <p class="hero-label">50 Brand Identity Concepts</p>
+  <h1><span>Aloud</span></h1>
+  <p>Fifty distinct brand directions — all rooted in grainy black and cyan.</p>
+</section>
+
+<div class="grid">
+
+  <!-- 01 — Neon Pulse -->
+  <div class="card c01">
+    <span class="card-num">01</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+      <div class="sub">Online English Course</div>
+    </div>
+    <span class="card-label">The Neon Pulse</span>
+  </div>
+
+  <!-- 02 — Stencil -->
+  <div class="card c02">
+    <span class="card-num">02</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+      <div class="bar"></div>
+      <div class="sub">English Course</div>
+    </div>
+    <span class="card-label">The Stencil</span>
+  </div>
+
+  <!-- 03 — Glitch -->
+  <div class="card c03">
+    <span class="card-num">03</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+    </div>
+    <span class="card-label">The Glitch</span>
+  </div>
+
+  <!-- 04 — Monospace -->
+  <div class="card c04">
+    <span class="card-num">04</span>
+    <div class="flex-col">
+      <div class="prompt">$ speak --lang en</div>
+      <div class="logo"><span class="cyan">aloud</span><span class="cursor"></span></div>
+    </div>
+    <span class="card-label">The Monospace</span>
+  </div>
+
+  <!-- 05 — Gradient Fade -->
+  <div class="card c05">
+    <span class="card-num">05</span>
+    <div class="flex-col">
+      <div class="logo">Aloud</div>
+      <div class="sub">Speak Fluently</div>
+    </div>
+    <span class="card-label">The Gradient Fade</span>
+  </div>
+
+  <!-- 06 — Circle Badge -->
+  <div class="card c06">
+    <span class="card-num">06</span>
+    <div class="flex-col">
+      <div class="badge"><span class="badge-text">Aloud</span></div>
+    </div>
+    <span class="card-label">The Circle Badge</span>
+  </div>
+
+  <!-- 07 — Split Type -->
+  <div class="card c07">
+    <span class="card-num">07</span>
+    <div class="flex-col">
+      <div class="top">A</div>
+      <div class="divider"></div>
+      <div class="bot">LOUD</div>
+    </div>
+    <span class="card-label">The Split Type</span>
+  </div>
+
+  <!-- 08 — Outline -->
+  <div class="card c08">
+    <span class="card-num">08</span>
+    <div class="flex-col">
+      <div class="logo"><span>A</span>LOUD</div>
+      <div class="sub">Online English Course</div>
+    </div>
+    <span class="card-label">The Outline</span>
+  </div>
+
+  <!-- 09 — Stamp -->
+  <div class="card c09">
+    <span class="card-num">09</span>
+    <div class="flex-col">
+      <div class="stamp">
+        <div class="stamp-text">ALOUD</div>
+        <div class="stamp-sub">EST. 2026</div>
+      </div>
+    </div>
+    <span class="card-label">The Stamp</span>
+  </div>
+
+  <!-- 10 — Waveform Text -->
+  <div class="card c10">
+    <span class="card-num">10</span>
+    <div class="flex-col">
+      <div class="logo"><span>A</span><span>L</span><span>O</span><span>U</span><span>D</span></div>
+    </div>
+    <span class="card-label">The Waveform Text</span>
+  </div>
+
+  <!-- 11 — Pixel -->
+  <div class="card c11">
+    <span class="card-num">11</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+      <div class="sub">LEVEL UP YOUR ENGLISH</div>
+    </div>
+    <span class="card-label">The Pixel</span>
+  </div>
+
+  <!-- 12 — Slash -->
+  <div class="card c12">
+    <span class="card-num">12</span>
+    <div class="flex-col">
+      <div class="logo">A<span class="slash">/</span>LOUD</div>
+    </div>
+    <span class="card-label">The Slash</span>
+  </div>
+
+  <!-- 13 — Bracket -->
+  <div class="card c13">
+    <span class="card-num">13</span>
+    <div class="flex-col">
+      <div class="logo"><span class="bracket">[</span> aloud <span class="bracket">]</span></div>
+      <div class="sub">// online english</div>
+    </div>
+    <span class="card-label">The Bracket</span>
+  </div>
+
+  <!-- 14 — Echo -->
+  <div class="card c14">
+    <span class="card-num">14</span>
+    <div class="flex-col">
+      <div class="echo-wrap">
+        <div class="echo">ALOUD</div>
+        <div class="echo">ALOUD</div>
+        <div class="echo">ALOUD</div>
+      </div>
+    </div>
+    <span class="card-label">The Echo</span>
+  </div>
+
+  <!-- 15 — Dot Matrix -->
+  <div class="card c15">
+    <span class="card-num">15</span>
+    <div class="flex-col">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The Dot Matrix</span>
+  </div>
+
+  <!-- 16 — Ribbon -->
+  <div class="card c16">
+    <span class="card-num">16</span>
+    <div class="flex-col">
+      <div class="ribbon"><span class="ribbon-text">Aloud</span></div>
+      <div class="sub">Speak English Confidently</div>
+    </div>
+    <span class="card-label">The Ribbon</span>
+  </div>
+
+  <!-- 17 — Stack -->
+  <div class="card c17">
+    <span class="card-num">17</span>
+    <div class="flex-col">
+      <div class="stack">
+        <span>SPEAK</span>
+        <span class="active">ALOUD</span>
+        <span>LEARN</span>
+        <span>ALOUD</span>
+        <span>GROW</span>
+      </div>
+    </div>
+    <span class="card-label">The Stack</span>
+  </div>
+
+  <!-- 18 — Arc -->
+  <div class="card c18">
+    <span class="card-num">18</span>
+    <div class="flex-col">
+      <div class="arc-line"></div>
+      <div class="arc-main"><span>A</span>loud</div>
+      <div class="arc-text">Online English Course</div>
+    </div>
+    <span class="card-label">The Arc</span>
+  </div>
+
+  <!-- 19 — Grid System -->
+  <div class="card c19">
+    <span class="card-num">19</span>
+    <div class="flex-col">
+      <div class="grid-logo">
+        <div class="cell on"></div><div class="cell"></div><div class="cell on"></div><div class="cell"></div><div class="cell on"></div>
+        <div class="cell"></div><div class="cell on"></div><div class="cell"></div><div class="cell on"></div><div class="cell"></div>
+        <div class="cell on"></div><div class="cell"></div><div class="cell on"></div><div class="cell"></div><div class="cell on"></div>
+        <div class="cell"></div><div class="cell on"></div><div class="cell"></div><div class="cell on"></div><div class="cell"></div>
+        <div class="cell on"></div><div class="cell"></div><div class="cell on"></div><div class="cell"></div><div class="cell on"></div>
+      </div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Grid System</span>
+  </div>
+
+  <!-- 20 — Negative Space -->
+  <div class="card c20">
+    <span class="card-num">20</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+    </div>
+    <span class="card-label">The Negative Space</span>
+  </div>
+
+  <!-- 21 — Typewriter -->
+  <div class="card c21">
+    <span class="card-num">21</span>
+    <div class="flex-col">
+      <div class="paper">
+        <div class="typed">Aloud</div>
+        <div class="sub">draft_01.txt</div>
+      </div>
+    </div>
+    <span class="card-label">The Typewriter</span>
+  </div>
+
+  <!-- 22 — Neon Sign -->
+  <div class="card c22">
+    <span class="card-num">22</span>
+    <div class="flex-col">
+      <div class="wire"></div>
+      <div class="sign">Aloud</div>
+    </div>
+    <span class="card-label">The Neon Sign</span>
+  </div>
+
+  <!-- 23 — Blueprint -->
+  <div class="card c23">
+    <span class="card-num">23</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+      <div class="sub">Blueprint v1.0</div>
+    </div>
+    <span class="card-label">The Blueprint</span>
+  </div>
+
+  <!-- 24 — Spectrum -->
+  <div class="card c24">
+    <span class="card-num">24</span>
+    <div class="flex-col">
+      <div class="bars">
+        <div style="height:15px"></div><div style="height:25px"></div><div style="height:35px"></div><div style="height:50px"></div><div style="height:40px"></div><div style="height:45px"></div><div style="height:30px"></div><div style="height:20px"></div><div style="height:10px"></div>
+      </div>
+      <div class="logo">ALOUD</div>
+    </div>
+    <span class="card-label">The Spectrum</span>
+  </div>
+
+  <!-- 25 — Crosshair -->
+  <div class="card c25">
+    <span class="card-num">25</span>
+    <div class="flex-col">
+      <div class="target">
+        <div class="ring"></div>
+        <span class="letter">A</span>
+      </div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Crosshair</span>
+  </div>
+
+  <!-- 26 — Morse Code -->
+  <div class="card c26">
+    <span class="card-num">26</span>
+    <div class="flex-col">
+      <div class="morse">
+        <div class="dot"></div><div class="dash"></div><div class="space"></div><div class="dot"></div><div class="dash"></div><div class="dot"></div><div class="dot"></div><div class="space"></div><div class="dash"></div><div class="dash"></div><div class="dash"></div>
+      </div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The Morse Code</span>
+  </div>
+
+  <!-- 27 — Vinyl -->
+  <div class="card c27">
+    <span class="card-num">27</span>
+    <div class="flex-col">
+      <div class="vinyl"><div class="center">A</div></div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Vinyl</span>
+  </div>
+
+  <!-- 28 — Frequency -->
+  <div class="card c28">
+    <span class="card-num">28</span>
+    <div class="flex-col">
+      <div class="freq">FREQ: 440.0</div>
+      <div class="logo">ALOUD</div>
+      <div class="hz">Hz &mdash; Online English</div>
+    </div>
+    <span class="card-label">The Frequency</span>
+  </div>
+
+  <!-- 29 — Barcode -->
+  <div class="card c29">
+    <span class="card-num">29</span>
+    <div class="flex-col">
+      <div class="barcode">
+        <div style="height:60px"></div><div style="height:60px;width:1px"></div><div style="height:60px"></div><div style="height:50px;width:5px"></div><div style="height:60px"></div><div style="height:60px;width:1px"></div><div style="height:55px"></div><div style="height:60px;width:5px"></div><div style="height:60px"></div><div style="height:60px;width:1px"></div><div style="height:60px"></div><div style="height:45px"></div><div style="height:60px;width:1px"></div><div style="height:60px"></div>
+      </div>
+      <div class="logo">ALOUD</div>
+    </div>
+    <span class="card-label">The Barcode</span>
+  </div>
+
+  <!-- 30 — Hexagonal -->
+  <div class="card c30">
+    <span class="card-num">30</span>
+    <div class="flex-col">
+      <div class="hex"><div class="hex-inner"><span class="hex-letter">A</span></div></div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Hexagonal</span>
+  </div>
+
+  <!-- 31 — Parallax Layers -->
+  <div class="card c31">
+    <span class="card-num">31</span>
+    <div class="flex-col">
+      <div class="layers">
+        <div class="layer">Aloud</div>
+        <div class="layer">Aloud</div>
+        <div class="layer">Aloud</div>
+      </div>
+    </div>
+    <span class="card-label">The Parallax</span>
+  </div>
+
+  <!-- 32 — Origami -->
+  <div class="card c32">
+    <span class="card-num">32</span>
+    <div class="flex-col">
+      <div class="logo"><span>A</span><span>L</span><span>O</span><span>U</span><span>D</span></div>
+    </div>
+    <span class="card-label">The Origami</span>
+  </div>
+
+  <!-- 33 — Circuit -->
+  <div class="card c33">
+    <span class="card-num">33</span>
+    <div class="flex-col">
+      <div class="circuit">
+        <div class="node"></div><div class="wire"></div><div class="node"></div><div class="wire"></div><div class="node"></div><div class="wire"></div><div class="node"></div>
+      </div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The Circuit</span>
+  </div>
+
+  <!-- 34 — DNA -->
+  <div class="card c34">
+    <span class="card-num">34</span>
+    <div class="flex-col">
+      <div class="helix">
+        <div class="strand"></div><div class="strand"></div><div class="strand"></div><div class="strand"></div><div class="strand"></div><div class="strand"></div><div class="strand"></div><div class="strand"></div><div class="strand"></div>
+      </div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The DNA</span>
+  </div>
+
+  <!-- 35 — Constellation -->
+  <div class="card c35">
+    <span class="card-num">35</span>
+    <div class="flex-col">
+      <div class="stars">
+        <div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div><div class="star"></div>
+      </div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Constellation</span>
+  </div>
+
+  <!-- 36 — Ripple -->
+  <div class="card c36">
+    <span class="card-num">36</span>
+    <div class="flex-col">
+      <div class="ripple-wrap">
+        <div class="ripple"></div><div class="ripple"></div><div class="ripple"></div><div class="ripple"></div>
+        <span class="letter">A</span>
+      </div>
+    </div>
+    <span class="card-label">The Ripple</span>
+  </div>
+
+  <!-- 37 — Shutter -->
+  <div class="card c37">
+    <span class="card-num">37</span>
+    <div class="flex-col">
+      <div class="shutter"><div class="blade"></div><div class="blade"></div><div class="blade"></div><div class="blade"></div><div class="blade"></div><div class="blade"></div><div class="blade"></div></div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The Shutter</span>
+  </div>
+
+  <!-- 38 — Prism -->
+  <div class="card c38">
+    <span class="card-num">38</span>
+    <div class="flex-col">
+      <div class="prism"></div>
+      <div class="logo" style="margin-top:0.5rem">Aloud</div>
+    </div>
+    <span class="card-label">The Prism</span>
+  </div>
+
+  <!-- 39 — Radar -->
+  <div class="card c39">
+    <span class="card-num">39</span>
+    <div class="flex-col">
+      <div class="radar"><div class="center"></div></div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Radar</span>
+  </div>
+
+  <!-- 40 — Topographic -->
+  <div class="card c40">
+    <span class="card-num">40</span>
+    <div class="flex-col">
+      <div class="topo">
+        <div class="topo-line" style="width:160px"></div>
+        <div class="topo-line" style="width:130px"></div>
+        <div class="topo-line" style="width:100px"></div>
+        <div class="topo-line" style="width:70px"></div>
+        <div class="topo-line" style="width:40px"></div>
+      </div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The Topographic</span>
+  </div>
+
+  <!-- 41 — Kinetic -->
+  <div class="card c41">
+    <span class="card-num">41</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+    </div>
+    <span class="card-label">The Kinetic</span>
+  </div>
+
+  <!-- 42 — Halftone -->
+  <div class="card c42">
+    <span class="card-num">42</span>
+    <div class="flex-col">
+      <div class="logo">ALOUD</div>
+    </div>
+    <span class="card-label">The Halftone</span>
+  </div>
+
+  <!-- 43 — Letterpress -->
+  <div class="card c43">
+    <span class="card-num">43</span>
+    <div class="flex-col">
+      <div class="press">
+        <div class="logo">ALOUD</div>
+        <div class="year">MMXXVI</div>
+      </div>
+    </div>
+    <span class="card-label">The Letterpress</span>
+  </div>
+
+  <!-- 44 — Abstract Mark -->
+  <div class="card c44">
+    <span class="card-num">44</span>
+    <div class="flex-col">
+      <div class="mark"><div></div><div></div><div></div><div></div></div>
+      <div class="name">Aloud</div>
+    </div>
+    <span class="card-label">The Abstract Mark</span>
+  </div>
+
+  <!-- 45 — Capsule -->
+  <div class="card c45">
+    <span class="card-num">45</span>
+    <div class="flex-col">
+      <div class="capsule">
+        <div class="dot"></div>
+        <span class="text">Aloud</span>
+      </div>
+    </div>
+    <span class="card-label">The Capsule</span>
+  </div>
+
+  <!-- 46 — Signal -->
+  <div class="card c46">
+    <span class="card-num">46</span>
+    <div class="flex-col">
+      <div class="signal"><div></div><div></div><div></div><div></div></div>
+      <div class="logo">Aloud</div>
+    </div>
+    <span class="card-label">The Signal</span>
+  </div>
+
+  <!-- 47 — Layered Serif -->
+  <div class="card c47">
+    <span class="card-num">47</span>
+    <div class="flex-col">
+      <div class="logo" style="position:relative">Aloud<span>Aloud</span></div>
+    </div>
+    <span class="card-label">The Layered Serif</span>
+  </div>
+
+  <!-- 48 — Perspective -->
+  <div class="card c48">
+    <span class="card-num">48</span>
+    <div class="flex-col">
+      <div class="logo"><span>A</span>loud</div>
+      <div class="sub">Online English</div>
+    </div>
+    <span class="card-label">The Perspective</span>
+  </div>
+
+  <!-- 49 — Fragment -->
+  <div class="card c49">
+    <span class="card-num">49</span>
+    <div class="flex-col">
+      <div class="frag"><span>A</span><span>L</span><span>O</span><span>U</span><span>D</span></div>
+    </div>
+    <span class="card-label">The Fragment</span>
+  </div>
+
+  <!-- 50 — Crown -->
+  <div class="card c50">
+    <span class="card-num">50</span>
+    <div class="flex-col">
+      <div class="crown"><div></div><div></div><div></div><div></div><div></div></div>
+      <div class="logo">ALOUD</div>
+      <div class="sub">Speak Like Royalty</div>
+    </div>
+    <span class="card-label">The Crown</span>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <p><span style="color:var(--cyan)">Aloud</span> &mdash; 50 Brand Identity Concepts &mdash; 2026</p>
+</footer>
+
+</body>
+</html>
