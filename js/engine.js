@@ -94,11 +94,6 @@ const Engine = (() => {
       GameState.addCurrency('sd', s._passiveSD * dt);
     }
 
-    // Passive SD from Nebula star systems
-    if (s._passiveSD > 0) {
-      GameState.addCurrency('sd', s._passiveSD * dt);
-    }
-
     // Auto-crew generation from Phase 7 Haven generators
     if (s.currentPhase >= 7 && s.crew.unlocked) {
       processAutoCrewGeneration(s, deltaTime);
@@ -122,6 +117,24 @@ const Engine = (() => {
 
     // Achievements
     checkAchievements(s);
+
+    // Expansion B: Track special dates for secret achievements
+    trackSpecialDates(s);
+
+    // Expansion B: Weather overlay sync
+    if (typeof Juice !== 'undefined' && Juice.WeatherOverlay) {
+      const weatherId = s.weather ? s.weather.current : 'default';
+      if (Juice.WeatherOverlay.currentEffect !== weatherId && weatherId !== 'default') {
+        Juice.WeatherOverlay.set(weatherId);
+      } else if (weatherId === 'default' && Juice.WeatherOverlay.currentEffect) {
+        Juice.WeatherOverlay.clear();
+      }
+    }
+
+    // Expansion B: Combo flame effect sync
+    if (typeof Juice !== 'undefined' && Juice.ComboFlame && s.combo) {
+      Juice.ComboFlame.show(s.combo.current);
+    }
 
     // No-tap tracking for secret achievement
     if (s.stats.lastTapTime > 0) {
@@ -1034,11 +1047,109 @@ const Engine = (() => {
     return { reward, amount: rewardAmount, day: s.dailyReward.currentStreak, multiplier };
   }
 
+  // ========== EXPANSION B: Special Date Tracking ==========
+  function trackSpecialDates(s) {
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth(); // 0-indexed
+    const dayOfWeek = now.getDay();
+    const hour = now.getHours();
+
+    // Friday the 13th
+    if (dayOfWeek === 5 && day === 13 && !s.stats.playedFriday13) {
+      s.stats.playedFriday13 = true;
+    }
+    // New Year's Day
+    if (month === 0 && day === 1 && !s.stats.playedNewYear) {
+      s.stats.playedNewYear = true;
+    }
+    // Night Owl (2+ hours after midnight)
+    if (hour >= 0 && hour < 4 && s.totalPlayTimeSeconds > 7200 && !s.stats.nightOwlEarned) {
+      s.stats.nightOwlEarned = true;
+    }
+    // Early Bird (before 6 AM)
+    if (hour < 6 && !s.stats.earlyBirdEarned) {
+      s.stats.earlyBirdEarned = true;
+    }
+  }
+
+  // ========== EXPANSION B: Mini-game stats tracking ==========
+  function trackMiniGameResult(gameType, score, won) {
+    const s = GameState.getState();
+    s.stats.miniGamesPlayed = (s.stats.miniGamesPlayed || 0) + 1;
+    if (won) s.stats.miniGamesWon = (s.stats.miniGamesWon || 0) + 1;
+
+    if (!s.stats.miniGameHighScores) s.stats.miniGameHighScores = {};
+    const prev = s.stats.miniGameHighScores[gameType] || 0;
+    if (score > prev) s.stats.miniGameHighScores[gameType] = score;
+
+    if (!s.stats.miniGameTypesPlayed) s.stats.miniGameTypesPlayed = [];
+    if (!s.stats.miniGameTypesPlayed.includes(gameType)) {
+      s.stats.miniGameTypesPlayed.push(gameType);
+    }
+  }
+
+  // ========== EXPANSION B: Challenge completion tracking ==========
+  function trackChallengeComplete(challengeTypeId) {
+    const s = GameState.getState();
+    s.stats.challengesCompleted = (s.stats.challengesCompleted || 0) + 1;
+    if (!s.stats.completedChallengeTypes) s.stats.completedChallengeTypes = [];
+    if (!s.stats.completedChallengeTypes.includes(challengeTypeId)) {
+      s.stats.completedChallengeTypes.push(challengeTypeId);
+    }
+    s.stats.challengeTypesCompleted = s.stats.completedChallengeTypes.length;
+
+    // Play sounds and animations
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playChallengeCompleteSound();
+    if (typeof Juice !== 'undefined' && Juice.ChallengeAnim) Juice.ChallengeAnim.playComplete();
+  }
+
+  // ========== EXPANSION B: Contract completion hook ==========
+  function onContractComplete(contract) {
+    const s = GameState.getState();
+    s.stats.contractsCompleted = (s.stats.contractsCompleted || 0) + 1;
+    if (contract && contract.special) {
+      s.stats.specialContractsCompleted = (s.stats.specialContractsCompleted || 0) + 1;
+    }
+
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playContractCompleteSound();
+    if (typeof Juice !== 'undefined' && Juice.ContractAnim) Juice.ContractAnim.play();
+  }
+
+  // ========== EXPANSION B: Collection unlock hook ==========
+  function onCollectionUnlock(itemId) {
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playCollectionUnlockSound();
+  }
+
+  // ========== EXPANSION B: Phase transition hook ==========
+  function onPhaseTransition(fromPhase, toPhase) {
+    if (typeof AdaptiveAudio !== 'undefined') {
+      AdaptiveAudio.playPhaseTransitionStinger(fromPhase, toPhase);
+      AdaptiveAudio.startAmbientLoop(toPhase);
+    }
+    addLogEntry('log' + (toPhase + 1)); // Phase-specific log entries
+
+    // Track phase reach time
+    const s = GameState.getState();
+    const runTime = (Date.now() - s.currentRunStartTime) / 1000;
+    if (!s.stats.phaseReachTime[toPhase] || runTime < s.stats.phaseReachTime[toPhase]) {
+      s.stats.phaseReachTime[toPhase] = runTime;
+    }
+  }
+
+  // ========== EXPANSION B: Prestige hook ==========
+  function onPrestige() {
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playPrestigeBigBang();
+    if (typeof Juice !== 'undefined' && Juice.PrestigeBigBang) Juice.PrestigeBigBang.play();
+  }
+
   return {
     start, stop, resetSaveInterval, tick, doTap, buyGenerator, buyRocketPart, launchRocket,
     buyUpgrade, buyResearch, buyCDShopItem, hireCrew, upgradeCrewMember,
     upgradeAllCrew, getCrewBonus, repairIoGenerator, buyStarSystem,
     claimDailyReward, calculateRates, unlockAchievement, addLogEntry,
-    getActiveGeneratorKeysForPhase, findGenerator, getStarSystemCost
+    getActiveGeneratorKeysForPhase, findGenerator, getStarSystemCost,
+    trackMiniGameResult, trackChallengeComplete, onContractComplete,
+    onCollectionUnlock, onPhaseTransition, onPrestige
   };
 })();

@@ -176,6 +176,137 @@ const AdaptiveAudio = (() => {
     // In a full implementation, this would crossfade between phase-specific audio buffers
   }
 
+  // ========== EXPANSION B: Phase Transition Stinger ==========
+  function playPhaseTransitionStinger(fromPhase, toPhase) {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    const config = PHASE_MUSIC[toPhase] || PHASE_MUSIC[1];
+
+    // Rising sweep with phase base frequency
+    const sweep = audioCtx.createOscillator();
+    const sweepGain = audioCtx.createGain();
+    sweep.type = 'sawtooth';
+    sweep.frequency.setValueAtTime(config.baseFreq * 0.5, now);
+    sweep.frequency.exponentialRampToValueAtTime(config.baseFreq * 4, now + 0.8);
+    sweepGain.gain.setValueAtTime(0.06, now);
+    sweepGain.gain.linearRampToValueAtTime(0.1, now + 0.4);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    sweep.connect(sweepGain);
+    sweepGain.connect(sfxGain);
+    sweep.start(now);
+    sweep.stop(now + 1.3);
+
+    // Chord hit at peak
+    const notes = [1, 1.25, 1.5, 2];
+    notes.forEach((mult, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = config.baseFreq * 2 * mult;
+      gain.gain.setValueAtTime(0, now + 0.7);
+      gain.gain.linearRampToValueAtTime(0.04, now + 0.75);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + 0.7);
+      osc.stop(now + 1.6);
+    });
+  }
+
+  // ========== EXPANSION B: Prestige Sound (enhanced) ==========
+  function playPrestigeBigBang() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+
+    // Low rumble sweep
+    const rumble = audioCtx.createOscillator();
+    const rumbleGain = audioCtx.createGain();
+    rumble.type = 'sawtooth';
+    rumble.frequency.setValueAtTime(30, now);
+    rumble.frequency.linearRampToValueAtTime(60, now + 1.5);
+    rumbleGain.gain.setValueAtTime(0.08, now);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(sfxGain);
+    rumble.start(now);
+    rumble.stop(now + 2.1);
+
+    // Bright explosion burst at 0.5s
+    [440, 554.37, 659.25, 880, 1108.73].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = i < 2 ? 'sawtooth' : 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + 0.5);
+      gain.gain.linearRampToValueAtTime(0.06, now + 0.55);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5 + i * 0.1);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + 0.5);
+      osc.stop(now + 1.6 + i * 0.1);
+    });
+
+    // Rebirth chime at 1.5s
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + 1.5 + i * 0.15);
+      gain.gain.linearRampToValueAtTime(0.05, now + 1.55 + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5 + i * 0.15);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + 1.5 + i * 0.15);
+      osc.stop(now + 2.6 + i * 0.15);
+    });
+  }
+
+  // ========== EXPANSION B: Ambient Intensity System ==========
+  let ambientInterval = null;
+  function startAmbientLoop(phase) {
+    if (!audioCtx || !sfxGain) return;
+    stopAmbientLoop();
+
+    const sounds = AMBIENT_SOUNDS[phase] || AMBIENT_SOUNDS[1];
+    ambientInterval = setInterval(() => {
+      if (Math.random() < 0.3) {
+        resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        // Generate ambient tone based on phase
+        const config = PHASE_MUSIC[phase] || PHASE_MUSIC[1];
+        osc.type = 'sine';
+        osc.frequency.value = config.baseFreq * (0.5 + Math.random());
+        filter.type = 'lowpass';
+        filter.frequency.value = 300 + Math.random() * 200;
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.015, now + 1);
+        gain.gain.linearRampToValueAtTime(0.015, now + 2);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 4);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(sfxGain);
+        osc.start(now);
+        osc.stop(now + 4.1);
+      }
+    }, 5000);
+  }
+
+  function stopAmbientLoop() {
+    if (ambientInterval) {
+      clearInterval(ambientInterval);
+      ambientInterval = null;
+    }
+  }
+
   // ========== SOUND EFFECTS ==========
   function playTapSound(comboLevel) {
     if (!audioCtx || !sfxGain) return;
@@ -668,6 +799,8 @@ const AdaptiveAudio = (() => {
     playChallengeStartSound, playChallengeCompleteSound,
     playMiniGameStartSound, playBoosterActivateSound,
     playComboSound, playEggWarmSound,
+    playPhaseTransitionStinger, playPrestigeBigBang,
+    startAmbientLoop, stopAmbientLoop,
     startEventMusic, stopEventMusic,
     getActivityState, getTapRate,
     PHASE_MUSIC, AMBIENT_SOUNDS, GEN_SOUND_TYPES

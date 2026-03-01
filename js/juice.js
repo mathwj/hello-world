@@ -613,6 +613,215 @@ const Juice = (() => {
     }
   };
 
+  // ==================== EXPANSION B: Weather Overlay Effect ====================
+  const WeatherOverlay = {
+    currentEffect: null,
+
+    set(weatherId) {
+      this.clear();
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'weather-overlay';
+      overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;overflow:hidden;';
+
+      if (weatherId === 'rain' || weatherId === 'first_rain') {
+        // Rain particle effect
+        for (let i = 0; i < 30; i++) {
+          const drop = document.createElement('div');
+          drop.style.cssText = `position:absolute;left:${Math.random() * 100}%;top:-10px;width:1px;height:${10 + Math.random() * 15}px;background:rgba(100,150,255,0.4);animation:rainFall ${0.5 + Math.random() * 0.5}s linear infinite;animation-delay:${Math.random()}s;`;
+          overlay.appendChild(drop);
+        }
+      } else if (weatherId === 'snow') {
+        // Snow particle effect
+        for (let i = 0; i < 20; i++) {
+          const flake = document.createElement('div');
+          flake.style.cssText = `position:absolute;left:${Math.random() * 100}%;top:-10px;width:${3 + Math.random() * 4}px;height:${3 + Math.random() * 4}px;border-radius:50%;background:rgba(255,255,255,0.6);animation:snowFall ${2 + Math.random() * 3}s linear infinite;animation-delay:${Math.random() * 2}s;`;
+          overlay.appendChild(flake);
+        }
+      } else if (weatherId === 'lightning') {
+        // Lightning flash effect at random intervals
+        overlay.style.background = 'transparent';
+        this._lightningInterval = setInterval(() => {
+          if (Math.random() < 0.15) {
+            overlay.style.background = 'rgba(255,255,200,0.15)';
+            setTimeout(() => { overlay.style.background = 'transparent'; }, 100);
+          }
+        }, 500);
+      } else if (weatherId === 'dust_storm') {
+        overlay.style.background = 'rgba(180, 120, 60, 0.08)';
+      } else if (weatherId === 'golden_hour') {
+        overlay.style.background = 'linear-gradient(180deg, rgba(255,180,50,0.06) 0%, rgba(255,100,30,0.04) 100%)';
+      } else if (weatherId === 'night' || weatherId === 'deep_shadow' || weatherId === 'dark_nebula') {
+        overlay.style.background = 'rgba(0,0,30,0.12)';
+      } else if (weatherId === 'flare' || weatherId === 'supernova_echo') {
+        overlay.style.background = 'rgba(255,200,50,0.05)';
+      }
+
+      container.appendChild(overlay);
+      this.currentEffect = weatherId;
+    },
+
+    clear() {
+      const existing = document.getElementById('weather-overlay');
+      if (existing) existing.remove();
+      if (this._lightningInterval) {
+        clearInterval(this._lightningInterval);
+        this._lightningInterval = null;
+      }
+      this.currentEffect = null;
+    }
+  };
+
+  // ==================== EXPANSION B: Prestige Big Bang Animation ====================
+  const PrestigeBigBang = {
+    play() {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      // Fullscreen white flash that fades
+      ScreenFlash.flash('#FFFFFF', 1.0);
+
+      // Central expansion ring
+      const ring = document.createElement('div');
+      ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        width:10px;height:10px;border-radius:50%;
+        border:3px solid rgba(255,215,0,0.8);
+        pointer-events:none;z-index:200;
+        transition:all 1.5s ease-out;`;
+      container.appendChild(ring);
+
+      requestAnimationFrame(() => {
+        ring.style.width = '500px';
+        ring.style.height = '500px';
+        ring.style.opacity = '0';
+        ring.style.borderWidth = '1px';
+      });
+
+      // Radial particle burst
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        const angle = (i / 30) * Math.PI * 2;
+        const dist = 100 + Math.random() * 150;
+        const colors = ['#FFD700', '#FF6600', '#FF00FF', '#00FFFF', '#FFFFFF'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 2 + Math.random() * 4;
+        p.style.cssText = `position:absolute;top:50%;left:50%;width:${size}px;height:${size}px;
+          border-radius:50%;background:${color};
+          pointer-events:none;z-index:200;
+          transition:all 1.2s ease-out;opacity:1;`;
+        container.appendChild(p);
+
+        requestAnimationFrame(() => {
+          p.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
+          p.style.opacity = '0';
+        });
+        setTimeout(() => p.remove(), 1300);
+      }
+
+      setTimeout(() => ring.remove(), 1600);
+
+      // Secondary confetti burst
+      setTimeout(() => Confetti.burst(), 500);
+      setTimeout(() => Confetti.burst(), 800);
+    }
+  };
+
+  // ==================== EXPANSION B: Golden Rush Glow ====================
+  const GoldenRushGlow = {
+    active: false,
+
+    start(generatorId) {
+      this.active = true;
+      const genEl = document.querySelector(`[data-gen="${generatorId}"]`);
+      if (genEl) {
+        genEl.classList.add('golden-rush-active');
+      }
+      // Global golden tint
+      const container = document.getElementById('game-container');
+      if (container) {
+        container.style.boxShadow = 'inset 0 0 60px rgba(255,215,0,0.15)';
+      }
+    },
+
+    stop() {
+      this.active = false;
+      document.querySelectorAll('.golden-rush-active').forEach(el => {
+        el.classList.remove('golden-rush-active');
+      });
+      const container = document.getElementById('game-container');
+      if (container) {
+        container.style.boxShadow = '';
+      }
+    }
+  };
+
+  // ==================== EXPANSION B: Lucky Drop Float Animation ====================
+  const LuckyDropAnim = {
+    show(x, y, dropType) {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      const drop = document.createElement('div');
+      const icons = {
+        credits: '\u{1F4B0}',
+        rp: '\u{1F52C}',
+        ore: '\u26CF',
+        rm: '\u{1F48E}',
+        sd: '\u2B50',
+        cosmicDust: '\u{1FA90}',
+        booster: '\u26A1',
+        egg: '\u{1F95A}'
+      };
+      drop.textContent = icons[dropType] || '\u2728';
+      drop.style.cssText = `position:absolute;left:${x}px;top:${y}px;font-size:28px;
+        pointer-events:auto;cursor:pointer;z-index:100;
+        animation:dropFloat 3s ease-in-out infinite;
+        filter:drop-shadow(0 0 8px rgba(255,215,0,0.6));
+        transition:transform 0.3s, opacity 0.3s;`;
+      drop.id = 'lucky-drop-' + Date.now();
+
+      container.appendChild(drop);
+      return drop;
+    },
+
+    collect(dropEl) {
+      if (!dropEl) return;
+      dropEl.style.transform = 'scale(1.5)';
+      dropEl.style.opacity = '0';
+      setTimeout(() => dropEl.remove(), 300);
+    }
+  };
+
+  // ==================== EXPANSION B: Synergy Activation Flash ====================
+  const SynergyFlash = {
+    play(synergyName) {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      const banner = document.createElement('div');
+      banner.textContent = '\u26A1 ' + synergyName + ' Activated!';
+      banner.style.cssText = `position:absolute;top:20%;left:50%;transform:translate(-50%,-50%) scale(0.5);
+        font-size:18px;font-weight:bold;color:#FFD700;text-shadow:0 0 10px rgba(255,215,0,0.8);
+        pointer-events:none;z-index:150;white-space:nowrap;
+        transition:all 0.5s ease-out;`;
+      container.appendChild(banner);
+
+      requestAnimationFrame(() => {
+        banner.style.transform = 'translate(-50%,-50%) scale(1)';
+      });
+
+      setTimeout(() => {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translate(-50%,-80%) scale(1.1)';
+        setTimeout(() => banner.remove(), 500);
+      }, 1500);
+
+      ScreenFlash.flash('#FFD700', 0.2);
+    }
+  };
+
   // ==================== INIT ====================
   function init() {
     Confetti.init();
@@ -649,6 +858,8 @@ const Juice = (() => {
     NumberMilestones, GenAnims, ButtonAnims, TeaserSystem,
     ProgressShimmer, ToastAnims,
     EggHatchAnim, ContractAnim, ChallengeAnim, ComboFlame,
+    WeatherOverlay, PrestigeBigBang, GoldenRushGlow,
+    LuckyDropAnim, SynergyFlash,
     update, init
   };
 })();

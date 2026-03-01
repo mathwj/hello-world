@@ -207,7 +207,31 @@ const GameState = (() => {
         boostersCollected: 0,
         legendaryBoostersCollected: 0,
         // Expansion B: Synergy tracking
-        synergiesActivated: 0
+        synergiesActivated: 0,
+        // Expansion B: Additional stats
+        miniGameTypesPlayed: [],
+        miniGamePerfect: false,
+        completedChallengeTypes: [],
+        challengeTypesCompleted: 0,
+        contractStreak: 0,
+        bronzeEggsHatched: 0,
+        silverEggsHatched: 0,
+        goldEggsHatched: 0,
+        eggTypesHatched: 0,
+        creditBoostersUsed: 0,
+        rpBoostersUsed: 0,
+        rareBoosterUsed: false,
+        epicBoosterUsed: false,
+        ioRepairs: 0,
+        europaASFound: 0,
+        ganymedeFullCrew: false,
+        callistoMaxed: false,
+        allPhasesIn1Hr: false,
+        doublePrestige: false,
+        playedFriday13: false,
+        playedNewYear: false,
+        terraformTime: 0,
+        lastPrestigeTimestamp: 0
       },
 
       // ===== EXPANSION v2.0 FIELDS =====

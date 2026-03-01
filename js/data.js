@@ -534,7 +534,101 @@ const GameData = (() => {
     { id: 'ach_taptaptap', name: 'Tap Tap Tap', desc: 'Tap 50 times in 10 seconds', reward: { credits: 0, special: 'title_speedDemon' }, check: s => s.stats.fastTapRecord >= 50, secret: true, category: 'secret' },
     { id: 'ach_wrongbutton', name: 'Wrong Button', desc: 'Try to buy unaffordable 20 times', reward: { credits: 0, special: 'title_dreamer' }, check: s => (s.stats.failedPurchases || 0) >= 20, secret: true, category: 'secret' },
     { id: 'ach_backtobasics', name: 'Back to Basics', desc: 'Return to Phase 1 after Phase 8', reward: { credits: 0, special: 'p1x100' }, check: s => s.stats.returnedToP1AfterP8, secret: true, category: 'secret' },
-    { id: 'ach_theanswer', name: 'The Answer', desc: 'Own exactly 42 of any generator', reward: { rp: 42 }, check: s => { for (const k in s.generators) { if (s.generators[k] === 42) return true; } return false; }, secret: true, category: 'secret' }
+    { id: 'ach_theanswer', name: 'The Answer', desc: 'Own exactly 42 of any generator', reward: { rp: 42 }, check: s => { for (const k in s.generators) { if (s.generators[k] === 42) return true; } return false; }, secret: true, category: 'secret' },
+
+    // ===== EXPANSION B BATCH 2: Extended Earning Achievements =====
+    { id: 'ach_earn1sp', name: 'Space Baron', desc: 'Earn 1Sp credits total', reward: { credits: 1e21 }, check: s => s.creditsAllTimeEarned >= 1e24, category: 'earning' },
+    { id: 'ach_earn1oc', name: 'Cosmic Magnate', desc: 'Earn 1Oc credits total', reward: { credits: 1e24 }, check: s => s.creditsAllTimeEarned >= 1e27, category: 'earning' },
+    { id: 'ach_earn1no', name: 'Universal Financier', desc: 'Earn 1No credits total', reward: { cosmicDust: 50 }, check: s => s.creditsAllTimeEarned >= 1e30, category: 'earning' },
+    { id: 'ach_earn1dc', name: 'Infinity Wallet', desc: 'Earn 1Dc credits total', reward: { cosmicDust: 200 }, check: s => s.creditsAllTimeEarned >= 1e33, category: 'earning' },
+
+    // ===== Extended Tapping Achievements =====
+    { id: 'ach_tap5m', name: 'Chronic Tapper', desc: 'Tap 5,000,000 times', reward: { cosmicDust: 25 }, check: s => s.totalTaps >= 5000000, category: 'tapping' },
+    { id: 'ach_tap10m', name: 'Tap God', desc: 'Tap 10,000,000 times', reward: { cosmicDust: 100 }, check: s => s.totalTaps >= 10000000, category: 'tapping' },
+
+    // ===== Extended Generator Achievements =====
+    { id: 'ach_gen10k', name: 'Imperial Fleet', desc: 'Own 10,000 total generators', reward: { cosmicDust: 50 }, check: s => getTotalGenerators(s) >= 10000, category: 'generator' },
+    { id: 'ach_gen25k', name: 'Galactic Armada', desc: 'Own 25,000 total generators', reward: { cosmicDust: 100 }, check: s => getTotalGenerators(s) >= 25000, category: 'generator' },
+    { id: 'ach_gen50k', name: 'Universal Dominion', desc: 'Own 50,000 total generators', reward: { cosmicDust: 250 }, check: s => getTotalGenerators(s) >= 50000, category: 'generator' },
+
+    // ===== Extended Crew Achievements =====
+    { id: 'ach_crew5k', name: 'Legion', desc: 'Hire 5,000 astronauts', reward: { ore: 500000 }, check: s => s.crew.totalAstronauts >= 5000, category: 'crew' },
+    { id: 'ach_crew10k', name: 'Galactic Army', desc: 'Hire 10,000 astronauts', reward: { cosmicDust: 50 }, check: s => s.crew.totalAstronauts >= 10000, category: 'crew' },
+    { id: 'ach_allVeteran', name: 'Hardened Vets', desc: 'All crew at Veteran tier or above', reward: { ore: 100000 }, check: s => s.crew.astronauts.length >= 10 && s.crew.astronauts.every(a => a.tier >= 2), category: 'crew' },
+    { id: 'ach_allElite', name: 'Elite Squad', desc: 'All crew at Elite tier or above', reward: { cosmicDust: 25 }, check: s => s.crew.astronauts.length >= 10 && s.crew.astronauts.every(a => a.tier >= 3), category: 'crew' },
+
+    // ===== Extended Terraform Achievements =====
+    { id: 'ach_terra25', name: 'First Seeds', desc: 'Reach 25% Mars terraforming', reward: { credits: 1e12 }, check: s => s.terraforming.marsPercent >= 25, category: 'terraform' },
+    { id: 'ach_terra75', name: 'Almost There', desc: 'Reach 75% Mars terraforming', reward: { credits: 100e12 }, check: s => s.terraforming.marsPercent >= 75, category: 'terraform' },
+    { id: 'ach_terraSpeed', name: 'Speed Terraformer', desc: 'Reach 100% terraform in under 3 hours', reward: { cosmicDust: 50 }, check: s => s.stats.terraformTime > 0 && s.stats.terraformTime < 10800, category: 'terraform' },
+
+    // ===== Extended Prestige Achievements =====
+    { id: 'ach_pres75', name: 'Transcendent', desc: 'Prestige 75 times', reward: { cosmicDust: 25000 }, check: s => s.totalPrestigeCount >= 75, category: 'prestige' },
+    { id: 'ach_pres100', name: 'The Centennial', desc: 'Prestige 100 times', reward: { cosmicDust: 100000 }, check: s => s.totalPrestigeCount >= 100, category: 'prestige' },
+    { id: 'ach_cdMillionaire', name: 'Dust Millionaire', desc: 'Accumulate 1,000,000 CD lifetime', reward: { cosmicDust: 10000 }, check: s => s.cosmicDustLifetime >= 1000000, category: 'prestige' },
+
+    // ===== Extended Combo Achievements =====
+    { id: 'ach_combo150', name: 'Combo Titan', desc: 'Reach a x150 combo', reward: { cosmicDust: 25 }, check: s => s.combo.bestAllTime >= 150, category: 'combo' },
+    { id: 'ach_combo200', name: 'Combo God', desc: 'Reach a x200 combo', reward: { cosmicDust: 50 }, check: s => s.combo.bestAllTime >= 200, category: 'combo' },
+    { id: 'ach_combo300', name: 'ULTRA FRENZY', desc: 'Reach a x300 combo', reward: { cosmicDust: 100 }, check: s => s.combo.bestAllTime >= 300, category: 'combo' },
+
+    // ===== Extended Critical Achievements =====
+    { id: 'ach_crit1k', name: 'Critical Expert', desc: 'Land 1,000 critical taps', reward: { cosmicDust: 10 }, check: s => (s.stats.totalCritTaps || 0) >= 1000, category: 'critical' },
+    { id: 'ach_crit5k', name: 'Critical Machine', desc: 'Land 5,000 critical taps', reward: { cosmicDust: 25 }, check: s => (s.stats.totalCritTaps || 0) >= 5000, category: 'critical' },
+    { id: 'ach_supercrit10', name: 'Storm Caller', desc: 'Land 10 Super Criticals', reward: { cosmicDust: 50 }, check: s => (s.stats.totalSuperCritTaps || 0) >= 10, category: 'critical' },
+
+    // ===== Mini-Game Achievements =====
+    { id: 'ach_mini1', name: 'Game On', desc: 'Play first mini-game', reward: { credits: 10000 }, check: s => (s.stats.miniGamesPlayed || 0) >= 1, category: 'minigame' },
+    { id: 'ach_mini10', name: 'Arcade Regular', desc: 'Play 10 mini-games', reward: { credits: 1e6 }, check: s => (s.stats.miniGamesPlayed || 0) >= 10, category: 'minigame' },
+    { id: 'ach_mini50', name: 'Arcade Champion', desc: 'Play 50 mini-games', reward: { cosmicDust: 10 }, check: s => (s.stats.miniGamesPlayed || 0) >= 50, category: 'minigame' },
+    { id: 'ach_miniPerfect', name: 'Perfect Game', desc: 'Get max score in any mini-game', reward: { cosmicDust: 25 }, check: s => s.stats.miniGamePerfect, category: 'minigame' },
+    { id: 'ach_miniAll', name: 'Jack of All Games', desc: 'Play all 8 mini-game types', reward: { cosmicDust: 15 }, check: s => s.stats.miniGameTypesPlayed && s.stats.miniGameTypesPlayed.length >= 8, category: 'minigame' },
+
+    // ===== Challenge Achievements =====
+    { id: 'ach_challenge1', name: 'Challenger', desc: 'Complete first challenge run', reward: { cosmicDust: 10 }, check: s => (s.stats.challengesCompleted || 0) >= 1, category: 'challenge' },
+    { id: 'ach_challenge5', name: 'Challenge Veteran', desc: 'Complete 5 challenge runs', reward: { cosmicDust: 50 }, check: s => (s.stats.challengesCompleted || 0) >= 5, category: 'challenge' },
+    { id: 'ach_challenge10', name: 'Challenge Master', desc: 'Complete 10 challenge runs', reward: { cosmicDust: 100 }, check: s => (s.stats.challengesCompleted || 0) >= 10, category: 'challenge' },
+    { id: 'ach_challengeAll', name: 'Ultimate Challenger', desc: 'Complete every challenge type', reward: { cosmicDust: 200 }, check: s => (s.stats.challengeTypesCompleted || 0) >= 6, category: 'challenge' },
+
+    // ===== Golden Rush Achievements =====
+    { id: 'ach_golden1', name: 'First Gold', desc: 'Experience first Golden Rush', reward: { credits: 100000 }, check: s => (s.stats.goldenRushCount || 0) >= 1, category: 'goldenRush' },
+    { id: 'ach_golden10', name: 'Gold Miner', desc: 'Experience 10 Golden Rushes', reward: { credits: 100e6 }, check: s => (s.stats.goldenRushCount || 0) >= 10, category: 'goldenRush' },
+    { id: 'ach_golden50', name: 'Midas Touch', desc: 'Experience 50 Golden Rushes', reward: { cosmicDust: 25 }, check: s => (s.stats.goldenRushCount || 0) >= 50, category: 'goldenRush' },
+
+    // ===== Phase-specific Achievements =====
+    { id: 'ach_ioSurvivor', name: 'Io Survivor', desc: 'Repair Io generators 100 times', reward: { ore: 100000 }, check: s => (s.stats.ioRepairs || 0) >= 100, category: 'phase' },
+    { id: 'ach_europaFirst', name: 'Deep Diver', desc: 'Find first Alien Signal on Europa', reward: { rp: 5000 }, check: s => (s.stats.europaASFound || 0) >= 1, category: 'phase' },
+    { id: 'ach_ganymedeFull', name: 'Moon Governor', desc: 'Fill all Ganymede crew capacity', reward: { credits: 1e24 }, check: s => s.stats.ganymedeFullCrew, category: 'phase' },
+    { id: 'ach_callistoMax', name: 'Omniscient', desc: 'Max all Callisto boost generators', reward: { cosmicDust: 50 }, check: s => s.stats.callistoMaxed, category: 'phase' },
+    { id: 'ach_starSystem10', name: 'Star Collector', desc: 'Colonize 10 star systems', reward: { sd: 1000 }, check: s => s.stats.totalStarSystemsColonized >= 10, category: 'phase' },
+    { id: 'ach_starSystem25', name: 'Star Empire', desc: 'Colonize 25 star systems', reward: { sd: 5000 }, check: s => s.stats.totalStarSystemsColonized >= 25, category: 'phase' },
+    { id: 'ach_starSystem50', name: 'Galactic Ruler', desc: 'Colonize 50 star systems', reward: { cosmicDust: 100 }, check: s => s.stats.totalStarSystemsColonized >= 50, category: 'phase' },
+
+    // ===== Lucky Drop Extended Achievements =====
+    { id: 'ach_drop500', name: 'Drop Magnet', desc: 'Tap 500 Lucky Drops', reward: { cosmicDust: 15 }, check: s => (s.stats.luckyDropsCaught || 0) >= 500, category: 'luckyDrop' },
+    { id: 'ach_drop1000', name: 'Drop King', desc: 'Tap 1,000 Lucky Drops', reward: { cosmicDust: 50 }, check: s => (s.stats.luckyDropsCaught || 0) >= 1000, category: 'luckyDrop' },
+    { id: 'ach_cdFragment10', name: 'Fragment Hoarder', desc: 'Catch 10 Cosmic Fragments', reward: { cosmicDust: 15 }, check: s => (s.stats.cosmicFragmentsCaught || 0) >= 10, category: 'luckyDrop' },
+
+    // ===== Extended Egg Achievements =====
+    { id: 'ach_egg100', name: 'Egg Factory', desc: 'Hatch 100 eggs', reward: { cosmicDust: 25 }, check: s => (s.stats.eggsHatched || 0) >= 100, category: 'egg' },
+    { id: 'ach_allEggTypes', name: 'Egg Connoisseur', desc: 'Hatch every egg type at least once', reward: { cosmicDust: 30 }, check: s => (s.stats.eggTypesHatched || 0) >= 5, category: 'egg' },
+    { id: 'ach_eggWarm100', name: 'Warm Hands', desc: 'Tap-to-warm eggs 100 times', reward: { credits: 1e6 }, check: s => (s.stats.eggWarmTaps || 0) >= 100, category: 'egg' },
+
+    // ===== Extended Contract Achievements =====
+    { id: 'ach_contract200', name: 'Corporate Empire', desc: 'Complete 200 contracts', reward: { cosmicDust: 100 }, check: s => (s.stats.contractsCompleted || 0) >= 200, category: 'contract' },
+    { id: 'ach_contractStreak5', name: 'On a Roll', desc: 'Complete 5 contracts in a row without failing', reward: { cosmicDust: 15 }, check: s => (s.stats.contractStreak || 0) >= 5, category: 'contract' },
+
+    // ===== Extended Booster Achievements =====
+    { id: 'ach_booster4active', name: 'Quadra Boost', desc: '4 boosters active simultaneously', reward: { cosmicDust: 15 }, check: s => (s.stats.maxSimultaneousBoosters || 0) >= 4, category: 'booster' },
+    { id: 'ach_booster500', name: 'Boost Veteran', desc: 'Activate 500 boosters total', reward: { cosmicDust: 25 }, check: s => (s.stats.boostersActivated || 0) >= 500, category: 'booster' },
+
+    // ===== Extended Secret Achievements =====
+    { id: 'ach_palindrome', name: 'Palindrome', desc: 'Have exactly 12321 credits', reward: { credits: 12321 }, check: s => Math.floor(s.credits) === 12321, secret: true, category: 'secret' },
+    { id: 'ach_allphases1hr', name: 'Speed Demon', desc: 'Visit all 8 phases in under 1 hour', reward: { cosmicDust: 500 }, check: s => s.stats.allPhasesIn1Hr, secret: true, category: 'secret' },
+    { id: 'ach_doublePrestige', name: 'Instant Karma', desc: 'Prestige twice within 1 minute', reward: { cosmicDust: 50 }, check: s => s.stats.doublePrestige, secret: true, category: 'secret' },
+    { id: 'ach_friday13', name: 'Bad Luck?', desc: 'Play on Friday the 13th', reward: { credits: 0, special: 'voidEgg' }, check: s => s.stats.playedFriday13, secret: true, category: 'secret' },
+    { id: 'ach_newYear', name: 'New Year Captain', desc: 'Play on New Year\'s Day', reward: { cosmicDust: 25 }, check: s => s.stats.playedNewYear, secret: true, category: 'secret' },
+    { id: 'ach_millionGen', name: 'The Million', desc: 'Buy 1,000,000th generator total', reward: { cosmicDust: 500, special: 'title_theMillion' }, check: s => s.stats.totalGeneratorsEverPurchased >= 1000000, secret: true, category: 'secret' }
   ];
 
   function getTotalGenerators(state) {
@@ -672,7 +766,20 @@ const GameData = (() => {
     { id: 'evt_alienaid', name: 'Alien Aid Package', duration: 0, effect: { alienCarePackage: true }, desc: '1 booster + 1 egg!', type: 'positive', icon: '\u{1F6F8}', phaseReq: 6 },
     { id: 'evt_gravitywell', name: 'Gravity Well', duration: 300, effect: { dropAttraction: true }, desc: 'Drops attracted to center!', type: 'positive', icon: '\u{1F300}' },
     { id: 'evt_ghostship', name: 'Ghost Ship', duration: 20, effect: { tappableBonus: 'ghostShip' }, desc: 'Tap 10x for rare collection item!', type: 'positive', icon: '\u{1F47B}', phaseReq: 5 },
-    { id: 'evt_solarsailrace', name: 'Solar Sail Race', duration: 60, effect: { tappableBonus: 'solarSail' }, desc: 'Tap for speed = credits + RP!', type: 'positive', icon: '\u26F5', phaseReq: 2 }
+    { id: 'evt_solarsailrace', name: 'Solar Sail Race', duration: 60, effect: { tappableBonus: 'solarSail' }, desc: 'Tap for speed = credits + RP!', type: 'positive', icon: '\u26F5', phaseReq: 2 },
+    // ===== EXPANSION B BATCH 2: More Events =====
+    { id: 'evt_timewarp', name: 'Time Warp', duration: 120, effect: { speedMultiplier: 5 }, desc: 'All production x5 speed!', type: 'positive', icon: '\u231B' },
+    { id: 'evt_piraterad', name: 'Pirate Raid', duration: 180, effect: { generatorHijack: 0.2 }, desc: 'Pirates steal 20% of income!', type: 'negative', icon: '\u{1F3F4}', phaseReq: 5 },
+    { id: 'evt_supernova', name: 'Supernova Remnant', duration: 0, effect: { grantSD: 1000 }, desc: '+1000 Stardust from stellar explosion!', type: 'positive', icon: '\u{1F4A5}', phaseReq: 7 },
+    { id: 'evt_crewmutiny', name: 'Crew Bonus Day', duration: 300, effect: { crewBonusMultiplier: 3 }, desc: 'All crew bonuses x3!', type: 'positive', icon: '\u{1F468}\u200D\u{1F680}', phaseReq: 3 },
+    { id: 'evt_tapfrenzy', name: 'Tap Frenzy', duration: 30, effect: { tapMultiplier: 100 }, desc: 'Tap value x100 for 30s!', type: 'positive', icon: '\u{1F525}' },
+    { id: 'evt_marketcrash', name: 'Market Crash', duration: 300, effect: { costReduction: 0.3 }, desc: 'All costs -70%! Buy now!', type: 'positive', icon: '\u{1F4C9}' },
+    { id: 'evt_quantumentangle', name: 'Quantum Entanglement', duration: 120, effect: { mirrorProduction: true }, desc: 'Generators also produce RP!', type: 'positive', icon: '\u269B', phaseReq: 4 },
+    { id: 'evt_solareclipse', name: 'Solar Eclipse', duration: 60, effect: { critChanceMultiplier: 5 }, desc: 'Critical tap chance x5!', type: 'positive', icon: '\u{1F311}' },
+    { id: 'evt_combobooster', name: 'Combo Fever', duration: 120, effect: { comboTimerExtend: 2 }, desc: 'Combo timer doubled!', type: 'positive', icon: '\u{1F525}' },
+    { id: 'evt_eggstravaganza', name: 'Eggstravaganza', duration: 0, effect: { grantRandomEgg: 3 }, desc: '3 random eggs appear!', type: 'positive', icon: '\u{1F95A}', phaseReq: 3 },
+    { id: 'evt_contractrush', name: 'Contract Rush', duration: 300, effect: { contractRewardMultiplier: 3 }, desc: 'Contract rewards x3!', type: 'positive', icon: '\u{1F4DC}', phaseReq: 3 },
+    { id: 'evt_magneticstorm', name: 'Magnetic Storm', duration: 180, effect: { oreMultiplier: 10 }, desc: 'Ore production x10!', type: 'positive', icon: '\u{1F9F2}', phaseReq: 3 }
   ];
 
   // ========== DAILY REWARDS ==========
@@ -852,7 +959,19 @@ const GameData = (() => {
     { count: 10, cdBonus: 250, desc: '+250 CD + 1 Void Egg + "Eternal" title', voidEgg: true, title: 'Eternal' },
     { count: 25, cdBonus: 1000, desc: '+1000 CD + "Starborn" rocket skin', rocketSkin: 'starborn' },
     { count: 50, cdBonus: 5000, desc: '+5000 CD + permanent x2 all income', permanentMult: 2 },
-    { count: 100, cdBonus: 25000, desc: '"The Centennial" + all future prestige CD doubled', title: 'The Centennial', rocketSkin: 'infinite', cdDoubled: true }
+    { count: 100, cdBonus: 25000, desc: '"The Centennial" + all future prestige CD doubled', title: 'The Centennial', rocketSkin: 'infinite', cdDoubled: true },
+    // ===== EXPANSION B: Extended Prestige Milestones =====
+    { count: 2, cdBonus: 25, desc: '+25 CD — keep pushing!' },
+    { count: 7, cdBonus: 75, desc: '+75 CD + Lucky Egg on prestige', luckyEgg: true },
+    { count: 15, cdBonus: 400, desc: '+400 CD + "Reborn" title', title: 'Reborn' },
+    { count: 20, cdBonus: 750, desc: '+750 CD + Void Egg', voidEgg: true },
+    { count: 30, cdBonus: 1500, desc: '+1500 CD + "Eternal Flame" rocket skin', rocketSkin: 'eternalFlame' },
+    { count: 40, cdBonus: 3000, desc: '+3000 CD + permanent x1.5 all income', permanentMult: 1.5 },
+    { count: 60, cdBonus: 7500, desc: '+7500 CD + "Transcendent" title', title: 'Transcendent' },
+    { count: 75, cdBonus: 12000, desc: '+12000 CD + "Cosmic" rocket skin + x3 all income', rocketSkin: 'cosmic', permanentMult: 3 },
+    { count: 150, cdBonus: 50000, desc: '+50000 CD + permanent x5 all income', permanentMult: 5 },
+    { count: 200, cdBonus: 100000, desc: '"The Bicentennial" — legendary permanent buffs', title: 'The Bicentennial', permanentMult: 10, rocketSkin: 'transcendent' },
+    { count: 500, cdBonus: 500000, desc: '"The Eternal" — ultimate prestige reward', title: 'The Eternal', permanentMult: 25, rocketSkin: 'eternal' }
   ];
 
   // Merge expansion data when available (Expansion loads before GameData is consumed)

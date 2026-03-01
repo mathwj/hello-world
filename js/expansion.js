@@ -377,6 +377,63 @@ const Expansion = (() => {
       ],
       bonus: 'SD x10, CD from prestige +50%',
       bonusEffect: { sdMultiplier: 10, prestigeMultiplier: 1.5 }
+    },
+    // ===== EXPANSION B BATCH 2: New Collection Sets =====
+    weatherLogs: {
+      name: 'Weather Logs',
+      items: [
+        { id: 'col_wl1', name: 'Solar Flare Photo', rarity: 'common', hint: 'Experience Solar Flare weather' },
+        { id: 'col_wl2', name: 'Meteor Rain Sample', rarity: 'common', hint: 'Experience Meteor Rain weather' },
+        { id: 'col_wl3', name: 'Dust Storm Recording', rarity: 'uncommon', hint: 'Experience Dust Storm in Phase 4' },
+        { id: 'col_wl4', name: 'Lightning Bolt Capture', rarity: 'uncommon', hint: 'Earn 50 lightning taps' },
+        { id: 'col_wl5', name: 'Mars Sunset Image', rarity: 'rare', hint: 'Witness Mars sunset weather' },
+        { id: 'col_wl6', name: 'Eclipse Diagram', rarity: 'rare', hint: 'Experience eclipses in 3 different phases' },
+        { id: 'col_wl7', name: 'Mars Snow Crystal', rarity: 'epic', hint: 'Experience snow on Mars (60%+ terraform)' },
+        { id: 'col_wl8', name: 'Perfect Storm Photo', rarity: 'legendary', hint: 'Experience all weather types in Phase 1' }
+      ],
+      bonus: 'Weather effects x2 strength',
+      bonusEffect: { weatherEffectMultiplier: 2 }
+    },
+    eggSpecimens: {
+      name: 'Egg Specimens',
+      items: [
+        { id: 'col_es1', name: 'Bronze Shell Fragment', rarity: 'common', hint: 'Hatch 5 Bronze eggs' },
+        { id: 'col_es2', name: 'Silver Shell Fragment', rarity: 'common', hint: 'Hatch 5 Silver eggs' },
+        { id: 'col_es3', name: 'Gold Shell Fragment', rarity: 'uncommon', hint: 'Hatch 3 Gold eggs' },
+        { id: 'col_es4', name: 'Cosmic Shell Fragment', rarity: 'rare', hint: 'Hatch first Cosmic egg' },
+        { id: 'col_es5', name: 'Void Shell Fragment', rarity: 'epic', hint: 'Hatch first Void egg' },
+        { id: 'col_es6', name: 'Opalescent Egg Shard', rarity: 'legendary', hint: 'Hatch 100 eggs total' }
+      ],
+      bonus: 'Egg incubation -25%, eggs give +50% rewards',
+      bonusEffect: { eggSpeedMultiplier: 0.75, eggRewardMultiplier: 1.5 }
+    },
+    boosterHistory: {
+      name: 'Booster History',
+      items: [
+        { id: 'col_bh1', name: 'First Boost Medal', rarity: 'common', hint: 'Use first booster ever' },
+        { id: 'col_bh2', name: 'Credit Boost Trophy', rarity: 'common', hint: 'Use 10 Credit Boosters' },
+        { id: 'col_bh3', name: 'RP Boost Trophy', rarity: 'uncommon', hint: 'Use 10 RP Boosters' },
+        { id: 'col_bh4', name: 'Multi-Boost Photo', rarity: 'uncommon', hint: 'Have 3 boosters active simultaneously' },
+        { id: 'col_bh5', name: 'Rare Booster Record', rarity: 'rare', hint: 'Use a Rare tier booster' },
+        { id: 'col_bh6', name: 'Epic Booster Record', rarity: 'epic', hint: 'Use an Epic tier booster' },
+        { id: 'col_bh7', name: 'Legendary Booster Frame', rarity: 'legendary', hint: 'Use a Legendary tier booster' }
+      ],
+      bonus: 'Booster durations +50%',
+      bonusEffect: { boosterDurationMultiplier: 1.5 }
+    },
+    challengeMedals: {
+      name: 'Challenge Medals',
+      items: [
+        { id: 'col_cm1', name: 'Speed Run Medal', rarity: 'uncommon', hint: 'Complete Speed Run challenge' },
+        { id: 'col_cm2', name: 'No-Tap Medal', rarity: 'uncommon', hint: 'Complete No-Tap challenge' },
+        { id: 'col_cm3', name: 'One Gen Medal', rarity: 'rare', hint: 'Complete One Generator Only challenge' },
+        { id: 'col_cm4', name: 'Minimalist Medal', rarity: 'rare', hint: 'Complete Minimalist challenge' },
+        { id: 'col_cm5', name: 'No Upgrades Medal', rarity: 'epic', hint: 'Complete No Upgrades challenge' },
+        { id: 'col_cm6', name: 'Prestige Sprint Medal', rarity: 'epic', hint: 'Complete Prestige Sprint in under 24h' },
+        { id: 'col_cm7', name: 'Ultimate Challenger Trophy', rarity: 'legendary', hint: 'Complete all 6 original challenge types' }
+      ],
+      bonus: 'Challenge CD rewards x2',
+      bonusEffect: { challengeRewardMultiplier: 2 }
     }
   };
 
@@ -444,6 +501,38 @@ const Expansion = (() => {
       if (s.stats.totalStarSystemsColonized >= 50) this._tryUnlock(s, 'col_cw6', newItems);
       // Crew Badge: 50 Legendary astronauts
       if (s.crew.astronauts.filter(a => a.tier >= 4).length >= 50) this._tryUnlock(s, 'col_cb10', newItems);
+      // Weather Logs triggers
+      if (s.stats.weatherTypesExperienced && s.stats.weatherTypesExperienced.includes('flare')) this._tryUnlock(s, 'col_wl1', newItems);
+      if (s.stats.weatherTypesExperienced && s.stats.weatherTypesExperienced.includes('meteor_shower')) this._tryUnlock(s, 'col_wl2', newItems);
+      if (s.stats.weatherTypesExperienced && s.stats.weatherTypesExperienced.includes('dust_storm')) this._tryUnlock(s, 'col_wl3', newItems);
+      if ((s.stats.lightningTaps || 0) >= 50) this._tryUnlock(s, 'col_wl4', newItems);
+      if (s.stats.marsSunsetSeen) this._tryUnlock(s, 'col_wl5', newItems);
+      if (s.stats.eclipsePhases && s.stats.eclipsePhases.length >= 3) this._tryUnlock(s, 'col_wl6', newItems);
+      if (s.stats.weatherTypesExperienced && s.stats.weatherTypesExperienced.includes('snow')) this._tryUnlock(s, 'col_wl7', newItems);
+      if (s.stats.p1WeatherComplete) this._tryUnlock(s, 'col_wl8', newItems);
+      // Egg Specimens triggers
+      if ((s.stats.bronzeEggsHatched || 0) >= 5) this._tryUnlock(s, 'col_es1', newItems);
+      if ((s.stats.silverEggsHatched || 0) >= 5) this._tryUnlock(s, 'col_es2', newItems);
+      if ((s.stats.goldEggsHatched || 0) >= 3) this._tryUnlock(s, 'col_es3', newItems);
+      if ((s.stats.cosmicEggsHatched || 0) >= 1) this._tryUnlock(s, 'col_es4', newItems);
+      if ((s.stats.voidEggsHatched || 0) >= 1) this._tryUnlock(s, 'col_es5', newItems);
+      if ((s.stats.eggsHatched || 0) >= 100) this._tryUnlock(s, 'col_es6', newItems);
+      // Booster History triggers
+      if ((s.stats.boostersActivated || 0) >= 1) this._tryUnlock(s, 'col_bh1', newItems);
+      if ((s.stats.creditBoostersUsed || 0) >= 10) this._tryUnlock(s, 'col_bh2', newItems);
+      if ((s.stats.rpBoostersUsed || 0) >= 10) this._tryUnlock(s, 'col_bh3', newItems);
+      if ((s.stats.maxSimultaneousBoosters || 0) >= 3) this._tryUnlock(s, 'col_bh4', newItems);
+      if (s.stats.rareBoosterUsed) this._tryUnlock(s, 'col_bh5', newItems);
+      if (s.stats.epicBoosterUsed) this._tryUnlock(s, 'col_bh6', newItems);
+      if (s.stats.legendaryBoosterUsed) this._tryUnlock(s, 'col_bh7', newItems);
+      // Challenge Medal triggers
+      if (s.stats.completedChallengeTypes && s.stats.completedChallengeTypes.includes('speed_run')) this._tryUnlock(s, 'col_cm1', newItems);
+      if (s.stats.completedChallengeTypes && s.stats.completedChallengeTypes.includes('no_tap')) this._tryUnlock(s, 'col_cm2', newItems);
+      if (s.stats.completedChallengeTypes && s.stats.completedChallengeTypes.includes('one_gen')) this._tryUnlock(s, 'col_cm3', newItems);
+      if (s.stats.completedChallengeTypes && s.stats.completedChallengeTypes.includes('minimalist')) this._tryUnlock(s, 'col_cm4', newItems);
+      if (s.stats.completedChallengeTypes && s.stats.completedChallengeTypes.includes('no_upgrades')) this._tryUnlock(s, 'col_cm5', newItems);
+      if (s.stats.completedChallengeTypes && s.stats.completedChallengeTypes.includes('prestige_sprint')) this._tryUnlock(s, 'col_cm6', newItems);
+      if ((s.stats.challengeTypesCompleted || 0) >= 6) this._tryUnlock(s, 'col_cm7', newItems);
       return newItems;
     },
 
@@ -484,7 +573,26 @@ const Expansion = (() => {
     { id: 'ct_combo100', name: 'Mega Tap', type: 'combo', target: 100, time: 900, reward: { cosmicDust: 1 } },
     { id: 'ct_crit5', name: 'Critical Streak', type: 'critical', target: 5, time: 600, reward: { special: 'collection_item' } },
     { id: 'ct_daily', name: 'Daily Challenge', type: 'earn', currency: 'credits', target: 1e12, time: 7200, reward: { cosmicDust: 10 }, special: true },
-    { id: 'ct_terraform', name: 'Speed Terraform', type: 'terraform', target: 10, time: 3600, reward: { special: 'terraform_perm_1.5' } }
+    { id: 'ct_terraform', name: 'Speed Terraform', type: 'terraform', target: 10, time: 3600, reward: { special: 'terraform_perm_1.5' } },
+    // ===== EXPANSION B BATCH 2: More Contract Templates =====
+    { id: 'ct_credits4', name: 'Credit Rush IV', type: 'earn', currency: 'credits', target: 1e15, time: 7200, reward: { credits: 5e15 } },
+    { id: 'ct_credits5', name: 'Credit Rush V', type: 'earn', currency: 'credits', target: 1e21, time: 14400, reward: { cosmicDust: 5 } },
+    { id: 'ct_rp3', name: 'Research Grant III', type: 'earn', currency: 'rp', target: 5000, time: 3600, reward: { rp: 15000, special: 'boost1h' } },
+    { id: 'ct_ore3', name: 'Mining Contract III', type: 'earn', currency: 'ore', target: 50000, time: 7200, reward: { ore: 150000 } },
+    { id: 'ct_rm2', name: 'Mineral Expedition', type: 'earn', currency: 'rm', target: 500, time: 3600, reward: { rm: 1500 } },
+    { id: 'ct_sd2', name: 'Stardust Haul', type: 'earn', currency: 'sd', target: 1000, time: 7200, reward: { sd: 3000, special: 'randomEgg' } },
+    { id: 'ct_taps2', name: 'Tap Marathon', type: 'tap', target: 1000, time: 600, reward: { credits: -1, special: 'boost2h' } },
+    { id: 'ct_taps3', name: 'Tap Blitz', type: 'tap', target: 5000, time: 1800, reward: { cosmicDust: 2 } },
+    { id: 'ct_combo200', name: 'Combo Legend', type: 'combo', target: 200, time: 1200, reward: { cosmicDust: 5 } },
+    { id: 'ct_buy3', name: 'Expansion Plan III', type: 'buy', target: 100, time: 3600, reward: { special: 'boost2h_2x' } },
+    { id: 'ct_hatch1', name: 'Egg Hatcher', type: 'hatch', target: 3, time: 86400, reward: { special: 'goldEgg' } },
+    { id: 'ct_hatch2', name: 'Nest Manager', type: 'hatch', target: 10, time: 172800, reward: { cosmicDust: 10 } },
+    { id: 'ct_crit10', name: 'Critical Barrage', type: 'critical', target: 10, time: 900, reward: { credits: -1 } },
+    { id: 'ct_collect1', name: 'Collector I', type: 'collect', target: 3, time: 86400, reward: { cosmicDust: 3 } },
+    { id: 'ct_survive1', name: 'Meteor Survivor', type: 'survive', target: 1, time: 600, reward: { credits: -1, special: 'silverEgg' } },
+    { id: 'ct_minigame1', name: 'Arcade Run', type: 'minigame', target: 3, time: 3600, reward: { cosmicDust: 2 } },
+    { id: 'ct_weather1', name: 'Storm Rider', type: 'weather', target: 3, time: 7200, reward: { credits: -1 } },
+    { id: 'ct_fleet1', name: 'Fleet Admiral', type: 'earn', currency: 'as', target: 5, time: 7200, reward: { special: 'legendaryBooster' } }
   ];
 
   const Contracts = {
@@ -846,26 +954,43 @@ const Expansion = (() => {
     5: [
       { id: 'calm', name: 'Calm Belt', effect: null, duration: [600, 1200] },
       { id: 'dense', name: 'Dense Field', effect: { rmMult: 1.5 }, duration: [300, 600] },
-      { id: 'solar_wind', name: 'Solar Wind', effect: { creditMult: 1.2 }, duration: [300, 600] }
+      { id: 'solar_wind', name: 'Solar Wind', effect: { creditMult: 1.2 }, duration: [300, 600] },
+      { id: 'asteroid_cloud', name: 'Asteroid Cloud', effect: { oreMult: 2, creditMult: 0.8 }, duration: [300, 600] },
+      { id: 'pirate_patrol', name: 'Pirate Patrol', effect: { creditMult: 0.7 }, duration: [180, 360] },
+      { id: 'trade_route', name: 'Trade Route Bloom', effect: { creditMult: 1.8, rmMult: 1.3 }, duration: [240, 480] }
     ],
     6: [
       { id: 'red_spot', name: 'Great Red Spot', effect: { creditMult: 1.5 }, duration: [300, 600] },
       { id: 'io_eruption', name: 'Io Eruption', effect: { ioImmune: true }, duration: [300, 300] },
       { id: 'europa_geyser', name: 'Europa Geyser', effect: { asMult: 2 }, duration: [300, 300] },
-      { id: 'mag_storm', name: 'Magnetic Storm', effect: { rpMult: 2 }, duration: [300, 600] }
+      { id: 'mag_storm', name: 'Magnetic Storm', effect: { rpMult: 2 }, duration: [300, 600] },
+      { id: 'radiation_belt', name: 'Radiation Belt', effect: { crewMult: 0.5, rpMult: 3 }, duration: [180, 360] },
+      { id: 'callisto_eclipse', name: 'Callisto Eclipse', effect: { sdMult: 2, creditMult: 1.2 }, duration: [180, 420] },
+      { id: 'ganymede_tides', name: 'Ganymede Tides', effect: { creditMult: 1.3 }, duration: [300, 600] }
     ],
     7: [
       { id: 'binary_sunrise', name: 'Binary Sunrise', effect: { sdMult: 1.5 }, duration: [300, 600] },
       { id: 'stellar_wind', name: 'Stellar Wind', effect: { creditMult: 1.1 }, duration: [300, 600] },
-      { id: 'alien_aurora', name: 'Alien Aurora', effect: { crewMult: 1.5 }, duration: [300, 600] }
+      { id: 'alien_aurora', name: 'Alien Aurora', effect: { crewMult: 1.5 }, duration: [300, 600] },
+      { id: 'nebula_fog', name: 'Nebula Fog', effect: { sdMult: 2, creditMult: 0.9 }, duration: [300, 600] },
+      { id: 'supernova_echo', name: 'Supernova Echo', effect: { sdMult: 3 }, duration: [120, 300] },
+      { id: 'dark_matter_flow', name: 'Dark Matter Flow', effect: { creditMult: 1.5, rpMult: 1.5, sdMult: 1.5 }, duration: [180, 420] },
+      { id: 'wormhole_proximity', name: 'Wormhole Proximity', effect: { tapMult: 3 }, duration: [120, 240] }
     ],
     8: [
       { id: 'stellar_nursery', name: 'Stellar Nursery', effect: { sdMult: 1.3 }, duration: [300, 600] },
-      { id: 'cosmic_calm', name: 'Cosmic Calm', effect: null, duration: [600, 1200] }
+      { id: 'cosmic_calm', name: 'Cosmic Calm', effect: null, duration: [600, 1200] },
+      { id: 'galactic_tide', name: 'Galactic Tide', effect: { creditMult: 2, sdMult: 2 }, duration: [300, 600] },
+      { id: 'quasar_beam', name: 'Quasar Beam', effect: { rpMult: 5 }, duration: [120, 240] },
+      { id: 'dark_nebula', name: 'Dark Nebula', effect: { creditMult: 0.5, sdMult: 3 }, duration: [300, 600] },
+      { id: 'cosmic_dawn', name: 'Cosmic Dawn', effect: { creditMult: 1.5, rpMult: 1.5, sdMult: 1.5, tapMult: 2 }, duration: [180, 360] }
     ],
     9: [
       { id: 'reality_glitch', name: 'Reality Glitch', effect: { creditMult: 1.5 }, duration: [120, 300] },
-      { id: 'void', name: 'The Void', effect: null, duration: [600, 1200] }
+      { id: 'void', name: 'The Void', effect: null, duration: [600, 1200] },
+      { id: 'dimension_bleed', name: 'Dimension Bleed', effect: { creditMult: 2, rpMult: 2, sdMult: 2 }, duration: [120, 300] },
+      { id: 'time_loop', name: 'Time Loop', effect: { tapMult: 5 }, duration: [60, 120] },
+      { id: 'entropy_wave', name: 'Entropy Wave', effect: { creditMult: 0.1, sdMult: 10 }, duration: [120, 240] }
     ]
   };
 
@@ -1351,7 +1476,18 @@ const Expansion = (() => {
     { id: 'one_gen', name: 'One Generator Only', desc: 'Reach Phase 5 buying only 1 gen type per phase.', goal: { phase: 5 }, oneGenPerPhase: true, duration: 604800, reward: 50 },
     { id: 'minimalist', name: 'Minimalist', desc: 'Reach Phase 3 with no more than 50 generators.', goal: { phase: 3, maxGens: 50 }, duration: 604800, reward: 40 },
     { id: 'no_upgrades', name: 'No Upgrades', desc: 'Reach Phase 4 without buying upgrades.', goal: { phase: 4 }, noUpgrades: true, duration: 604800, reward: 75 },
-    { id: 'prestige_sprint', name: 'Prestige Sprint', desc: 'Full prestige cycle, fastest time.', goal: { prestige: true }, duration: 604800, rewards: { under24h: 100, under48h: 50, all: 25 } }
+    { id: 'prestige_sprint', name: 'Prestige Sprint', desc: 'Full prestige cycle, fastest time.', goal: { prestige: true }, duration: 604800, rewards: { under24h: 100, under48h: 50, all: 25 } },
+    // ===== EXPANSION B BATCH 2: More Challenge Types =====
+    { id: 'no_crew', name: 'Solo Captain', desc: 'Reach Phase 5 without hiring any crew.', goal: { phase: 5 }, noCrew: true, duration: 604800, reward: 60 },
+    { id: 'tap_only', name: 'Tap Only', desc: 'Reach Phase 3 using only tap income (no generators).', goal: { phase: 3 }, noGenerators: true, duration: 604800, reward: 80 },
+    { id: 'speed_p6', name: 'Jupiter Dash', desc: 'Reach Phase 6 ASAP. No CD bonuses.', goal: { phase: 6 }, noCDBonus: true, duration: 604800, rewards: { top10: 100, top50: 50, all: 15 } },
+    { id: 'speed_p8', name: 'Galaxy Sprint', desc: 'Reach Phase 8 ASAP. No CD bonuses.', goal: { phase: 8 }, noCDBonus: true, duration: 604800, rewards: { top10: 200, top50: 100, all: 30 } },
+    { id: 'budget_run', name: 'Budget Run', desc: 'Reach Phase 4 spending under 1M credits total.', goal: { phase: 4, maxSpent: 1e6 }, duration: 604800, reward: 45 },
+    { id: 'combo_king', name: 'Combo King', desc: 'Reach 250 combo during a prestige run.', goal: { combo: 250 }, duration: 604800, reward: 35 },
+    { id: 'egg_master', name: 'Egg Master', desc: 'Hatch 10 eggs in a single run.', goal: { eggsHatched: 10 }, duration: 604800, reward: 40 },
+    { id: 'no_events', name: 'Stoic', desc: 'Reach Phase 4 without triggering any events.', goal: { phase: 4 }, noEvents: true, duration: 604800, reward: 55 },
+    { id: 'all_gens_equal', name: 'Equality', desc: 'Have at least 10 of every generator type in current phase.', goal: { allGensMin: 10 }, duration: 604800, reward: 30 },
+    { id: 'double_prestige', name: 'Double Down', desc: 'Prestige twice in under 30 minutes.', goal: { doublePrestige: true, timeLimit: 1800 }, duration: 604800, reward: 100 }
   ];
 
   const Challenges = {
