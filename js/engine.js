@@ -78,6 +78,26 @@ const Engine = (() => {
       GameState.addCurrency('cosmicDust', (1 / 3600) * deltaTime);
     }
 
+    // Auto-crew generation from Phase 7 Haven generators
+    if (s.currentPhase >= 7 && s.crew.unlocked) {
+      processAutoCrewGeneration(s, deltaTime);
+    }
+
+    // Passive SD from Nebula star systems
+    if (s._passiveSD > 0) {
+      GameState.addCurrency('sd', s._passiveSD * dt);
+    }
+
+    // Passive SD from Nebula star systems
+    if (s._passiveSD > 0) {
+      GameState.addCurrency('sd', s._passiveSD * dt);
+    }
+
+    // Auto-crew generation from Phase 7 Haven generators
+    if (s.currentPhase >= 7 && s.crew.unlocked) {
+      processAutoCrewGeneration(s, deltaTime);
+    }
+
     // Alien signal check (Phase 6 Europa)
     if (s.currentPhase >= 6) {
       checkAlienSignals(s, deltaTime);
@@ -638,7 +658,59 @@ const Engine = (() => {
     for (const astro of s.crew.astronauts) {
       totalBonus += astro.bonus;
     }
+
+    // Apply crewBonusMultiplier from Phase 7 Haven generators (Dyson Tree Forest, World Mind)
+    const havenGens = GameData.GENERATORS['7_haven'];
+    if (havenGens) {
+      let bestMult = 1;
+      for (const gen of havenGens) {
+        const count = s.generators[gen.id] || 0;
+        if (count > 0 && gen.crewBonusMultiplier && gen.crewBonusMultiplier > bestMult) {
+          bestMult = gen.crewBonusMultiplier;
+        }
+      }
+      totalBonus *= bestMult;
+    }
+
     return totalBonus; // This is the multiplier added to generators
+  }
+
+  function processAutoCrewGeneration(s, dt) {
+    const havenGens = GameData.GENERATORS['7_haven'];
+    if (!havenGens) return;
+
+    let totalCrewPerHour = 0;
+    let startTier = 0;
+    for (const gen of havenGens) {
+      const count = s.generators[gen.id] || 0;
+      if (count <= 0) continue;
+      if (gen.autoCrewPerHour) {
+        totalCrewPerHour += gen.autoCrewPerHour * count;
+      }
+      if (gen.crewStartTier && gen.crewStartTier > startTier) {
+        startTier = gen.crewStartTier;
+      }
+    }
+
+    if (totalCrewPerHour <= 0) return;
+    if (s.crew.totalAstronauts >= s.crew.maxCapacity) return;
+
+    // Accumulate fractional crew over time
+    s._autoCrewAccum = (s._autoCrewAccum || 0) + (totalCrewPerHour / 3600) * dt;
+    while (s._autoCrewAccum >= 1 && s.crew.totalAstronauts < s.crew.maxCapacity) {
+      s._autoCrewAccum -= 1;
+      const names = GameData.ASTRONAUT_NAMES;
+      const name = names[Math.floor(Math.random() * names.length)];
+      const tier = Math.min(startTier, GameData.CREW_TIERS.length - 1);
+      s.crew.astronauts.push({
+        id: Date.now() + Math.random(),
+        name: name,
+        tier: tier,
+        bonus: GameData.CREW_TIERS[tier].bonus
+      });
+      s.crew.totalAstronauts++;
+      s.stats.totalCrewEverHired++;
+    }
   }
 
   function checkAlienSignals(s, dt) {
@@ -840,6 +912,20 @@ const Engine = (() => {
       if (systemType.effect.oneTimeRP) {
         GameState.addCurrency('rp', systemType.effect.oneTimeRP);
       }
+      // Black Hole: permanent offline earnings multiplier bonus
+      if (systemType.effect.offlineMultiplierBonus) {
+        s.offlineEarningsMultiplier += systemType.effect.offlineMultiplierBonus;
+      }
+      // Nebula: passive SD/sec
+      if (systemType.effect.passiveSD) {
+        s._passiveSD = (s._passiveSD || 0) + systemType.effect.passiveSD;
+      }
+      // Galactic Core: all production multiplier
+      if (systemType.effect.allProductionMult) {
+        s.globalCreditMultiplier *= systemType.effect.allProductionMult;
+        s.globalRPMultiplier *= systemType.effect.allProductionMult;
+        s.globalOreMultiplier *= systemType.effect.allProductionMult;
+      }
     }
 
     // Anomaly system — roll a random anomaly bonus
@@ -857,15 +943,14 @@ const Engine = (() => {
       GameState.addCurrency('rp', s.rpPerSecond * bonus.effect.skipProduction);
       GameState.addCurrency('ore', s.orePerSecond * bonus.effect.skipProduction);
     }
-    if (bonus.effect.creditGift) {
-      GameState.addCurrency('credits', s.creditsPerSecond * 3600 * bonus.effect.creditGift);
-      GameState.addCurrency('rp', s.rpPerSecond * 3600 * bonus.effect.rpGift);
-    }
-    if (bonus.effect.nextSystemDiscount) {
-      s._nextSystemDiscount = bonus.effect.nextSystemDiscount;
-    }
     if (bonus.effect.permanentCreditMult) {
       s.globalCreditMultiplier *= bonus.effect.permanentCreditMult;
+    }
+    if (bonus.effect.permanentSystemCostReduction) {
+      s._permanentSystemDiscount = (s._permanentSystemDiscount || 0) + bonus.effect.permanentSystemCostReduction;
+    }
+    if (bonus.effect.prestigeRewardMult) {
+      s._prestigeRewardMult = (s._prestigeRewardMult || 1) * bonus.effect.prestigeRewardMult;
     }
     if (bonus.effect.tempSpeedMult) {
       s._tempSpeedMult = bonus.effect.tempSpeedMult;
@@ -892,6 +977,11 @@ const Engine = (() => {
       if (i <= 10) cost *= 2.5;
       else if (i <= 20) cost *= 3.0;
       else cost *= 3.5;
+    }
+    // Apply permanent system cost discount from anomaly wormholes
+    const s = GameState.getState();
+    if (s._permanentSystemDiscount) {
+      cost *= (1 - Math.min(0.9, s._permanentSystemDiscount)); // cap at 90%
     }
     return cost;
   }

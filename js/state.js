@@ -137,6 +137,10 @@ const GameState = (() => {
       _nextSystemDiscount: 0,
       _tempSpeedMult: 1,
       _tempSpeedEndTime: 0,
+      _permanentSystemDiscount: 0,
+      _prestigeRewardMult: 1,
+      _passiveSD: 0,
+      _autoCrewAccum: 0,
 
       settings: {
         musicVolume: 0.7,
@@ -461,6 +465,8 @@ const GameState = (() => {
     if (state.cdShopPurchased['cd_bounce']) cd *= 5;
     // Research multiplier
     if (state.researchPurchased['r6_3']) cd *= 1.25;
+    // Anomaly Dark Matter prestige reward multiplier
+    if (state._prestigeRewardMult > 1) cd *= state._prestigeRewardMult;
     // Expansion C: 100th prestige milestone doubles all CD
     if (state.cdDoubledPermanent) cd *= 2;
     return Math.floor(cd);
@@ -473,6 +479,7 @@ const GameState = (() => {
     const keepCrew = state.cdShopPurchased['cd_crew'];
     const keepFleet = state.cdShopPurchased['cd_fleet'];
     const savedCrew = keepCrew ? { ...state.crew } : null;
+    const savedFleet = keepFleet ? { ...state.fleet } : null;
 
     // Save permanent data
     const permanent = {
@@ -496,6 +503,10 @@ const GameState = (() => {
       titles: state.titles,
       collection: state.cdShopPurchased['cd_collection'] ? state.collection : { items: {}, setsCompleted: [] },
       combo: { current: 0, bestThisSession: 0, bestAllTime: state.combo.bestAllTime, lastTapTimestamp: 0 },
+      // Permanent anomaly/star system effects
+      _permanentSystemDiscount: state._permanentSystemDiscount,
+      _prestigeRewardMult: state._prestigeRewardMult,
+      _passiveSD: state._passiveSD,
       // Expansion C permanent data
       prestigeMilestonesClaimed: state.prestigeMilestonesClaimed,
       itShopPurchased: state.itShopPurchased,
@@ -549,6 +560,9 @@ const GameState = (() => {
     // Restore crew/fleet if applicable
     if (keepCrew && savedCrew) {
       state.crew = savedCrew;
+    }
+    if (keepFleet) {
+      state.fleet = { unlocked: true, ships: savedFleet.ships || [], totalShips: savedFleet.totalShips || 0 };
     }
 
     // Starting terraform from CD shop

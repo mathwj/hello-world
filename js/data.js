@@ -131,11 +131,11 @@ const GameData = (() => {
     ],
     '7_haven': [
       { id: 'p7hg1', name: 'Colony Ship Landing', baseCost: 1e24, growth: 1.15, output: { credits: 10e21, sd: 1 }, icon: '\u{1F680}', desc: 'First colony on new world' },
-      { id: 'p7hg2', name: 'Bio-Habitat Complex', baseCost: 10e24, growth: 1.15, output: { credits: 100e21, sd: 5 }, crewCapacity: 10, icon: '\u{1F33F}', desc: 'Growing habitats' },
-      { id: 'p7hg3', name: 'Planetary Capital', baseCost: 100e24, growth: 1.15, output: { credits: 1e24, sd: 25 }, icon: '\u{1F3DB}', desc: 'Capital of the colony' },
-      { id: 'p7hg4', name: 'Dyson Tree Forest', baseCost: 1e27, growth: 1.15, output: { credits: 10e24, sd: 100 }, icon: '\u{1F332}', desc: 'Living megastructures' },
-      { id: 'p7hg5', name: 'Genetic Archive', baseCost: 10e27, growth: 1.15, output: { credits: 100e24, sd: 500 }, icon: '\u{1F9EC}', desc: '+25 crew/hr, all crew start as Trained' },
-      { id: 'p7hg6', name: 'World Mind', baseCost: 100e27, growth: 1.15, output: { credits: 1e27, sd: 2500 }, icon: '\u{1F9E0}', desc: '+100 crew/hr, all crew bonuses x3' }
+      { id: 'p7hg2', name: 'Bio-Habitat Complex', baseCost: 10e24, growth: 1.15, output: { credits: 100e21, sd: 5 }, crewCapacity: 10, autoCrewPerHour: 1, icon: '\u{1F33F}', desc: 'Growing habitats, +1 crew/hr' },
+      { id: 'p7hg3', name: 'Planetary Capital', baseCost: 100e24, growth: 1.15, output: { credits: 1e24, sd: 25 }, autoCrewPerHour: 5, icon: '\u{1F3DB}', desc: 'Capital of the colony, +5 crew/hr' },
+      { id: 'p7hg4', name: 'Dyson Tree Forest', baseCost: 1e27, growth: 1.15, output: { credits: 10e24, sd: 100 }, crewBonusMultiplier: 2, icon: '\u{1F332}', desc: 'Living megastructures — all crew bonuses ×2' },
+      { id: 'p7hg5', name: 'Genetic Archive', baseCost: 10e27, growth: 1.15, output: { credits: 100e24, sd: 500 }, autoCrewPerHour: 25, crewStartTier: 1, icon: '\u{1F9EC}', desc: '+25 crew/hr, all new crew start as Trained' },
+      { id: 'p7hg6', name: 'World Mind', baseCost: 100e27, growth: 1.15, output: { credits: 1e27, sd: 2500 }, autoCrewPerHour: 100, crewBonusMultiplier: 3, icon: '\u{1F9E0}', desc: '+100 crew/hr, all crew bonuses ×3' }
     ],
     '7_ferrum': [
       { id: 'p7fg1', name: 'Strip Mining Drones', baseCost: 5e24, growth: 1.15, output: { ore: 10000, rm: 100, sd: 0.5 }, icon: '\u26CF', desc: 'Automated mining drones' },
@@ -678,15 +678,15 @@ const GameData = (() => {
   const SPECIAL_STAR_SYSTEMS = [
     {
       type: 'blackHole', name: 'Black Hole System', rarity: 0.05,
-      desc: 'Time dilates near the event horizon — generators run 3x while visiting.',
-      effect: { generatorSpeedMult: 3 },
+      desc: 'Time dilates near the event horizon — offline earnings ×10 permanently.',
+      effect: { offlineMultiplierBonus: 10 },
       minSystems: 10,
       logEntry: 'log20'
     },
     {
       type: 'nebula', name: 'Nebula System', rarity: 0.08,
-      desc: 'Dense gas clouds fuel SD production at 5x the normal rate.',
-      effect: { sdMultiplier: 5 },
+      desc: 'Dense gas clouds generate 100 SD/sec passively.',
+      effect: { passiveSD: 100 },
       minSystems: 5
     },
     {
@@ -709,28 +709,28 @@ const GameData = (() => {
   const ANOMALY_BONUSES = [
     {
       id: 'anom_time_dilation', name: 'Time Dilation Field',
-      desc: '2x game speed for 10 minutes.',
-      effect: { tempSpeedMult: 2, duration: 600 }
+      desc: 'All generators run ×3 speed for 1 hour.',
+      effect: { tempSpeedMult: 3, duration: 3600 }
     },
     {
       id: 'anom_resource_cache', name: 'Resource Cache',
-      desc: '1 hour worth of all production instantly.',
+      desc: 'Instantly gain 1 hour\'s worth of all currencies.',
       effect: { skipProduction: 3600 }
     },
     {
       id: 'anom_alien_benefactor', name: 'Alien Benefactor',
-      desc: 'Friendly aliens donate a large sum of credits and RP.',
-      effect: { creditGift: 0.5, rpGift: 0.5 } // 50% of current per-second * 3600
+      desc: 'Permanent +10% to all income for this run.',
+      effect: { permanentCreditMult: 1.1 }
     },
     {
       id: 'anom_wormhole', name: 'Wormhole',
-      desc: 'Instant travel — next star system costs 50% less.',
-      effect: { nextSystemDiscount: 0.5 }
+      desc: 'Permanently reduces all star system costs by 10%.',
+      effect: { permanentSystemCostReduction: 0.10 }
     },
     {
       id: 'anom_dark_matter', name: 'Dark Matter',
-      desc: 'Mysterious energy grants +50% to all production permanently for this run.',
-      effect: { permanentCreditMult: 1.5 }
+      desc: 'Prestige reward ×1.5 (permanent for this run).',
+      effect: { prestigeRewardMult: 1.5 }
     }
   ];
 
