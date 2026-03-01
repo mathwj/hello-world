@@ -1,4 +1,5 @@
 /* Deep Space Inc. — Main Stylesheet */
+/* Legacy font import kept for backwards compatibility */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap');
 
 /* ===== RESET & BASE ===== */
@@ -9,6 +10,7 @@
 }
 
 :root {
+  /* === Legacy Variables (preserved) === */
   --bg-primary: #0a0a1a;
   --bg-secondary: #111128;
   --bg-card: #1a1a3a;
@@ -29,6 +31,136 @@
   --radius: 8px;
   --radius-lg: 12px;
   --transition: 0.2s ease;
+
+  /* ============================================
+     DESIGN SYSTEM TOKENS (Part 7/8)
+     ============================================ */
+
+  /* --- Typography Fonts --- */
+  --ds-font-primary: 'Inter', 'Exo 2', system-ui, -apple-system, sans-serif;
+  --ds-font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --ds-font-display: 'Space Grotesk', 'Orbitron', sans-serif;
+
+  /* --- Type Scale (16 tokens) --- */
+  --ds-type-hero: 48px;
+  --ds-type-display-lg: 36px;
+  --ds-type-display: 28px;
+  --ds-type-title-lg: 24px;
+  --ds-type-title: 20px;
+  --ds-type-title-sm: 18px;
+  --ds-type-body-lg: 16px;
+  --ds-type-body: 14px;
+  --ds-type-body-sm: 13px;
+  --ds-type-caption: 12px;
+  --ds-type-caption-sm: 11px;
+  --ds-type-micro: 10px;
+  --ds-type-nano: 9px;
+  --ds-type-pico: 8px;
+  --ds-type-number-lg: 20px;
+  --ds-type-number: 14px;
+
+  /* --- Font Weights --- */
+  --ds-weight-light: 300;
+  --ds-weight-regular: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+  --ds-weight-extrabold: 800;
+  --ds-weight-black: 900;
+
+  /* --- Text Colors (Hierarchy) --- */
+  --ds-text-primary: rgba(255, 255, 255, 0.95);
+  --ds-text-secondary: rgba(255, 255, 255, 0.72);
+  --ds-text-tertiary: rgba(255, 255, 255, 0.48);
+  --ds-text-disabled: rgba(255, 255, 255, 0.28);
+  --ds-text-inverse: rgba(0, 0, 0, 0.87);
+
+  /* --- Corner Radius System --- */
+  --ds-radius-xs: 6px;
+  --ds-radius-sm: 8px;
+  --ds-radius-md: 12px;
+  --ds-radius-lg: 16px;
+  --ds-radius-xl: 20px;
+  --ds-radius-pill: 999px;
+  --ds-radius-circle: 50%;
+
+  /* --- Shadow Elevation System --- */
+  --ds-shadow-0: none;
+  --ds-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --ds-shadow-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  --ds-shadow-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  --ds-shadow-4: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+  --ds-shadow-glow: 0 0 12px var(--phase-glow, rgba(74, 144, 217, 0.4));
+  --ds-shadow-glow-lg: 0 0 24px var(--phase-glow, rgba(74, 144, 217, 0.5));
+
+  /* --- Glass-morphism --- */
+  --ds-glass-light-bg: rgba(255, 255, 255, 0.05);
+  --ds-glass-light-border: rgba(255, 255, 255, 0.08);
+  --ds-glass-light-blur: 10px;
+  --ds-glass-medium-bg: rgba(255, 255, 255, 0.08);
+  --ds-glass-medium-border: rgba(255, 255, 255, 0.12);
+  --ds-glass-medium-blur: 16px;
+  --ds-glass-heavy-bg: rgba(255, 255, 255, 0.12);
+  --ds-glass-heavy-border: rgba(255, 255, 255, 0.16);
+  --ds-glass-heavy-blur: 24px;
+
+  /* --- Spacing (4px base) --- */
+  --ds-space-0: 0;
+  --ds-space-px: 1px;
+  --ds-space-0-5: 2px;
+  --ds-space-1: 4px;
+  --ds-space-1-5: 6px;
+  --ds-space-2: 8px;
+  --ds-space-2-5: 10px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+  --ds-space-10: 40px;
+  --ds-space-12: 48px;
+  --ds-space-16: 64px;
+
+  /* --- Screen Zones --- */
+  --ds-zone-status: 56px;
+  --ds-zone-scene: 38%;
+  --ds-zone-nav: 64px;
+  --ds-zone-safe-top: env(safe-area-inset-top, 0px);
+  --ds-zone-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ds-zone-safe-left: env(safe-area-inset-left, 0px);
+  --ds-zone-safe-right: env(safe-area-inset-right, 0px);
+
+  /* --- Currency Colors --- */
+  --ds-currency-credits: #FFD700;
+  --ds-currency-rp: #4A90D9;
+  --ds-currency-ore: #A8A8A8;
+  --ds-currency-rm: #9B59B6;
+  --ds-currency-as: #2ECC71;
+  --ds-currency-sd: #F0E6FF;
+  --ds-currency-cd: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff);
+  --ds-currency-it: #FFD700;
+
+  /* --- Phase-Adaptive Colors (defaults = Phase 1) --- */
+  --phase-primary: #4A90D9;
+  --phase-accent: #FFD700;
+  --phase-surface: #1a1a3a;
+  --phase-surface-elevated: #222250;
+  --phase-glow: rgba(74, 144, 217, 0.4);
+  --phase-glow-strong: rgba(74, 144, 217, 0.7);
+  --phase-sky-top: #0a0a2e;
+  --phase-sky-bottom: #050510;
+  --phase-border: rgba(74, 144, 217, 0.2);
+  --phase-text-accent: #4A90D9;
+
+  /* --- Transition Timing --- */
+  --ds-transition-fast: 0.15s ease;
+  --ds-transition-normal: 0.2s ease;
+  --ds-transition-slow: 0.3s ease;
+  --ds-transition-color: 0.6s ease;
+  --ds-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ds-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ds-ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
 }
 
 html, body {
@@ -3161,4 +3293,1415 @@ html, body {
 .rocket-skin-card.selected {
   border-color: #FFD700;
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+}
+
+/* ===========================================================
+   PART 7/8: COMPLETE DESIGN SYSTEM & UX OVERHAUL
+   ===========================================================
+   Sections 63-67: Master Design System, Typography, Phase Colors,
+   Spacing/Grid/Layout, Complete Component Library
+   =========================================================== */
+
+/* ===== SECTION 63: GLASS-MORPHISM UTILITY CLASSES ===== */
+.glass-light {
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(var(--ds-glass-light-blur));
+  -webkit-backdrop-filter: blur(var(--ds-glass-light-blur));
+  border: 1px solid var(--ds-glass-light-border);
+}
+
+.glass-medium {
+  background: var(--ds-glass-medium-bg);
+  backdrop-filter: blur(var(--ds-glass-medium-blur));
+  -webkit-backdrop-filter: blur(var(--ds-glass-medium-blur));
+  border: 1px solid var(--ds-glass-medium-border);
+}
+
+.glass-heavy {
+  background: var(--ds-glass-heavy-bg);
+  backdrop-filter: blur(var(--ds-glass-heavy-blur));
+  -webkit-backdrop-filter: blur(var(--ds-glass-heavy-blur));
+  border: 1px solid var(--ds-glass-heavy-border);
+}
+
+.glass-card {
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(var(--ds-glass-light-blur));
+  -webkit-backdrop-filter: blur(var(--ds-glass-light-blur));
+  border: 1px solid var(--ds-glass-light-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-1);
+  transition: border-color var(--ds-transition-color),
+              box-shadow var(--ds-transition-normal),
+              background var(--ds-transition-color);
+}
+
+.glass-card:hover {
+  border-color: var(--ds-glass-medium-border);
+  box-shadow: var(--ds-shadow-2);
+}
+
+.glass-panel {
+  background: var(--ds-glass-medium-bg);
+  backdrop-filter: blur(var(--ds-glass-medium-blur));
+  -webkit-backdrop-filter: blur(var(--ds-glass-medium-blur));
+  border: 1px solid var(--ds-glass-medium-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-2);
+}
+
+.glass-surface {
+  background: var(--phase-surface);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color);
+}
+
+/* Shadow elevation utilities */
+.elevation-0 { box-shadow: var(--ds-shadow-0); }
+.elevation-1 { box-shadow: var(--ds-shadow-1); }
+.elevation-2 { box-shadow: var(--ds-shadow-2); }
+.elevation-3 { box-shadow: var(--ds-shadow-3); }
+.elevation-4 { box-shadow: var(--ds-shadow-4); }
+.elevation-glow { box-shadow: var(--ds-shadow-glow); }
+
+/* ===== SECTION 64: TYPOGRAPHY SYSTEM ===== */
+
+/* Number display rules — tabular figures for alignment */
+.ds-number, .cur-val, .gen-cost, .stat-row span:last-child,
+.prestige-stat span:last-child, .cd-projected,
+.combo-count, .event-timer, .booster-timer,
+.asteroid-taps, .asteroid-timer,
+#mini-game-timer, .milestone-number, .bb-cd-reward {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Display headings */
+.ds-display {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+/* Body text */
+.ds-body {
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-regular);
+  line-height: 1.5;
+}
+
+/* Text hierarchy utilities */
+.text-primary { color: var(--ds-text-primary); }
+.text-secondary { color: var(--ds-text-secondary); }
+.text-tertiary { color: var(--ds-text-tertiary); }
+.text-disabled { color: var(--ds-text-disabled); }
+.text-inverse { color: var(--ds-text-inverse); }
+.text-phase { color: var(--phase-primary); }
+.text-accent { color: var(--phase-accent); }
+
+/* Type scale utilities */
+.type-hero { font-size: var(--ds-type-hero); }
+.type-display-lg { font-size: var(--ds-type-display-lg); }
+.type-display { font-size: var(--ds-type-display); }
+.type-title-lg { font-size: var(--ds-type-title-lg); }
+.type-title { font-size: var(--ds-type-title); }
+.type-title-sm { font-size: var(--ds-type-title-sm); }
+.type-body-lg { font-size: var(--ds-type-body-lg); }
+.type-body { font-size: var(--ds-type-body); }
+.type-body-sm { font-size: var(--ds-type-body-sm); }
+.type-caption { font-size: var(--ds-type-caption); }
+.type-caption-sm { font-size: var(--ds-type-caption-sm); }
+.type-micro { font-size: var(--ds-type-micro); }
+
+/* Enhanced heading styles using design system fonts */
+.ds-heading {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-weight-bold);
+  color: var(--phase-accent);
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 12px var(--phase-glow);
+  transition: color var(--ds-transition-color),
+              text-shadow var(--ds-transition-color);
+}
+
+/* ===== SECTION 65: PHASE-ADAPTIVE COLOR SYSTEM ===== */
+
+/* Phase color transition on ALL phase-aware elements */
+#game-container,
+#top-bar, #currency-bar, #bottom-tabs, #main-content,
+.generator-row, .upgrade-row, .zone-row, .collection-set,
+.contract-row, .booster-active, .booster-item, .synergy-row,
+.research-node, .ach-row, .crew-row, .fleet-row,
+#combo-display, #golden-rush-banner, #next-unlock-bar,
+.tab-btn, .currency, #tap-btn,
+.glass-card, .glass-panel, .glass-surface {
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color),
+              color var(--ds-transition-color),
+              box-shadow var(--ds-transition-color);
+}
+
+/* Phase 1: The Junkyard — Cold industrial blue */
+.phase-1 {
+  --phase-primary: #4A90D9;
+  --phase-accent: #FFD700;
+  --phase-surface: #1a1a3a;
+  --phase-surface-elevated: #222250;
+  --phase-glow: rgba(74, 144, 217, 0.4);
+  --phase-glow-strong: rgba(74, 144, 217, 0.7);
+  --phase-sky-top: #0a0a2e;
+  --phase-sky-bottom: #050510;
+  --phase-border: rgba(74, 144, 217, 0.2);
+  --phase-text-accent: #4A90D9;
+}
+
+/* Phase 2: Low Earth Orbit — Bright sky blue */
+.phase-2 {
+  --phase-primary: #5BA3EC;
+  --phase-accent: #E8C547;
+  --phase-surface: #1a2040;
+  --phase-surface-elevated: #243060;
+  --phase-glow: rgba(91, 163, 236, 0.4);
+  --phase-glow-strong: rgba(91, 163, 236, 0.7);
+  --phase-sky-top: #1a3060;
+  --phase-sky-bottom: #0a1530;
+  --phase-border: rgba(91, 163, 236, 0.2);
+  --phase-text-accent: #5BA3EC;
+}
+
+/* Phase 3: The Moon — Silver monochrome */
+.phase-3 {
+  --phase-primary: #A8A8C8;
+  --phase-accent: #C0C0E0;
+  --phase-surface: #1c1c2e;
+  --phase-surface-elevated: #28283e;
+  --phase-glow: rgba(168, 168, 200, 0.4);
+  --phase-glow-strong: rgba(168, 168, 200, 0.7);
+  --phase-sky-top: #12122a;
+  --phase-sky-bottom: #050510;
+  --phase-border: rgba(168, 168, 200, 0.2);
+  --phase-text-accent: #A8A8C8;
+}
+
+/* Phase 4: Mars — Warm red-orange */
+.phase-4 {
+  --phase-primary: #E57345;
+  --phase-accent: #C0392B;
+  --phase-surface: #2a1a1a;
+  --phase-surface-elevated: #3a2424;
+  --phase-glow: rgba(229, 115, 69, 0.4);
+  --phase-glow-strong: rgba(229, 115, 69, 0.7);
+  --phase-sky-top: #3a1810;
+  --phase-sky-bottom: #1a0a08;
+  --phase-border: rgba(229, 115, 69, 0.2);
+  --phase-text-accent: #E57345;
+}
+
+/* Phase 5: The Asteroid Belt — Amber void */
+.phase-5 {
+  --phase-primary: #A87832;
+  --phase-accent: #FFD700;
+  --phase-surface: #1a1a1e;
+  --phase-surface-elevated: #2a2a2e;
+  --phase-glow: rgba(168, 120, 50, 0.4);
+  --phase-glow-strong: rgba(168, 120, 50, 0.7);
+  --phase-sky-top: #080808;
+  --phase-sky-bottom: #020204;
+  --phase-border: rgba(168, 120, 50, 0.2);
+  --phase-text-accent: #D4A04A;
+}
+
+/* Phase 6: Jupiter System — Gas giant orange */
+.phase-6 {
+  --phase-primary: #D4956B;
+  --phase-accent: #E8985A;
+  --phase-surface: #1e1a20;
+  --phase-surface-elevated: #2e2630;
+  --phase-glow: rgba(212, 149, 107, 0.4);
+  --phase-glow-strong: rgba(212, 149, 107, 0.7);
+  --phase-sky-top: #2a1810;
+  --phase-sky-bottom: #0e0808;
+  --phase-border: rgba(212, 149, 107, 0.2);
+  --phase-text-accent: #D4956B;
+}
+
+/* Phase 7: Exoplanets — Deep purple-green */
+.phase-7 {
+  --phase-primary: #9B59B6;
+  --phase-accent: #A8E6CF;
+  --phase-surface: #1a1a2e;
+  --phase-surface-elevated: #262640;
+  --phase-glow: rgba(155, 89, 182, 0.4);
+  --phase-glow-strong: rgba(155, 89, 182, 0.7);
+  --phase-sky-top: #120a20;
+  --phase-sky-bottom: #050510;
+  --phase-border: rgba(155, 89, 182, 0.2);
+  --phase-text-accent: #BB77DD;
+}
+
+/* Phase 8: Galactic Core — Golden fire */
+.phase-8 {
+  --phase-primary: #FFD700;
+  --phase-accent: #FF6B6B;
+  --phase-surface: #1a1520;
+  --phase-surface-elevated: #2a2030;
+  --phase-glow: rgba(255, 215, 0, 0.4);
+  --phase-glow-strong: rgba(255, 215, 0, 0.7);
+  --phase-sky-top: #1a0520;
+  --phase-sky-bottom: #050008;
+  --phase-border: rgba(255, 215, 0, 0.2);
+  --phase-text-accent: #FFD700;
+}
+
+/* Phase 9: Infinity — Prismatic void */
+.phase-9 {
+  --phase-primary: #B9F2FF;
+  --phase-accent: #FFD700;
+  --phase-surface: #0a0a15;
+  --phase-surface-elevated: #16162a;
+  --phase-glow: rgba(185, 242, 255, 0.4);
+  --phase-glow-strong: rgba(185, 242, 255, 0.7);
+  --phase-sky-top: #050510;
+  --phase-sky-bottom: #000005;
+  --phase-border: rgba(185, 242, 255, 0.2);
+  --phase-text-accent: #B9F2FF;
+}
+
+/* Phase-adaptive accent on active tab indicator */
+.phase-1 .tab-btn.active { color: #4A90D9; }
+.phase-1 .tab-btn.active::before { background: #4A90D9; }
+.phase-2 .tab-btn.active { color: #5BA3EC; }
+.phase-2 .tab-btn.active::before { background: #5BA3EC; }
+.phase-3 .tab-btn.active { color: #A8A8C8; }
+.phase-3 .tab-btn.active::before { background: #A8A8C8; }
+.phase-4 .tab-btn.active { color: #E57345; }
+.phase-4 .tab-btn.active::before { background: #E57345; }
+.phase-5 .tab-btn.active { color: #D4A04A; }
+.phase-5 .tab-btn.active::before { background: #D4A04A; }
+.phase-6 .tab-btn.active { color: #D4956B; }
+.phase-6 .tab-btn.active::before { background: #D4956B; }
+.phase-7 .tab-btn.active { color: #BB77DD; }
+.phase-7 .tab-btn.active::before { background: #BB77DD; }
+.phase-8 .tab-btn.active { color: #FFD700; }
+.phase-8 .tab-btn.active::before { background: #FFD700; }
+.phase-9 .tab-btn.active { color: #B9F2FF; }
+.phase-9 .tab-btn.active::before { background: #B9F2FF; }
+
+/* Phase-adaptive heading color */
+.tab-panel h3 {
+  color: var(--phase-accent);
+  text-shadow: 0 0 10px var(--phase-glow);
+  transition: color var(--ds-transition-color),
+              text-shadow var(--ds-transition-color);
+}
+
+/* Phase-adaptive top bar gradient */
+#top-bar {
+  background: linear-gradient(180deg, var(--phase-surface-elevated) 0%, var(--phase-surface) 100%);
+  transition: background var(--ds-transition-color);
+}
+
+/* Phase-adaptive phase name */
+#phase-name {
+  color: var(--phase-accent);
+  text-shadow: 0 0 10px var(--phase-glow);
+  transition: color var(--ds-transition-color),
+              text-shadow var(--ds-transition-color);
+}
+
+/* Phase-adaptive card borders */
+.generator-row, .upgrade-row, .research-node,
+.contract-row, .zone-row, .synergy-row,
+.crew-row, .fleet-row, .ach-row, .booster-item {
+  border-color: var(--phase-border);
+  background: var(--phase-surface);
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color);
+}
+
+/* Phase-adaptive scene background */
+#scene-area {
+  background: linear-gradient(180deg, var(--phase-sky-top) 0%, var(--phase-sky-bottom) 100%);
+  transition: background 1.2s ease;
+}
+
+/* Phase-adaptive currency bar */
+#currency-bar {
+  background: var(--phase-surface);
+  border-bottom-color: var(--phase-border);
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color);
+}
+
+/* Phase-adaptive bottom tabs */
+#bottom-tabs {
+  background: linear-gradient(0deg, var(--phase-surface-elevated) 0%, var(--phase-surface) 100%);
+  border-top-color: var(--phase-border);
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color);
+}
+
+/* Phase-adaptive tap button glow */
+#tap-btn {
+  box-shadow: 0 0 20px var(--phase-glow), 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 -3px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s var(--ds-ease-bounce),
+              box-shadow var(--ds-transition-color);
+}
+
+/* Phase-adaptive buy button glow */
+.gen-buy-btn:not(.disabled) {
+  box-shadow: 0 0 8px var(--phase-glow);
+}
+.upg-buy-btn:not(.disabled) {
+  box-shadow: 0 0 8px var(--phase-glow);
+}
+
+/* ===== SECTION 66: SPACING / GRID / LAYOUT SYSTEM ===== */
+
+/* Safe area padding for notched devices */
+#game-container {
+  padding-top: var(--ds-zone-safe-top);
+  padding-left: var(--ds-zone-safe-left);
+  padding-right: var(--ds-zone-safe-right);
+}
+
+#bottom-tabs {
+  padding-bottom: var(--ds-zone-safe-bottom);
+}
+
+/* Screen zone heights */
+#top-bar {
+  min-height: var(--ds-zone-status);
+  padding: var(--ds-space-2) var(--ds-space-3);
+}
+
+#bottom-tabs {
+  min-height: var(--ds-zone-nav);
+}
+
+/* Content area spacing */
+.tab-panel {
+  padding: var(--ds-space-3) var(--ds-space-3) var(--ds-space-8);
+}
+
+/* Card spacing rhythm */
+.generator-row {
+  margin-bottom: var(--ds-space-2);
+  padding: var(--ds-space-3) var(--ds-space-3);
+}
+.upgrade-row {
+  margin-bottom: var(--ds-space-2);
+  padding: var(--ds-space-3) var(--ds-space-3);
+}
+
+/* Spacing utilities */
+.gap-1 { gap: var(--ds-space-1); }
+.gap-2 { gap: var(--ds-space-2); }
+.gap-3 { gap: var(--ds-space-3); }
+.gap-4 { gap: var(--ds-space-4); }
+.gap-6 { gap: var(--ds-space-6); }
+.p-1 { padding: var(--ds-space-1); }
+.p-2 { padding: var(--ds-space-2); }
+.p-3 { padding: var(--ds-space-3); }
+.p-4 { padding: var(--ds-space-4); }
+.m-0 { margin: 0; }
+.mb-2 { margin-bottom: var(--ds-space-2); }
+.mb-3 { margin-bottom: var(--ds-space-3); }
+.mb-4 { margin-bottom: var(--ds-space-4); }
+
+/* ===== SECTION 67: COMPONENT LIBRARY ===== */
+
+/* --- Component: Enhanced Currency Chip --- */
+.currency {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  font-size: var(--ds-type-body-sm);
+  white-space: nowrap;
+  padding: var(--ds-space-0-5) var(--ds-space-2);
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-glass-light-border);
+  transition: border-color var(--ds-transition-color),
+              background var(--ds-transition-color),
+              transform var(--ds-transition-fast);
+}
+
+.currency:hover {
+  transform: translateY(-1px);
+  border-color: var(--ds-glass-medium-border);
+}
+
+.cur-icon {
+  font-weight: var(--ds-weight-bold);
+  font-size: var(--ds-type-caption);
+}
+
+.cur-val {
+  font-family: var(--ds-font-mono);
+  font-weight: var(--ds-weight-semibold);
+  font-size: var(--ds-type-caption);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.cur-rate {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-micro);
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Currency-specific chip highlights */
+.currency.credits .cur-val { color: var(--ds-currency-credits); }
+.currency.rp .cur-val { color: var(--ds-currency-rp); }
+.currency.ore .cur-val { color: var(--ds-currency-ore); }
+.currency.rm .cur-val { color: var(--ds-currency-rm); }
+.currency.as .cur-val { color: var(--ds-currency-as); }
+.currency.sd .cur-val { color: var(--ds-currency-sd); }
+.currency.it .cur-val { color: var(--ds-currency-it); }
+
+/* Currency chip glow on gain */
+.currency.currency-gain {
+  animation: currencyGainPulse 0.4s ease-out;
+}
+@keyframes currencyGainPulse {
+  0% { box-shadow: 0 0 0 0 var(--phase-glow); }
+  50% { box-shadow: 0 0 8px 2px var(--phase-glow); }
+  100% { box-shadow: none; }
+}
+
+/* --- Component: Enhanced Generator Row Card --- */
+.generator-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ds-space-3);
+  margin-bottom: var(--ds-space-2);
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-1);
+  transition: border-color var(--ds-transition-color),
+              box-shadow var(--ds-transition-normal),
+              background var(--ds-transition-color),
+              transform var(--ds-transition-fast);
+}
+
+.generator-row:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--ds-shadow-2);
+}
+
+.generator-row.affordable {
+  border-color: rgba(39, 174, 96, 0.4);
+  box-shadow: var(--ds-shadow-1), 0 0 8px rgba(39, 174, 96, 0.15);
+}
+
+.generator-row.expensive {
+  opacity: 0.6;
+}
+
+.gen-icon {
+  font-size: var(--ds-type-title);
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px var(--phase-glow));
+  transition: filter var(--ds-transition-color);
+}
+
+.gen-name {
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+  font-size: var(--ds-type-body-sm);
+  color: var(--ds-text-primary);
+}
+
+.gen-output {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-caption-sm);
+  color: var(--ds-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.gen-buy-btn {
+  flex-shrink: 0;
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border: 1px solid var(--accent-green);
+  border-radius: var(--ds-radius-sm);
+  background: rgba(39, 174, 96, 0.12);
+  color: var(--accent-green);
+  cursor: pointer;
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+  text-align: center;
+  transition: background var(--ds-transition-fast),
+              box-shadow var(--ds-transition-fast),
+              transform 0.1s ease;
+  min-width: 80px;
+}
+
+.gen-buy-btn:hover:not(.disabled) {
+  background: rgba(39, 174, 96, 0.25);
+  transform: scale(1.02);
+}
+
+.gen-buy-btn:active:not(.disabled) {
+  transform: scale(0.97);
+}
+
+.gen-buy-btn.disabled {
+  border-color: var(--phase-border);
+  color: var(--ds-text-disabled);
+  background: transparent;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.gen-cost {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Component: Enhanced Buy Amount Toggle --- */
+#buy-toggle {
+  display: flex;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-2) var(--ds-space-3);
+  background: var(--phase-surface);
+  border-bottom: 1px solid var(--phase-border);
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color);
+}
+
+.buy-amt {
+  flex: 1;
+  padding: var(--ds-space-1-5) 0;
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-pill);
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-caption);
+  font-weight: var(--ds-weight-semibold);
+  cursor: pointer;
+  transition: all var(--ds-transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.buy-amt.active {
+  background: var(--phase-primary);
+  color: var(--ds-text-inverse);
+  border-color: var(--phase-primary);
+  box-shadow: 0 0 8px var(--phase-glow);
+  font-weight: var(--ds-weight-bold);
+  transition: all var(--ds-transition-color);
+}
+
+.buy-amt:hover:not(.active) {
+  background: var(--ds-glass-light-bg);
+  border-color: var(--ds-glass-medium-border);
+}
+
+.buy-amt:active {
+  transform: scale(0.95);
+}
+
+/* --- Component: Enhanced Upgrade Card --- */
+.upgrade-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ds-space-3);
+  margin-bottom: var(--ds-space-2);
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-1);
+  transition: border-color var(--ds-transition-color),
+              box-shadow var(--ds-transition-normal),
+              background var(--ds-transition-color),
+              opacity var(--ds-transition-normal);
+}
+
+.upgrade-row.purchased {
+  opacity: 0.5;
+  border-color: var(--accent-green);
+}
+
+.upgrade-row.affordable {
+  border-color: var(--phase-primary);
+  box-shadow: var(--ds-shadow-1), 0 0 8px var(--phase-glow);
+}
+
+.upg-name {
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+  font-size: var(--ds-type-body-sm);
+}
+
+.upg-desc {
+  font-size: var(--ds-type-caption-sm);
+  color: var(--ds-text-tertiary);
+  margin-top: var(--ds-space-0-5);
+  line-height: 1.4;
+}
+
+.upg-buy-btn {
+  flex-shrink: 0;
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border: 1px solid var(--phase-primary);
+  border-radius: var(--ds-radius-sm);
+  background: rgba(74, 144, 217, 0.12);
+  color: var(--phase-primary);
+  cursor: pointer;
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+  text-align: center;
+  transition: background var(--ds-transition-fast),
+              transform 0.1s ease,
+              border-color var(--ds-transition-color),
+              color var(--ds-transition-color);
+  min-width: 80px;
+  font-size: var(--ds-type-caption);
+}
+
+.upg-buy-btn:hover:not(.disabled) {
+  background: rgba(74, 144, 217, 0.25);
+  transform: scale(1.02);
+}
+
+.upg-buy-btn:active:not(.disabled) {
+  transform: scale(0.97);
+}
+
+.upg-buy-btn.disabled {
+  border-color: var(--phase-border);
+  color: var(--ds-text-disabled);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+/* --- Component: Enhanced Tab Bar --- */
+#bottom-tabs {
+  display: flex;
+  background: linear-gradient(0deg, var(--phase-surface-elevated) 0%, var(--phase-surface) 100%);
+  border-top: 1px solid var(--phase-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  z-index: 10;
+  min-height: var(--ds-zone-nav);
+  align-items: stretch;
+  gap: 0;
+}
+
+.tab-btn {
+  flex: 0 0 auto;
+  min-width: 56px;
+  padding: var(--ds-space-2) var(--ds-space-1-5);
+  border: none;
+  background: transparent;
+  color: var(--ds-text-tertiary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: color var(--ds-transition-color),
+              transform var(--ds-transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-0-5);
+  position: relative;
+}
+
+.tab-btn::after {
+  content: attr(data-label);
+  font-family: var(--ds-font-primary);
+  font-size: var(--ds-type-pico);
+  font-weight: var(--ds-weight-semibold);
+  letter-spacing: 0.3px;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  color: var(--phase-primary);
+}
+
+.tab-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: var(--phase-primary);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 6px var(--phase-glow);
+  transition: background var(--ds-transition-color),
+              box-shadow var(--ds-transition-color);
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--ds-text-secondary);
+}
+
+.tab-btn:active {
+  transform: scale(0.92);
+}
+
+/* New tab notification dot */
+.tab-btn.has-notification::after {
+  position: relative;
+}
+.tab-btn.has-notification::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-red);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+/* More tab button */
+.more-tab-btn {
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+/* --- Component: Enhanced Tap Button --- */
+#tap-btn {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  border-radius: var(--ds-radius-circle);
+  background: radial-gradient(circle at 40% 35%,
+    color-mix(in srgb, var(--phase-primary) 70%, white),
+    var(--phase-primary),
+    color-mix(in srgb, var(--phase-primary) 60%, black));
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-type-caption-sm);
+  font-weight: var(--ds-weight-bold);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-0-5);
+  box-shadow: 0 0 20px var(--phase-glow),
+              0 4px 15px rgba(0, 0, 0, 0.5),
+              inset 0 -3px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s var(--ds-ease-bounce),
+              box-shadow var(--ds-transition-color),
+              background 1.2s ease;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
+}
+
+/* Tap button outer ring (phase color) */
+#tap-btn::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: var(--ds-radius-circle);
+  border: 2px solid var(--phase-primary);
+  opacity: 0.3;
+  transition: border-color var(--ds-transition-color),
+              opacity var(--ds-transition-normal);
+  pointer-events: none;
+}
+
+/* Tap button combo ring (rotating dashed) */
+#tap-btn.combo-active::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: var(--ds-radius-circle);
+  border: 2px dashed var(--phase-accent);
+  opacity: 0.6;
+  animation: comboRingSpin 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes comboRingSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Tap button pressed state */
+#tap-btn:active {
+  transform: translateX(-50%) scale(0.92);
+  box-shadow: 0 0 30px var(--phase-glow-strong),
+              0 2px 8px rgba(0, 0, 0, 0.5),
+              inset 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+#tap-btn:active::before {
+  opacity: 0.7;
+  box-shadow: 0 0 12px var(--phase-glow);
+}
+
+/* Tap button release pulse */
+#tap-btn.tap-active {
+  animation: tapBounceDS 150ms ease-out;
+}
+@keyframes tapBounceDS {
+  0%   { transform: translateX(-50%) scale(1); }
+  40%  { transform: translateX(-50%) scale(0.90); box-shadow: 0 0 30px var(--phase-glow-strong), 0 2px 8px rgba(0,0,0,0.5); }
+  70%  { transform: translateX(-50%) scale(1.05); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+#tap-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+}
+
+#tap-label {
+  font-size: var(--ds-type-micro);
+  font-family: var(--ds-font-display);
+  letter-spacing: 1.5px;
+}
+
+/* Auto-tap pulse with phase color */
+#tap-btn.auto-tapping {
+  animation: autoPulseDS 1.5s ease-in-out infinite;
+}
+@keyframes autoPulseDS {
+  0%, 100% { box-shadow: 0 0 20px var(--phase-glow), 0 4px 15px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.3); }
+  50%      { box-shadow: 0 0 35px var(--phase-glow-strong), 0 4px 15px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.3); }
+}
+
+/* --- Component: Enhanced Modal (Glass-morphism) --- */
+#modal-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+#modal-content {
+  background: var(--phase-surface);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-4), 0 0 40px var(--phase-glow);
+  transition: background var(--ds-transition-color),
+              border-color var(--ds-transition-color),
+              box-shadow var(--ds-transition-color);
+}
+
+#modal-content h3 {
+  font-family: var(--ds-font-display);
+  color: var(--phase-accent);
+  text-shadow: 0 0 12px var(--phase-glow);
+}
+
+.modal-btn {
+  border: 1px solid var(--phase-primary);
+  border-radius: var(--ds-radius-sm);
+  background: rgba(74, 144, 217, 0.12);
+  color: var(--phase-primary);
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+  transition: background var(--ds-transition-fast),
+              border-color var(--ds-transition-color),
+              color var(--ds-transition-color);
+}
+
+.modal-btn:hover {
+  background: rgba(74, 144, 217, 0.25);
+}
+
+/* --- Component: Enhanced Toast Notification --- */
+.toast-item {
+  background: var(--phase-surface);
+  border: 1px solid var(--phase-accent);
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-primary);
+  font-size: var(--ds-type-caption);
+  font-weight: var(--ds-weight-semibold);
+  box-shadow: var(--ds-shadow-3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* --- Component: Enhanced Event Banner --- */
+.event-content {
+  border-radius: var(--ds-radius-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.event-name {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-type-caption-sm);
+  font-weight: var(--ds-weight-bold);
+}
+
+.event-timer {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Component: Enhanced Achievement Banner --- */
+.ach-banner-content {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--ds-shadow-3), 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+/* --- Component: Enhanced Zone Row --- */
+.zone-row {
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-1);
+  transition: all var(--ds-transition-normal);
+}
+
+.zone-row.current {
+  border-color: var(--phase-accent);
+  background: rgba(255, 215, 0, 0.06);
+  box-shadow: var(--ds-shadow-1), 0 0 8px rgba(255, 215, 0, 0.15);
+}
+
+.zone-row:hover:not(.locked) {
+  transform: translateY(-1px);
+  box-shadow: var(--ds-shadow-2);
+}
+
+/* --- Component: Enhanced Research Node --- */
+.research-node {
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-1);
+}
+
+.research-node.affordable {
+  border-color: var(--phase-primary);
+  box-shadow: var(--ds-shadow-1), 0 0 6px var(--phase-glow);
+}
+
+/* --- Component: Enhanced Progress Bars --- */
+.progress-outer, .contract-progress-outer,
+.egg-progress-outer, .terraform-bar .progress-outer {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--ds-radius-pill);
+  overflow: hidden;
+}
+
+.progress-inner, .contract-progress-inner,
+.egg-progress-inner {
+  border-radius: var(--ds-radius-pill);
+  transition: width 0.3s var(--ds-ease-smooth);
+}
+
+/* Phase-adaptive progress bar gradient */
+.progress-inner {
+  background: linear-gradient(90deg,
+    var(--phase-primary),
+    var(--phase-accent));
+}
+
+/* --- Component: Enhanced Combo Display --- */
+#combo-display {
+  background: var(--ds-glass-heavy-bg);
+  backdrop-filter: blur(var(--ds-glass-heavy-blur));
+  -webkit-backdrop-filter: blur(var(--ds-glass-heavy-blur));
+  border: 2px solid var(--phase-accent);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-3), 0 0 12px var(--phase-glow);
+  transition: border-color var(--ds-transition-color),
+              box-shadow var(--ds-transition-color);
+}
+
+#combo-count {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Component: Enhanced Mini-Game Overlay --- */
+#mini-game-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#mini-game-title {
+  font-family: var(--ds-font-display);
+}
+
+#mini-game-timer {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+#mini-game-result {
+  background: var(--phase-surface);
+  border: 2px solid var(--phase-accent);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-4), 0 0 30px var(--phase-glow);
+}
+
+/* --- Component: Enhanced Prestige Section --- */
+.prestige-btn {
+  border-radius: var(--ds-radius-md);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.cd-projected {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Component: Enhanced Stats Section --- */
+.stat-row span:last-child {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Component: Enhanced Egg Slots --- */
+.egg-slot {
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 2px solid var(--phase-border);
+  border-radius: var(--ds-radius-lg);
+  transition: border-color var(--ds-transition-color),
+              box-shadow var(--ds-transition-normal);
+}
+
+.egg-name {
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+}
+
+.egg-status {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Component: Enhanced Settings --- */
+.setting-row {
+  background: var(--ds-glass-light-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+}
+
+.setting-row label {
+  font-family: var(--ds-font-primary);
+  font-weight: var(--ds-weight-semibold);
+}
+
+/* --- Component: More Sheet --- */
+#more-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+}
+
+#more-sheet-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#more-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  background: var(--phase-surface);
+  border-top: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-xl) var(--ds-radius-xl) 0 0;
+  padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-8);
+  box-shadow: var(--ds-shadow-4);
+  animation: slideUp 0.3s var(--ds-ease-decelerate);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+#more-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--ds-radius-pill);
+  margin: 0 auto var(--ds-space-3);
+}
+
+#more-sheet-title {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-type-title-sm);
+  font-weight: var(--ds-weight-bold);
+  color: var(--phase-accent);
+  text-align: center;
+  margin-bottom: var(--ds-space-4);
+  letter-spacing: 0.5px;
+}
+
+#more-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--ds-space-3);
+}
+
+.more-sheet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-3) var(--ds-space-1);
+  background: var(--ds-glass-light-bg);
+  border: 1px solid var(--phase-border);
+  border-radius: var(--ds-radius-md);
+  cursor: pointer;
+  transition: all var(--ds-transition-fast);
+  text-align: center;
+}
+
+.more-sheet-item:hover {
+  background: var(--ds-glass-medium-bg);
+  border-color: var(--phase-primary);
+  transform: translateY(-2px);
+}
+
+.more-sheet-item:active {
+  transform: scale(0.95);
+}
+
+.more-sheet-icon {
+  font-size: 24px;
+}
+
+.more-sheet-label {
+  font-family: var(--ds-font-primary);
+  font-size: var(--ds-type-micro);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-secondary);
+}
+
+#more-sheet-overlay.hidden {
+  display: none !important;
+}
+
+/* --- Transition Overlay with phase colors --- */
+.transition-title {
+  font-family: var(--ds-font-display);
+  color: var(--ds-text-tertiary);
+}
+
+.transition-name {
+  font-family: var(--ds-font-display);
+  color: var(--phase-accent);
+  text-shadow: 0 0 20px var(--phase-glow);
+}
+
+/* --- Phase Transition Color Crossfade --- */
+.phase-transitioning {
+  animation: phaseColorFlash 0.6s ease;
+}
+@keyframes phaseColorFlash {
+  0% { filter: brightness(1.3) saturate(1.5); }
+  50% { filter: brightness(1.1) saturate(1.2); }
+  100% { filter: brightness(1) saturate(1); }
+}
+
+/* --- Enhanced Floating Numbers with design system --- */
+.floating-num {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px var(--phase-glow), 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* --- Enhanced Scrollbar with phase color --- */
+#main-content::-webkit-scrollbar-thumb {
+  background: var(--phase-border);
+  border-radius: var(--ds-radius-pill);
+}
+
+/* --- Enhanced Tier Badge --- */
+.tier-badge {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-type-micro);
+  font-weight: var(--ds-weight-bold);
+}
+
+/* --- Responsive Enhancements --- */
+@media (min-width: 600px) {
+  #tap-btn {
+    width: 110px;
+    height: 110px;
+    font-size: var(--ds-type-caption);
+  }
+
+  #tap-btn::before {
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+  }
+
+  .more-sheet-item {
+    padding: var(--ds-space-4) var(--ds-space-2);
+  }
+}
+
+@media (max-width: 375px) {
+  .currency {
+    font-size: var(--ds-type-caption-sm);
+    padding: var(--ds-space-0-5) var(--ds-space-1-5);
+  }
+
+  .gen-name { font-size: var(--ds-type-caption); }
+
+  #tap-btn {
+    width: 85px;
+    height: 85px;
+    font-size: var(--ds-type-micro);
+  }
+
+  #tap-icon { font-size: 20px; }
+
+  .tab-btn {
+    min-width: 48px;
+    font-size: 16px;
+  }
+
+  #more-sheet-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* --- Number separator animation for large numbers --- */
+@keyframes numberSeparatorFlash {
+  0% { color: var(--phase-accent); }
+  100% { color: inherit; }
+}
+
+.number-new-suffix {
+  animation: numberSeparatorFlash 0.5s ease-out;
+}
+
+/* --- Loading shimmer for lazy content --- */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--phase-surface) 0%,
+    var(--phase-surface-elevated) 50%,
+    var(--phase-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: loadingShimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* --- Hover feedback for touch devices --- */
+@media (hover: none) {
+  .generator-row:hover,
+  .upgrade-row:hover,
+  .zone-row:hover:not(.locked),
+  .collection-item:hover,
+  .currency:hover {
+    transform: none;
+    box-shadow: var(--ds-shadow-1);
+  }
+}
+
+/* --- Reduced motion support --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- Print styles (for stats export) --- */
+@media print {
+  #game-container {
+    background: white;
+    color: black;
+    max-width: 100%;
+  }
+  #scene-area, #bottom-tabs, #tap-btn,
+  #combo-display, #golden-rush-banner,
+  #weather-indicator, #lucky-drop {
+    display: none !important;
+  }
+}
+
+/* --- High contrast mode support --- */
+@media (prefers-contrast: high) {
+  :root {
+    --ds-glass-light-border: rgba(255, 255, 255, 0.3);
+    --ds-glass-medium-border: rgba(255, 255, 255, 0.4);
+    --ds-text-secondary: rgba(255, 255, 255, 0.85);
+    --ds-text-tertiary: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* --- Dark mode optimizations (already dark, ensure OLED black) --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #000005;
+  }
 }

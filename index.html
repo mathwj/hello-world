@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Deep Space Inc.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <meta name="theme-color" content="#0a0a1a">
 </head>
 <body>
   <div id="game-container">
@@ -106,6 +110,17 @@
       <button class="tab-btn hidden" data-tab="boosters" data-label="Boosters">&#9889;</button>
       <button class="tab-btn hidden" data-tab="eggs" data-label="Eggs">&#129370;</button>
       <button class="tab-btn" data-tab="settings" data-label="Settings">&#9881;&#65039;</button>
+      <button class="tab-btn more-tab-btn" id="more-tab-btn" data-label="More">&#8943;</button>
+    </div>
+
+    <!-- More Sheet Overlay -->
+    <div id="more-sheet-overlay" class="hidden">
+      <div id="more-sheet-backdrop"></div>
+      <div id="more-sheet">
+        <div id="more-sheet-handle"></div>
+        <div id="more-sheet-title">More Tabs</div>
+        <div id="more-sheet-grid"></div>
+      </div>
     </div>
 
     <!-- Modals -->

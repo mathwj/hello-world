@@ -13,9 +13,12 @@ const UI = (() => {
     setupTapButton();
     setupMenuButtons();
     setupTooltipLongPress();
+    setupMoreSheet();
     // Initialize juice systems
     if (typeof Juice !== 'undefined') Juice.init();
     if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.init();
+    // Apply phase colors on startup
+    updatePhaseColors();
     updateAll();
   }
 
@@ -184,6 +187,10 @@ const UI = (() => {
     updateNextUnlockBar();
     updateIdleStreakDisplay();
     updateActiveBoosterHUD();
+
+    // Design system: phase color sync and combo ring
+    updatePhaseColors();
+    updateTapComboRing();
   }
 
   function updateTopBar() {
@@ -1606,6 +1613,9 @@ const UI = (() => {
     }
     if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setPhase(phase);
 
+    // Design system: update phase colors during transition
+    updatePhaseColors();
+
     setTimeout(() => {
       overlay.classList.remove('active');
       overlay.classList.add('hidden');
@@ -1613,6 +1623,13 @@ const UI = (() => {
       updateTapButton();
       updateTabVisibility();
       SceneRenderer.setPhase(phase);
+
+      // Phase transition color flash
+      const container = document.getElementById('game-container');
+      if (container) {
+        container.classList.add('phase-transitioning');
+        setTimeout(() => container.classList.remove('phase-transitioning'), 600);
+      }
     }, 3000);
   }
 
@@ -2018,6 +2035,163 @@ const UI = (() => {
     if (el) el.classList.add('hidden');
   }
 
+  // ===== DESIGN SYSTEM: PHASE COLOR SYSTEM (Section 65) =====
+
+  let _currentPhaseClass = '';
+
+  function updatePhaseColors() {
+    const s = GameState.getState();
+    const phase = s.currentPhase;
+    const container = document.getElementById('game-container');
+    if (!container) return;
+
+    const newClass = 'phase-' + phase;
+    if (newClass === _currentPhaseClass) return;
+
+    // Remove old phase class
+    if (_currentPhaseClass) {
+      container.classList.remove(_currentPhaseClass);
+    }
+
+    // Add new phase class with transition flash
+    container.classList.add(newClass);
+    _currentPhaseClass = newClass;
+
+    // Update meta theme-color for mobile browser chrome
+    const themeColors = {
+      1: '#0a0a2e', 2: '#1a3060', 3: '#12122a',
+      4: '#3a1810', 5: '#080808', 6: '#2a1810',
+      7: '#120a20', 8: '#1a0520', 9: '#050510'
+    };
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.content = themeColors[phase] || '#0a0a1a';
+
+    // Add combo ring class to tap button if combo is active
+    updateTapComboRing();
+  }
+
+  function updateTapComboRing() {
+    const s = GameState.getState();
+    const tapBtn = document.getElementById('tap-btn');
+    if (!tapBtn) return;
+    if (s.combo && s.combo.current >= 10) {
+      tapBtn.classList.add('combo-active');
+    } else {
+      tapBtn.classList.remove('combo-active');
+    }
+  }
+
+  // ===== DESIGN SYSTEM: MORE SHEET (Section 67 Tab Bar) =====
+
+  let moreSheetOpen = false;
+
+  // Tab definitions for the More sheet — overflow tabs beyond the main 5
+  const MORE_SHEET_TABS = [
+    { tab: 'crew', icon: '\uD83D\uDC64', label: 'Crew' },
+    { tab: 'fleet', icon: '\uD83D\uDE80', label: 'Fleet' },
+    { tab: 'research', icon: '\uD83D\uDD2C', label: 'Research' },
+    { tab: 'log', icon: '\uD83D\uDCD6', label: 'Log' },
+    { tab: 'prestige', icon: '\u2733', label: 'Prestige' },
+    { tab: 'collection', icon: '\uD83D\uDCDA', label: 'Album' },
+    { tab: 'contracts', icon: '\uD83D\uDCCB', label: 'Contracts' },
+    { tab: 'boosters', icon: '\u26A1', label: 'Boosters' },
+    { tab: 'synergies', icon: '\uD83D\uDD17', label: 'Synergies' },
+    { tab: 'skins', icon: '\uD83C\uDFA8', label: 'Skins' },
+    { tab: 'eggs', icon: '\uD83E\uDD5A', label: 'Eggs' },
+    { tab: 'settings', icon: '\u2699\uFE0F', label: 'Settings' }
+  ];
+
+  function setupMoreSheet() {
+    const moreBtn = document.getElementById('more-tab-btn');
+    if (!moreBtn) return;
+
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMoreSheet();
+    });
+
+    const backdrop = document.getElementById('more-sheet-backdrop');
+    if (backdrop) {
+      backdrop.addEventListener('click', () => closeMoreSheet());
+    }
+  }
+
+  function toggleMoreSheet() {
+    if (moreSheetOpen) {
+      closeMoreSheet();
+    } else {
+      openMoreSheet();
+    }
+  }
+
+  function openMoreSheet() {
+    const overlay = document.getElementById('more-sheet-overlay');
+    const grid = document.getElementById('more-sheet-grid');
+    if (!overlay || !grid) return;
+
+    // Build grid of visible overflow tabs
+    const s = GameState.getState();
+    let html = '';
+
+    for (const item of MORE_SHEET_TABS) {
+      // Check visibility
+      const tabBtn = document.querySelector('.tab-btn[data-tab="' + item.tab + '"]');
+      const isVisible = tabBtn && !tabBtn.classList.contains('hidden');
+      if (!isVisible && item.tab !== 'settings') continue;
+
+      html += '<div class="more-sheet-item" data-tab="' + item.tab + '">' +
+        '<span class="more-sheet-icon">' + item.icon + '</span>' +
+        '<span class="more-sheet-label">' + item.label + '</span>' +
+        '</div>';
+    }
+
+    grid.innerHTML = html;
+
+    // Attach click handlers
+    grid.querySelectorAll('.more-sheet-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const tab = el.dataset.tab;
+        closeMoreSheet();
+        switchTab(tab);
+      });
+    });
+
+    overlay.classList.remove('hidden');
+    moreSheetOpen = true;
+  }
+
+  function closeMoreSheet() {
+    const overlay = document.getElementById('more-sheet-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    moreSheetOpen = false;
+  }
+
+  // ===== DESIGN SYSTEM: ENHANCED CURRENCY BAR (Section 67) =====
+
+  // Currency chip color mapping
+  const CURRENCY_COLORS = {
+    credits: '#FFD700',
+    rp: '#4A90D9',
+    ore: '#A8A8A8',
+    rm: '#9B59B6',
+    as: '#2ECC71',
+    sd: '#F0E6FF',
+    cd: 'rainbow',
+    it: '#FFD700'
+  };
+
+  // Currency icon mapping
+  const CURRENCY_ICONS = {
+    credits: '\u20A1',
+    rp: 'RP',
+    ore: 'Ore',
+    rm: 'RM',
+    as: 'AS',
+    sd: 'SD',
+    cd: 'CD',
+    it: 'IT'
+  };
+
   return {
     init, updateAll, updateTick, updateGenerators, updateUpgrades,
     updateCurrencyBar, updateRocketAssembly, updateCrew, updateFleet,
@@ -2031,6 +2205,7 @@ const UI = (() => {
     showRareAsteroid, updateRareAsteroid, hideRareAsteroid,
     showArtifactFragment, hideArtifactFragment,
     showToast, showMilestoneNotification, showSynergyNotification,
-    showContractCompleteNotification, showCollectionNotification
+    showContractCompleteNotification, showCollectionNotification,
+    updatePhaseColors, updateTapComboRing, closeMoreSheet
   };
 })();

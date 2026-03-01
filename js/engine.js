@@ -1135,6 +1135,11 @@ const Engine = (() => {
     if (!s.stats.phaseReachTime[toPhase] || runTime < s.stats.phaseReachTime[toPhase]) {
       s.stats.phaseReachTime[toPhase] = runTime;
     }
+
+    // Design system: update phase-adaptive colors
+    if (typeof UI !== 'undefined' && UI.updatePhaseColors) {
+      UI.updatePhaseColors();
+    }
   }
 
   // ========== EXPANSION B: Prestige hook ==========
