@@ -5,6 +5,9 @@ const Game = (() => {
   function init() {
     console.log('Deep Space Inc. initializing...');
 
+    // Merge expansion data into GameData
+    GameData.mergeExpansionData();
+
     // Try to load save
     const loaded = GameState.load();
 
@@ -13,6 +16,7 @@ const Game = (() => {
       // Recalculate CD multiplier
       s.cosmicDustMultiplier = 1 + (s.cosmicDust * 0.01);
       GameState.applyPermanentUpgrades();
+      Expansion.applyCritUpgrades(s);
 
       // Check for offline earnings
       const earnings = GameState.calculateOfflineEarnings();

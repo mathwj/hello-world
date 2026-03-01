@@ -80,6 +80,9 @@ const Engine = (() => {
       processIoDegradation(s, deltaTime);
     }
 
+    // Expansion systems
+    Expansion.update(s, deltaTime);
+
     // Events
     GameEvents.processTick(deltaTime);
 
@@ -110,6 +113,16 @@ const Engine = (() => {
     const cdMult = s.cosmicDustMultiplier;
     const callistoMult = 1 + s.callistoBoost;
 
+    // Expansion multipliers
+    const boosterCreditMult = Expansion.getBoosterCreditMult(s);
+    const boosterRPMult = Expansion.getBoosterRPMult(s);
+    const boosterOreMult = Expansion.getBoosterOreMult(s);
+    const boosterTerraformMult = Expansion.getBoosterTerraformMult(s);
+    const weatherCreditMult = Expansion.getWeatherCreditMult(s);
+    const weatherRPMult = Expansion.getWeatherRPMult(s);
+    const weatherTerraformMult = Expansion.getWeatherTerraformMult(s);
+    const idleStreakMult = Expansion.IdleStreak.getMultiplier(s);
+
     // Process all generators across all unlocked phases
     const allPhaseKeys = getAllActiveGeneratorKeys(s);
 
@@ -130,17 +143,21 @@ const Engine = (() => {
           ioEff = s.ioEfficiency[gen.id];
         }
 
-        const crewMult = 1 + getCrewBonus();
-        const totalMult = genMult * phaseMult * cdMult * callistoMult * ioEff * crewMult;
+        // Expansion per-generator multipliers
+        const milestoneMult = Expansion.Milestones.getCumulativeMultiplier(s, gen.id);
+        const goldenRushMult = Expansion.GoldenRush.getMultiplier(s, gen.id);
 
-        if (gen.output.credits) totalCredits += count * gen.output.credits * totalMult * s.globalCreditMultiplier * s.eventCreditMultiplier;
-        if (gen.output.rp) totalRP += count * gen.output.rp * totalMult * s.globalRPMultiplier * s.eventRPMultiplier;
-        if (gen.output.ore) totalOre += count * gen.output.ore * totalMult * s.globalOreMultiplier;
+        const crewMult = 1 + getCrewBonus();
+        const totalMult = genMult * phaseMult * cdMult * callistoMult * ioEff * crewMult * milestoneMult * goldenRushMult * idleStreakMult;
+
+        if (gen.output.credits) totalCredits += count * gen.output.credits * totalMult * s.globalCreditMultiplier * s.eventCreditMultiplier * boosterCreditMult * weatherCreditMult;
+        if (gen.output.rp) totalRP += count * gen.output.rp * totalMult * s.globalRPMultiplier * s.eventRPMultiplier * boosterRPMult * weatherRPMult;
+        if (gen.output.ore) totalOre += count * gen.output.ore * totalMult * s.globalOreMultiplier * boosterOreMult;
         if (gen.output.rm) totalRM += count * gen.output.rm * totalMult;
         if (gen.output.sd) totalSD += count * gen.output.sd * totalMult;
 
         if (gen.terraform) {
-          totalTerraform += count * gen.terraform * (s.terraformMultiplier || 1) * cdMult;
+          totalTerraform += count * gen.terraform * (s.terraformMultiplier || 1) * cdMult * boosterTerraformMult * weatherTerraformMult;
         }
 
         // Callisto global boost
@@ -170,8 +187,8 @@ const Engine = (() => {
     s.sdPerSecond = totalSD;
     s.terraforming.marsPerSecond = totalTerraform;
 
-    // Update tap value
-    s.creditsPerTap = Math.max(1, getBaseTapValue(s)) * s.tapMultiplier * s.cosmicDustMultiplier * s.eventTapMultiplier;
+    // Update tap value (expansion multipliers applied in doTap)
+    s.creditsPerTap = Math.max(1, getBaseTapValue(s)) * s.tapMultiplier * s.cosmicDustMultiplier * s.eventTapMultiplier * Expansion.getBoosterTapMult(s) * Expansion.getWeatherTapMult(s);
   }
 
   function getBaseTapValue(s) {
@@ -207,11 +224,18 @@ const Engine = (() => {
       amount *= 10;
     }
 
+    // Expansion: combo + critical tap
+    const tapResult = Expansion.onTap(s, isAuto);
+    amount *= tapResult.comboMult * tapResult.mult;
+
     GameState.addCurrency('credits', amount);
     if (!isAuto) {
       s.totalTaps++;
       s.stats.lastTapTime = Date.now();
       s.stats.noTapDuration = 0;
+
+      // Contract earn progress
+      Expansion.Contracts.addProgress(s, 'earn', amount);
     }
 
     // Moon phase: also earn ore from tapping
@@ -221,7 +245,7 @@ const Engine = (() => {
     }
 
     if (!isAuto) {
-      UI.showFloatingNumber(amount);
+      UI.showFloatingNumber(amount, tapResult);
     }
 
     return amount;
@@ -272,6 +296,9 @@ const Engine = (() => {
     if (s.tutorialStep === 1) {
       s.tutorialStep = 2;
     }
+
+    // Expansion: milestones, purchase streak, contracts
+    Expansion.onGeneratorBuy(s, genId, count);
 
     calculateRates(s);
     UI.updateGenerators();

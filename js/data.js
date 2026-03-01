@@ -444,9 +444,34 @@ const GameData = (() => {
     { name: 'Legendary', bonus: 1.00, upgradeCost: { ore: 50000, rp: 10000 } }
   ];
 
+  // Merge expansion data when available (Expansion loads before GameData is consumed)
+  function mergeExpansionData() {
+    if (typeof Expansion !== 'undefined') {
+      // Add expansion achievements
+      for (const ach of Expansion.EXPANSION_ACHIEVEMENTS) {
+        if (!ACHIEVEMENTS.find(a => a.id === ach.id)) {
+          ACHIEVEMENTS.push(ach);
+        }
+      }
+      // Add expansion CD shop items
+      for (const item of Expansion.EXPANSION_CD_SHOP) {
+        if (!CD_SHOP.find(i => i.id === item.id)) {
+          CD_SHOP.push(item);
+        }
+      }
+      // Add expansion log entries
+      for (const log of Expansion.EXPANSION_LOG) {
+        if (!CAPTAINS_LOG.find(l => l.id === log.id)) {
+          CAPTAINS_LOG.push(log);
+        }
+      }
+    }
+  }
+
   return {
     PHASES, ROCKET_PARTS, GENERATORS, UPGRADES, CD_SHOP, RESEARCH,
     ACHIEVEMENTS, CAPTAINS_LOG, EVENTS, DAILY_REWARDS, STAR_SYSTEM_TYPES,
-    UNIVERSES, IT_SHOP, ASTRONAUT_NAMES, CREW_TIERS, getTotalGenerators
+    UNIVERSES, IT_SHOP, ASTRONAUT_NAMES, CREW_TIERS, getTotalGenerators,
+    mergeExpansionData
   };
 })();

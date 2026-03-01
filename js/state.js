@@ -3,7 +3,7 @@
 
 const GameState = (() => {
   const SAVE_KEY = 'deepSpaceInc_save';
-  const VERSION = '1.0.0';
+  const VERSION = '2.0.0';
 
   function createDefaultState() {
     return {
@@ -143,6 +143,115 @@ const GameState = (() => {
         fastestPhaseReach: {},
         lastTapTime: 0,
         noTapDuration: 0
+      },
+
+      // ===== EXPANSION v2.0 FIELDS =====
+
+      // Combo System
+      combo: {
+        current: 0,
+        bestThisSession: 0,
+        bestAllTime: 0,
+        lastTapTimestamp: 0
+      },
+
+      // Critical Taps
+      criticalTaps: {
+        chance: 0.02,
+        multiplier: 10,
+        superChance: 0.001,
+        superMultiplier: 100,
+        totalCriticals: 0,
+        totalSuperCriticals: 0
+      },
+
+      // Lucky Drops
+      luckyDrops: {
+        totalCaught: 0,
+        totalMissed: 0,
+        lastDropTimestamp: 0,
+        cosmicFragmentsCaught: 0,
+        nextDropIn: 30 + Math.random() * 60
+      },
+
+      // Generator Milestones
+      generatorMilestones: {},
+
+      // Synergies
+      synergies: {
+        unlocked: []
+      },
+
+      // Upgrade Tiers
+      upgradeTiers: {},
+
+      // Collection Album
+      collection: {
+        items: {},
+        setsCompleted: []
+      },
+
+      // Contracts
+      contracts: {
+        active: [],
+        completed: 0,
+        lastRefresh: 0,
+        lastGenerated: 0
+      },
+
+      // Boosters
+      boosters: {
+        inventory: [],
+        active: [],
+        totalUsed: 0
+      },
+
+      // Eggs
+      eggs: {
+        slots: [null, null, null],
+        maxSlots: 3,
+        totalHatched: 0
+      },
+
+      // Weather
+      weather: {
+        current: 'default',
+        lastChange: 0,
+        nextChangeIn: 600 + Math.random() * 1200
+      },
+
+      // Streaks
+      streaks: {
+        purchaseStreak: 0,
+        lastPurchaseTimestamp: 0,
+        idleStreakStartTimestamp: Date.now(),
+        idleStreakBonus: 0
+      },
+
+      // Rocket Skin
+      rocket: {
+        currentSkin: 'default',
+        unlockedSkins: ['default'],
+        paintColor: null
+      },
+
+      // Titles
+      titles: {
+        current: 'Captain',
+        unlocked: ['Captain']
+      },
+
+      // Golden Rush
+      goldenRush: {
+        active: false,
+        generatorId: null,
+        endTime: 0,
+        nextRushIn: 600 + Math.random() * 600
+      },
+
+      // Flying Bonus
+      flyingBonus: {
+        nextIn: 300 + Math.random() * 600
       }
     };
   }
@@ -179,6 +288,21 @@ const GameState = (() => {
         state.dailyReward = Object.assign(createDefaultState().dailyReward, saved.dailyReward || {});
         state.settings = Object.assign(createDefaultState().settings, saved.settings || {});
         state.stats = Object.assign(createDefaultState().stats, saved.stats || {});
+        // Expansion v2.0 nested merges
+        state.combo = Object.assign(createDefaultState().combo, saved.combo || {});
+        state.criticalTaps = Object.assign(createDefaultState().criticalTaps, saved.criticalTaps || {});
+        state.luckyDrops = Object.assign(createDefaultState().luckyDrops, saved.luckyDrops || {});
+        state.synergies = Object.assign(createDefaultState().synergies, saved.synergies || {});
+        state.collection = Object.assign(createDefaultState().collection, saved.collection || {});
+        state.contracts = Object.assign(createDefaultState().contracts, saved.contracts || {});
+        state.boosters = Object.assign(createDefaultState().boosters, saved.boosters || {});
+        state.eggs = Object.assign(createDefaultState().eggs, saved.eggs || {});
+        state.weather = Object.assign(createDefaultState().weather, saved.weather || {});
+        state.streaks = Object.assign(createDefaultState().streaks, saved.streaks || {});
+        state.rocket = Object.assign(createDefaultState().rocket, saved.rocket || {});
+        state.titles = Object.assign(createDefaultState().titles, saved.titles || {});
+        state.goldenRush = Object.assign(createDefaultState().goldenRush, saved.goldenRush || {});
+        state.flyingBonus = Object.assign(createDefaultState().flyingBonus, saved.flyingBonus || {});
         return true;
       }
     } catch (e) {
@@ -280,7 +404,12 @@ const GameState = (() => {
       settings: state.settings,
       stats: state.stats,
       multiverse: state.multiverse,
-      tutorialComplete: true
+      tutorialComplete: true,
+      // Expansion v2.0 permanent data
+      rocket: state.rocket,
+      titles: state.titles,
+      collection: state.cdShopPurchased['cd_collection'] ? state.collection : { items: {}, setsCompleted: [] },
+      combo: { current: 0, bestThisSession: 0, bestAllTime: state.combo.bestAllTime, lastTapTimestamp: 0 }
     };
 
     permanent.stats.totalGeneratorsEverPurchased = state.stats.totalGeneratorsEverPurchased;

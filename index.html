@@ -23,12 +23,34 @@
       <canvas id="scene-canvas"></canvas>
       <div id="rocket-assembly"></div>
       <div id="floating-numbers"></div>
+      <!-- Combo Counter -->
+      <div id="combo-display" class="hidden">
+        <div id="combo-count"></div>
+        <div id="combo-label"></div>
+        <div id="combo-mult"></div>
+      </div>
+      <!-- Weather Indicator -->
+      <div id="weather-indicator" class="hidden">
+        <span id="weather-name"></span>
+      </div>
+      <!-- Lucky Drop -->
+      <div id="lucky-drop" class="hidden"></div>
+      <!-- Golden Rush Banner -->
+      <div id="golden-rush-banner" class="hidden">
+        <span id="golden-rush-text">GOLDEN RUSH!</span>
+      </div>
       <!-- Tap Button -->
       <button id="tap-btn">
         <span id="tap-icon">&#128295;</span>
         <span id="tap-label">SCAVENGE</span>
         <span id="auto-tap-badge" class="hidden">AUTO</span>
       </button>
+    </div>
+
+    <!-- Next Unlock Teaser -->
+    <div id="next-unlock-bar" class="hidden">
+      <div id="next-unlock-info"></div>
+      <div id="next-unlock-progress-outer"><div id="next-unlock-progress-inner"></div></div>
     </div>
 
     <!-- Main Content Area -->
@@ -49,6 +71,10 @@
         <div id="panel-crew" class="tab-panel"></div>
         <div id="panel-fleet" class="tab-panel"></div>
         <div id="panel-research" class="tab-panel"></div>
+        <div id="panel-collection" class="tab-panel"></div>
+        <div id="panel-contracts" class="tab-panel"></div>
+        <div id="panel-boosters" class="tab-panel"></div>
+        <div id="panel-eggs" class="tab-panel"></div>
         <div id="panel-log" class="tab-panel"></div>
         <div id="panel-stats" class="tab-panel"></div>
         <div id="panel-prestige" class="tab-panel"></div>
@@ -69,6 +95,10 @@
       <button class="tab-btn hidden" data-tab="research" data-label="Research">&#128300;</button>
       <button class="tab-btn hidden" data-tab="log" data-label="Log">&#128214;</button>
       <button class="tab-btn hidden" data-tab="prestige" data-label="Prestige">&#9733;</button>
+      <button class="tab-btn hidden" data-tab="collection" data-label="Album">&#128218;</button>
+      <button class="tab-btn hidden" data-tab="contracts" data-label="Contracts">&#128203;</button>
+      <button class="tab-btn hidden" data-tab="boosters" data-label="Boosters">&#9889;</button>
+      <button class="tab-btn hidden" data-tab="eggs" data-label="Eggs">&#129370;</button>
       <button class="tab-btn" data-tab="settings" data-label="Settings">&#9881;&#65039;</button>
     </div>
 
@@ -96,6 +126,7 @@
   <script src="js/numbers.js"></script>
   <script src="js/data.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/expansion.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/scene.js"></script>
