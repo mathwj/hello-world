@@ -130,7 +130,8 @@ const Engine = (() => {
           ioEff = s.ioEfficiency[gen.id];
         }
 
-        const totalMult = genMult * phaseMult * cdMult * callistoMult * ioEff;
+        const crewMult = 1 + getCrewBonus();
+        const totalMult = genMult * phaseMult * cdMult * callistoMult * ioEff * crewMult;
 
         if (gen.output.credits) totalCredits += count * gen.output.credits * totalMult * s.globalCreditMultiplier * s.eventCreditMultiplier;
         if (gen.output.rp) totalRP += count * gen.output.rp * totalMult * s.globalRPMultiplier * s.eventRPMultiplier;
