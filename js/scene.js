@@ -9,6 +9,95 @@ const SceneRenderer = (() => {
   let stars = [];
   let time = 0;
 
+  // ===== Section 70: Scene Illustration System =====
+  // Per-phase layer specs and art direction
+
+  // Section 78: Shared particle engine
+  const AMBIENT_CONFIGS = {
+    1: { type: 'dust', count: 8, color: 'rgba(210, 180, 140, 0.35)', speed: 0.3, size: [1, 3], drift: true },
+    2: { type: 'debris', count: 6, color: 'rgba(150, 180, 220, 0.3)', speed: 0.2, size: [1, 2], drift: false },
+    3: { type: 'moondust', count: 5, color: 'rgba(180, 180, 200, 0.25)', speed: 0.15, size: [0.5, 2], drift: true },
+    4: { type: 'sandstorm', count: 12, color: 'rgba(193, 68, 14, 0.3)', speed: 0.5, size: [1, 3], drift: true },
+    5: { type: 'ice', count: 10, color: 'rgba(200, 200, 255, 0.3)', speed: 0.4, size: [1, 2.5], drift: false },
+    6: { type: 'gas', count: 8, color: 'rgba(232, 160, 76, 0.2)', speed: 0.25, size: [2, 5], drift: true },
+    7: { type: 'stardust', count: 15, color: 'rgba(80, 200, 120, 0.3)', speed: 0.3, size: [0.5, 2], drift: false },
+    8: { type: 'cosmic', count: 20, color: 'rgba(200, 200, 255, 0.25)', speed: 0.15, size: [0.5, 1.5], drift: false },
+    9: { type: 'rift', count: 25, color: 'rgba(255, 215, 0, 0.2)', speed: 0.4, size: [1, 3], drift: true }
+  };
+
+  let ambientParticles = [];
+  let parallaxOffset = { x: 0, y: 0 };
+  let targetParallax = { x: 0, y: 0 };
+
+  // Parallax tilt tracking
+  function initParallax() {
+    if (window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.gamma !== null && e.beta !== null) {
+          targetParallax.x = (e.gamma / 45) * 8; // ±8px
+          targetParallax.y = ((e.beta - 45) / 45) * 6; // ±6px
+        }
+      }, { passive: true });
+    }
+    // Mouse fallback for desktop
+    document.addEventListener('mousemove', (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      targetParallax.x = ((e.clientX - cx) / cx) * 6;
+      targetParallax.y = ((e.clientY - cy) / cy) * 4;
+    }, { passive: true });
+  }
+
+  function updateParallax() {
+    parallaxOffset.x += (targetParallax.x - parallaxOffset.x) * 0.05;
+    parallaxOffset.y += (targetParallax.y - parallaxOffset.y) * 0.05;
+  }
+
+  // Initialize ambient particles for current phase
+  function generateAmbientParticles() {
+    const config = AMBIENT_CONFIGS[currentPhase];
+    if (!config) return;
+    ambientParticles = [];
+    for (let i = 0; i < config.count; i++) {
+      ambientParticles.push({
+        x: Math.random(),
+        y: Math.random(),
+        size: config.size[0] + Math.random() * (config.size[1] - config.size[0]),
+        speed: config.speed * (0.5 + Math.random() * 0.5),
+        angle: Math.random() * Math.PI * 2,
+        drift: config.drift ? (Math.random() - 0.5) * 0.5 : 0,
+        alpha: 0.3 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function drawAmbientParticles(w, h) {
+    const config = AMBIENT_CONFIGS[currentPhase];
+    if (!config || ambientParticles.length === 0) return;
+
+    for (const p of ambientParticles) {
+      // Move particle
+      p.x += (Math.cos(p.angle) * p.speed + p.drift * Math.sin(time * 0.5 + p.phase)) * 0.001;
+      p.y += (Math.sin(p.angle) * p.speed) * 0.001;
+
+      // Wrap around
+      if (p.x < -0.05) p.x = 1.05;
+      if (p.x > 1.05) p.x = -0.05;
+      if (p.y < -0.05) p.y = 1.05;
+      if (p.y > 1.05) p.y = -0.05;
+
+      // Twinkle
+      const twinkle = 0.5 + Math.sin(time * 2 + p.phase) * 0.5;
+      const alpha = p.alpha * twinkle;
+
+      ctx.fillStyle = config.color.replace(/[\d.]+\)$/, alpha.toFixed(2) + ')');
+      ctx.beginPath();
+      ctx.arc(p.x * w, p.y * h, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function init() {
     canvas = document.getElementById('scene-canvas');
     if (!canvas) return;
@@ -16,6 +105,8 @@ const SceneRenderer = (() => {
     resize();
     window.addEventListener('resize', resize);
     generateStars();
+    generateAmbientParticles();
+    initParallax();
     animate();
   }
 
@@ -29,6 +120,7 @@ const SceneRenderer = (() => {
   function setPhase(phase) {
     currentPhase = phase;
     generateStars();
+    generateAmbientParticles();
   }
 
   function generateStars() {
@@ -46,6 +138,7 @@ const SceneRenderer = (() => {
 
   function animate() {
     time += 0.016;
+    updateParallax();
     draw();
     animFrame = requestAnimationFrame(animate);
   }
@@ -54,6 +147,10 @@ const SceneRenderer = (() => {
     if (!ctx || !canvas.width) return;
     const w = canvas.width;
     const h = canvas.height;
+
+    // Apply parallax transform to canvas context
+    ctx.save();
+    ctx.translate(parallaxOffset.x * 0.5, parallaxOffset.y * 0.5);
 
     switch (currentPhase) {
       case 1: drawJunkyard(w, h); break;
@@ -68,6 +165,12 @@ const SceneRenderer = (() => {
       default: drawJunkyard(w, h);
     }
 
+    ctx.restore();
+
+    // Ambient particles (above scene, no parallax)
+    drawAmbientParticles(w, h);
+
+    // Tap-burst and effect particles
     drawParticles(w, h);
   }
 
@@ -658,5 +761,171 @@ const SceneRenderer = (() => {
     return `rgb(${r},${g},${b})`;
   }
 
-  return { init, setPhase, addParticleBurst, resize };
+  // ===== Section 70: Enhanced scene details =====
+
+  // Draw nebula clouds for interstellar/galaxy phases
+  function drawNebula(cx, cy, radius, hue, alpha) {
+    const nebulaGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    nebulaGrad.addColorStop(0, `hsla(${hue}, 60%, 40%, ${alpha})`);
+    nebulaGrad.addColorStop(0.5, `hsla(${hue}, 50%, 30%, ${alpha * 0.5})`);
+    nebulaGrad.addColorStop(1, `hsla(${hue}, 40%, 20%, 0)`);
+    ctx.fillStyle = nebulaGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Aurora effect for orbit/interstellar
+  function drawAurora(w, h, baseY, hue1, hue2) {
+    ctx.globalAlpha = 0.12;
+    for (let i = 0; i < 5; i++) {
+      const y = baseY + Math.sin(time * 0.3 + i * 0.8) * 15;
+      const grad = ctx.createLinearGradient(0, y - 20, 0, y + 20);
+      const h = hue1 + (hue2 - hue1) * (i / 5);
+      grad.addColorStop(0, `hsla(${h}, 80%, 60%, 0)`);
+      grad.addColorStop(0.5, `hsla(${h}, 80%, 60%, 0.6)`);
+      grad.addColorStop(1, `hsla(${h}, 80%, 60%, 0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, y - 20, w, 40);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Constellation pattern for deep space phases
+  function drawConstellations(w, h) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < stars.length - 1; i += 3) {
+      const s1 = stars[i];
+      const s2 = stars[i + 1];
+      if (!s1 || !s2) continue;
+      const dx = (s1.x - s2.x) * w;
+      const dy = (s1.y - s2.y) * h;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 80) {
+        ctx.beginPath();
+        ctx.moveTo(s1.x * w, s1.y * h);
+        ctx.lineTo(s2.x * w, s2.y * h);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Shooting star / meteor trail
+  let shootingStar = null;
+  let shootingStarTimer = 10 + Math.random() * 20;
+
+  function updateShootingStar(w, h) {
+    shootingStarTimer -= 0.016;
+    if (shootingStarTimer <= 0 && !shootingStar) {
+      shootingStar = {
+        x: Math.random() * w * 0.8,
+        y: Math.random() * h * 0.3,
+        vx: 4 + Math.random() * 3,
+        vy: 2 + Math.random() * 2,
+        life: 0.5 + Math.random() * 0.3,
+        maxLife: 0.8
+      };
+      shootingStarTimer = 15 + Math.random() * 30;
+    }
+    if (shootingStar) {
+      shootingStar.x += shootingStar.vx;
+      shootingStar.y += shootingStar.vy;
+      shootingStar.life -= 0.016;
+      if (shootingStar.life <= 0) {
+        shootingStar = null;
+        return;
+      }
+      const alpha = shootingStar.life / shootingStar.maxLife;
+      const tailLen = 20 + (1 - alpha) * 30;
+      const grad = ctx.createLinearGradient(
+        shootingStar.x, shootingStar.y,
+        shootingStar.x - shootingStar.vx * tailLen * 0.3,
+        shootingStar.y - shootingStar.vy * tailLen * 0.3
+      );
+      grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(shootingStar.x, shootingStar.y);
+      ctx.lineTo(
+        shootingStar.x - shootingStar.vx * tailLen * 0.3,
+        shootingStar.y - shootingStar.vy * tailLen * 0.3
+      );
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(shootingStar.x, shootingStar.y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Foreground depth elements — scattered small objects at bottom
+  function drawForegroundDebris(w, h, count, color) {
+    ctx.fillStyle = color;
+    for (let i = 0; i < count; i++) {
+      const x = (i / count) * w + Math.sin(time * 0.1 + i) * 3;
+      const y = h - 5 - Math.random() * 10;
+      const s = 1 + Math.random() * 2;
+      ctx.beginPath();
+      ctx.arc(x, y, s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Lens flare effect
+  function drawLensFlare(x, y, radius) {
+    const flareGrad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    flareGrad.addColorStop(0, 'rgba(255, 255, 220, 0.2)');
+    flareGrad.addColorStop(0.3, 'rgba(255, 255, 220, 0.08)');
+    flareGrad.addColorStop(1, 'rgba(255, 255, 220, 0)');
+    ctx.fillStyle = flareGrad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Small secondary flares
+    for (let i = 1; i <= 3; i++) {
+      const fx = x + (canvas.width / 2 - x) * i * 0.3;
+      const fy = y + (canvas.height / 2 - y) * i * 0.3;
+      const fr = radius * (0.3 - i * 0.06);
+      ctx.fillStyle = `rgba(255, 255, 220, ${0.06 - i * 0.015})`;
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Tap burst (called from outside)
+  function triggerTapBurst(x, y, tier) {
+    const count = tier === 3 ? 20 : tier === 2 ? 12 : 6;
+    const colors = {
+      1: ['#FFD700'],
+      2: ['#FFD700', '#FF6B35'],
+      3: ['#FFD700', '#FF6B35', '#FF00FF', '#00FFFF']
+    };
+    const palette = colors[tier] || colors[1];
+
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+      const speed = (2 + Math.random() * 4) * (tier === 3 ? 1.5 : 1);
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        r, g, b,
+        size: 2 + Math.random() * 3 * (tier === 3 ? 1.5 : 1),
+        life: 0.4 + Math.random() * 0.3,
+        maxLife: 0.7
+      });
+    }
+  }
+
+  return { init, setPhase, addParticleBurst, triggerTapBurst, resize };
 })();

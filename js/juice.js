@@ -822,6 +822,278 @@ const Juice = (() => {
     }
   };
 
+  // ==================== Section 87: CELEBRATION SYSTEM (5 Tiers) ====================
+  const Celebrations = {
+    // Tier 1: Micro — small pop, no overlay (generator purchase)
+    // Tier 2: Minor — medium confetti, brief text (upgrade purchase)
+    // Tier 3: Standard — full confetti, banner text (milestone, achievement)
+    // Tier 4: Major — heavy confetti, screen shake, text (phase unlock)
+    // Tier 5: Epic — full screen, multi-burst, extended (prestige, set complete)
+
+    TIERS: {
+      1: { confettiCount: 0, shakeIntensity: 0, shakeDuration: 0, flashOpacity: 0, soundLevel: 'light', showOverlay: false, duration: 0 },
+      2: { confettiCount: 15, shakeIntensity: 1, shakeDuration: 100, flashOpacity: 0.02, soundLevel: 'medium', showOverlay: false, duration: 0 },
+      3: { confettiCount: 40, shakeIntensity: 2, shakeDuration: 200, flashOpacity: 0.05, soundLevel: 'success', showOverlay: true, duration: 2000 },
+      4: { confettiCount: 60, shakeIntensity: 4, shakeDuration: 400, flashOpacity: 0.1, soundLevel: 'achievement', showOverlay: true, duration: 3000 },
+      5: { confettiCount: 100, shakeIntensity: 6, shakeDuration: 600, flashOpacity: 0.15, soundLevel: 'prestige', showOverlay: true, duration: 4000 }
+    },
+
+    play(tier, opts = {}) {
+      const config = this.TIERS[tier] || this.TIERS[1];
+
+      // Haptic feedback
+      if (tier >= 2) Haptics.medium();
+      if (tier >= 4) Haptics.heavy();
+      if (tier === 5) Haptics.prestige();
+
+      // Screen shake
+      if (config.shakeIntensity > 0) {
+        ScreenShake.trigger(config.shakeIntensity, config.shakeDuration);
+      }
+
+      // Screen flash
+      if (config.flashOpacity > 0) {
+        ScreenFlash.trigger(config.flashOpacity, config.shakeDuration);
+      }
+
+      // Confetti
+      if (config.confettiCount > 0) {
+        const colors = opts.colors || ['#FFD700', '#FF6B35', '#4A90D9', '#27AE60', '#9B59B6'];
+        Confetti.burst(config.confettiCount, colors, opts.x, opts.y);
+        // Extra bursts for higher tiers
+        if (tier >= 4) {
+          setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.6), colors), 300);
+        }
+        if (tier === 5) {
+          setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.4), colors), 600);
+          setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.3), colors), 900);
+        }
+      }
+
+      // Celebration overlay
+      if (config.showOverlay && opts.title) {
+        this.showOverlay(tier, opts.icon || '', opts.title || '', opts.subtitle || '', config.duration);
+      }
+
+      // Scene tap burst for tiers 1-2
+      if (tier <= 2 && opts.x !== undefined && typeof SceneRenderer !== 'undefined') {
+        SceneRenderer.triggerTapBurst(opts.x, opts.y, tier);
+      }
+    },
+
+    showOverlay(tier, icon, title, subtitle, duration) {
+      const overlay = document.getElementById('celebration-overlay');
+      const content = document.getElementById('celebration-content');
+      const iconEl = document.getElementById('celebration-icon');
+      const titleEl = document.getElementById('celebration-title');
+      const subtitleEl = document.getElementById('celebration-subtitle');
+
+      if (!overlay || !content) return;
+
+      // Set tier class
+      overlay.className = 'celebration-tier-' + tier;
+      iconEl.textContent = icon;
+      titleEl.textContent = title;
+      subtitleEl.textContent = subtitle;
+
+      content.classList.remove('hidden');
+      overlay.classList.remove('hidden');
+
+      // Auto-dismiss
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        content.classList.add('hidden');
+      }, duration || 2000);
+    }
+  };
+
+  // ==================== Section 87: Confetti Physics Enhancement ====================
+  // Improved confetti with wind, turbulence, and drag
+  const ConfettiPhysics = {
+    gravity: 0.12,
+    drag: 0.98,
+    windX: 0,
+    turbulence: 0.3,
+
+    applyPhysics(p) {
+      // Air resistance
+      p.vx *= this.drag;
+      p.vy *= this.drag;
+      // Gravity
+      p.vy += this.gravity;
+      // Wind
+      p.vx += this.windX * 0.01;
+      // Turbulence
+      p.vx += (Math.random() - 0.5) * this.turbulence;
+      // 3D tumbling via rotation speed
+      p.rotation += p.rotSpeed;
+    }
+  };
+
+  // ==================== Section 88: Micro-Interaction Helpers ====================
+  const MicroInteractions = {
+    // Purchase ripple on generator row
+    purchaseRipple(element) {
+      if (!element) return;
+      element.classList.add('purchase-ripple');
+      setTimeout(() => element.classList.remove('purchase-ripple'), 400);
+    },
+
+    // Count pop on number elements
+    countPop(element) {
+      if (!element) return;
+      element.classList.add('count-pop');
+      setTimeout(() => element.classList.remove('count-pop'), 150);
+    },
+
+    // Affordability glow when item becomes purchasable
+    newlyAffordable(element) {
+      if (!element || element.dataset.wasAffordable === 'true') return;
+      element.classList.add('newly-affordable');
+      element.dataset.wasAffordable = 'true';
+      setTimeout(() => element.classList.remove('newly-affordable'), 300);
+    },
+
+    // Progress bar completion flash
+    progressComplete(element) {
+      if (!element) return;
+      element.classList.add('progress-complete');
+      setTimeout(() => element.classList.remove('progress-complete'), 500);
+    },
+
+    // Milestone badge stamp animation
+    milestoneStamp(element) {
+      if (!element) return;
+      element.classList.add('milestone-stamp');
+      setTimeout(() => element.classList.remove('milestone-stamp'), 500);
+    },
+
+    // Tap burst on tap button
+    tapBurst(tapBtn) {
+      if (!tapBtn) return;
+      const rect = tapBtn.getBoundingClientRect();
+      const ring = document.createElement('div');
+      ring.className = 'tap-burst-ring';
+      ring.style.left = (rect.left + rect.width / 2) + 'px';
+      ring.style.top = (rect.top + rect.height / 2) + 'px';
+      document.body.appendChild(ring);
+      setTimeout(() => ring.remove(), 400);
+    },
+
+    // Tab badge notification dot
+    showTabBadge(tabName) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+      if (!btn || btn.querySelector('.tab-badge-dot')) return;
+      const dot = document.createElement('span');
+      dot.className = 'tab-badge-dot';
+      dot.style.cssText = 'position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:#E74C3C;';
+      btn.style.position = 'relative';
+      btn.appendChild(dot);
+    },
+
+    // Remove tab badge
+    clearTabBadge(tabName) {
+      const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+      if (!btn) return;
+      const dot = btn.querySelector('.tab-badge-dot');
+      if (dot) dot.remove();
+    },
+
+    // Booster activation pulse
+    boosterActivate(element) {
+      if (!element) return;
+      element.classList.add('booster-activate');
+      setTimeout(() => element.classList.remove('booster-activate'), 600);
+    },
+
+    // Save indicator flash
+    showSaveIndicator() {
+      let indicator = document.querySelector('.save-indicator');
+      if (indicator) indicator.remove();
+      indicator = document.createElement('div');
+      indicator.className = 'save-indicator';
+      indicator.textContent = 'SAVED';
+      document.body.appendChild(indicator);
+      setTimeout(() => indicator.remove(), 1200);
+    }
+  };
+
+  // ==================== Section 75: Toast Queue System ====================
+  const ToastQueue = {
+    queue: [],
+    displaying: false,
+    maxVisible: 1,
+    defaultDuration: 3000,
+
+    // Toast types: success, warning, error, info, achievement, milestone, rare
+    add(type, title, desc, opts = {}) {
+      const toast = {
+        type: type || 'info',
+        title: title || '',
+        desc: desc || '',
+        icon: opts.icon || this._defaultIcon(type),
+        duration: opts.duration || this.defaultDuration,
+        timestamp: Date.now()
+      };
+      this.queue.push(toast);
+      if (!this.displaying) this._showNext();
+    },
+
+    _defaultIcon(type) {
+      const icons = {
+        success: '\u2705',
+        warning: '\u26A0\uFE0F',
+        error: '\u274C',
+        info: '\u2139\uFE0F',
+        achievement: '\uD83C\uDFC6',
+        milestone: '\u2B50',
+        rare: '\uD83D\uDC8E'
+      };
+      return icons[type] || '\u2139\uFE0F';
+    },
+
+    _showNext() {
+      if (this.queue.length === 0) {
+        this.displaying = false;
+        return;
+      }
+      this.displaying = true;
+      const toast = this.queue.shift();
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const el = document.createElement('div');
+      el.className = 'toast-item toast-' + toast.type;
+      el.style.setProperty('--toast-duration', toast.duration + 'ms');
+      el.innerHTML =
+        '<span class="toast-icon">' + toast.icon + '</span>' +
+        '<div class="toast-text">' +
+          '<div class="toast-title">' + toast.title + '</div>' +
+          (toast.desc ? '<div class="toast-desc">' + toast.desc + '</div>' : '') +
+        '</div>' +
+        '<div class="toast-progress"></div>';
+
+      container.appendChild(el);
+
+      // Auto-dismiss
+      setTimeout(() => {
+        el.classList.add('exiting');
+        setTimeout(() => {
+          el.remove();
+          this._showNext();
+        }, 250);
+      }, toast.duration);
+    },
+
+    // Clear all pending toasts
+    clear() {
+      this.queue = [];
+      const container = document.getElementById('toast-container');
+      if (container) container.innerHTML = '';
+      this.displaying = false;
+    }
+  };
+
   // ==================== INIT ====================
   function init() {
     Confetti.init();
@@ -860,6 +1132,7 @@ const Juice = (() => {
     EggHatchAnim, ContractAnim, ChallengeAnim, ComboFlame,
     WeatherOverlay, PrestigeBigBang, GoldenRushGlow,
     LuckyDropAnim, SynergyFlash,
+    Celebrations, ConfettiPhysics, MicroInteractions, ToastQueue,
     update, init
   };
 })();

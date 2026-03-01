@@ -1148,6 +1148,122 @@ const Engine = (() => {
     if (typeof Juice !== 'undefined' && Juice.PrestigeBigBang) Juice.PrestigeBigBang.play();
   }
 
+  // ===== Section 90: Performance Budget =====
+  // Frame budget: 16.67ms (60fps target)
+  // Rendering rules enforced here and in CSS
+
+  const PerformanceBudget = {
+    MAX_GENERATORS_PER_FRAME: 50,
+    MAX_PARTICLES: 200,
+    MAX_DOM_UPDATES_PER_TICK: 20,
+    VIRTUAL_SCROLL_THRESHOLD: 100,
+    BATCH_SIZE: 10,
+
+    // Rule 1: Canvas operations batched by type
+    // Rule 2: DOM reads separated from writes (handled in UI.updateTick)
+    // Rule 3: will-change applied to animated elements (handled in CSS)
+    // Rule 4: contain: layout style on repeating elements (handled in CSS)
+    // Rule 5: backdrop-filter stripped on low-end (perf-reduced class in CSS)
+    // Rule 6: Particle count capped per phase
+    // Rule 7: Off-screen elements not updated
+    // Rule 8: requestAnimationFrame for visual updates only
+    // Rule 9: setTimeout for non-visual game logic
+    // Rule 10: Save operations are async-safe
+
+    shouldReduceParticles() {
+      return typeof Game !== 'undefined' && Game.PerfMonitor && Game.PerfMonitor.isReduced();
+    },
+
+    getParticleLimit() {
+      return this.shouldReduceParticles() ? 50 : this.MAX_PARTICLES;
+    }
+  };
+
+  // ===== Section 84: Error State Handling in Engine =====
+
+  const EngineErrorHandler = {
+    saveRetryCount: 0,
+    maxSaveRetries: 3,
+
+    // Handle save failures with retries
+    handleSaveFailure(error) {
+      this.saveRetryCount++;
+      console.error('Save failed (attempt ' + this.saveRetryCount + '):', error);
+
+      if (this.saveRetryCount <= this.maxSaveRetries) {
+        // Retry after a brief delay
+        setTimeout(() => {
+          try {
+            GameState.save();
+            this.saveRetryCount = 0;
+            console.log('Save recovered on retry');
+          } catch (e) {
+            this.handleSaveFailure(e);
+          }
+        }, 1000 * this.saveRetryCount);
+      } else {
+        // Give up — notify user
+        if (typeof UI !== 'undefined' && UI.showSaveError) {
+          UI.showSaveError();
+        }
+        this.saveRetryCount = 0;
+      }
+    },
+
+    // Sanitize numeric values to prevent NaN/Infinity propagation
+    sanitizeState(s) {
+      const numericKeys = ['credits', 'researchPoints', 'lunarOre', 'rareMinerals',
+        'alienSignals', 'stardust', 'cosmicDust', 'infinityTokens',
+        'creditsPerSecond', 'rpPerSecond', 'orePerSecond', 'rmPerSecond', 'sdPerSecond',
+        'creditsPerTap', 'totalTaps', 'creditsAllTimeEarned', 'creditsThisRunEarned',
+        'globalCreditMultiplier', 'globalRPMultiplier', 'tapMultiplier'];
+
+      for (const key of numericKeys) {
+        if (typeof s[key] === 'number' && (isNaN(s[key]) || !isFinite(s[key]))) {
+          s[key] = 0;
+          console.warn('Sanitized NaN/Infinity in state.' + key);
+        }
+      }
+
+      // Ensure multipliers are at least 1
+      if (s.globalCreditMultiplier < 1) s.globalCreditMultiplier = 1;
+      if (s.globalRPMultiplier < 1) s.globalRPMultiplier = 1;
+      if (s.tapMultiplier < 1) s.tapMultiplier = 1;
+      if (s.cosmicDustMultiplier < 1) s.cosmicDustMultiplier = 1;
+    },
+
+    // Offline earnings cap (Section 84)
+    capOfflineEarnings(earnings, s) {
+      // Cap at 24 hours
+      if (earnings.time > 86400) {
+        earnings.time = 86400;
+        if (typeof UI !== 'undefined' && UI.showOfflineCapWarning) {
+          setTimeout(() => UI.showOfflineCapWarning(), 2000);
+        }
+      }
+
+      // Cap individual currencies to prevent overflow
+      const maxCap = 1e50;
+      if (earnings.credits > maxCap) earnings.credits = maxCap;
+      if (earnings.rp > maxCap) earnings.rp = maxCap;
+      if (earnings.ore > maxCap) earnings.ore = maxCap;
+      if (earnings.rm > maxCap) earnings.rm = maxCap;
+      if (earnings.sd > maxCap) earnings.sd = maxCap;
+
+      return earnings;
+    }
+  };
+
+  // Hook sanitization into tick
+  const _originalTick = tick;
+  tick = function() {
+    _originalTick();
+    // Performance frame recording
+    if (typeof Game !== 'undefined' && Game.PerfMonitor) {
+      Game.PerfMonitor.recordFrame();
+    }
+  };
+
   return {
     start, stop, resetSaveInterval, tick, doTap, buyGenerator, buyRocketPart, launchRocket,
     buyUpgrade, buyResearch, buyCDShopItem, hireCrew, upgradeCrewMember,
@@ -1155,6 +1271,7 @@ const Engine = (() => {
     claimDailyReward, calculateRates, unlockAchievement, addLogEntry,
     getActiveGeneratorKeysForPhase, findGenerator, getStarSystemCost,
     trackMiniGameResult, trackChallengeComplete, onContractComplete,
-    onCollectionUnlock, onPhaseTransition, onPrestige
+    onCollectionUnlock, onPhaseTransition, onPrestige,
+    PerformanceBudget, EngineErrorHandler
   };
 })();

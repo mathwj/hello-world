@@ -150,7 +150,20 @@ const GameState = (() => {
         particleEffects: true,
         screenShake: true,
         confirmPrestige: true,
-        autoSaveInterval: 30
+        autoSaveInterval: 30,
+        // Section 80: Theme system
+        theme: 'default',
+        purchasedThemes: ['default'],
+        // Section 85: Accessibility settings
+        reducedMotion: false,
+        highContrast: false,
+        colorblindMode: 'none', // 'none', 'protanopia', 'deuteranopia', 'tritanopia'
+        largeText: false,
+        screenReaderAnnouncements: true,
+        hapticFeedback: true,
+        // Section 90: Performance
+        targetFps: 60,
+        lowPowerMode: false
       },
 
       // Stats tracking

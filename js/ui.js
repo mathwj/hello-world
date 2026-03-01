@@ -2192,6 +2192,323 @@ const UI = (() => {
     it: 'IT'
   };
 
+  // ===== Section 72: Tab Transition System =====
+
+  let lastTabIndex = 0;
+
+  const TAB_ORDER = ['generators', 'upgrades', 'zones', 'achievements', 'stats',
+    'crew', 'fleet', 'research', 'log', 'prestige', 'collection',
+    'contracts', 'boosters', 'synergies', 'skins', 'eggs', 'settings'];
+
+  function getTabIndex(tab) {
+    const idx = TAB_ORDER.indexOf(tab);
+    return idx >= 0 ? idx : 0;
+  }
+
+  function animateTabTransition(fromTab, toTab) {
+    const toIdx = getTabIndex(toTab);
+    const fromIdx = getTabIndex(fromTab);
+    const panel = document.getElementById('panel-' + toTab);
+    if (!panel) return;
+
+    // Determine direction
+    const direction = toIdx > fromIdx ? 'right' : 'left';
+    panel.classList.remove('entering-left', 'entering-right');
+
+    // Force reflow to restart animation
+    void panel.offsetWidth;
+    panel.classList.add(direction === 'right' ? 'entering-right' : 'entering-left');
+
+    // Clean up animation class after it finishes
+    setTimeout(() => {
+      panel.classList.remove('entering-left', 'entering-right');
+    }, 350);
+
+    lastTabIndex = toIdx;
+  }
+
+  // ===== Section 72: Enhanced switchTab with transitions and aria =====
+  const _originalSwitchTab = switchTab;
+
+  // Override switchTab to add transitions
+  switchTab = function(tab) {
+    const prevTab = currentTab;
+
+    // Update aria-selected on tab buttons
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+    });
+
+    // Update buy toggle aria
+    const buyBtns = document.querySelectorAll('.buy-amt');
+    buyBtns.forEach(b => {
+      b.setAttribute('aria-checked', b.classList.contains('active') ? 'true' : 'false');
+    });
+
+    _originalSwitchTab(tab);
+
+    // Animate transition
+    if (prevTab !== tab) {
+      animateTabTransition(prevTab, tab);
+    }
+
+    // Close more sheet if open
+    if (moreSheetOpen) closeMoreSheet();
+  };
+
+  // ===== Section 74: Confirmation Dialog System =====
+
+  function showConfirmation(title, message, onConfirm, onCancel) {
+    const overlay = document.getElementById('confirm-overlay');
+    const titleEl = document.getElementById('confirm-title');
+    const msgEl = document.getElementById('confirm-message');
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    const backdrop = document.getElementById('confirm-backdrop');
+
+    if (!overlay) return;
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    overlay.classList.remove('hidden');
+
+    // Focus trap
+    okBtn.focus();
+
+    const cleanup = () => {
+      overlay.classList.add('hidden');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      if (backdrop) backdrop.onclick = null;
+    };
+
+    okBtn.onclick = () => {
+      cleanup();
+      if (onConfirm) onConfirm();
+    };
+
+    cancelBtn.onclick = () => {
+      cleanup();
+      if (onCancel) onCancel();
+    };
+
+    if (backdrop) {
+      backdrop.onclick = () => {
+        cleanup();
+        if (onCancel) onCancel();
+      };
+    }
+
+    // ESC key to cancel
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        cleanup();
+        if (onCancel) onCancel();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  }
+
+  // ===== Section 74: Welcome Back Modal Enhancement =====
+
+  function showWelcomeBackEnhanced(earnings) {
+    if (!earnings) return;
+    const timeStr = formatDuration(earnings.time);
+    let html = '<h3 style="text-align:center;margin-bottom:12px;">Welcome Back!</h3>';
+    html += '<p style="text-align:center;color:var(--ds-text-secondary);font-size:13px;">You were away for ' + timeStr + '</p>';
+    html += '<div class="welcome-back-currencies">';
+
+    const currencies = [
+      { key: 'credits', label: 'Credits', val: earnings.credits },
+      { key: 'rp', label: 'Research Points', val: earnings.rp },
+      { key: 'ore', label: 'Lunar Ore', val: earnings.ore },
+      { key: 'rm', label: 'Rare Minerals', val: earnings.rm },
+      { key: 'sd', label: 'Stardust', val: earnings.sd }
+    ];
+
+    let delay = 0;
+    for (const c of currencies) {
+      if (c.val > 0) {
+        html += '<div class="welcome-back-row" style="animation-delay:' + delay + 'ms">';
+        html += '<span class="welcome-back-label">' + c.label + '</span>';
+        html += '<span class="welcome-back-value counting">+' + NumberFormatter.format(c.val) + '</span>';
+        html += '</div>';
+        delay += 200;
+      }
+    }
+
+    html += '</div>';
+    html += '<button onclick="GameState.applyOfflineEarnings(GameState.calculateOfflineEarnings());UI.hideModal();" class="btn-primary" style="width:100%;margin-top:8px;">Collect All</button>';
+
+    showModal(html);
+  }
+
+  function formatDuration(seconds) {
+    if (seconds < 60) return Math.floor(seconds) + 's';
+    if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
+    if (seconds < 86400) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return h + 'h ' + m + 'm';
+    }
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    return d + 'd ' + h + 'h';
+  }
+
+  // ===== Section 83: Empty State Rendering =====
+
+  function renderEmptyState(panelId) {
+    const key = panelId.replace('panel-', '');
+    const data = GameData.EMPTY_STATES[key];
+    if (!data) return '';
+
+    return '<div class="empty-state">' +
+      '<div class="empty-state-icon">' + data.icon + '</div>' +
+      '<div class="empty-state-title">' + data.title + '</div>' +
+      '<div class="empty-state-text">' + data.text + '</div>' +
+      (data.hint ? '<div class="empty-state-hint">' + data.hint + '</div>' : '') +
+      '</div>';
+  }
+
+  // ===== Section 80: Theme System UI =====
+
+  function applyTheme(themeId) {
+    const s = GameState.getState();
+    const container = document.getElementById('game-container');
+    if (!container) return;
+
+    // Remove all theme classes
+    const themeClasses = Object.values(GameData.THEMES).map(t => t.cssClass).filter(Boolean);
+    themeClasses.forEach(cls => container.classList.remove(cls));
+
+    // Apply new theme
+    const theme = GameData.THEMES[themeId];
+    if (theme && theme.cssClass) {
+      container.classList.add(theme.cssClass);
+    }
+
+    s.settings.theme = themeId;
+  }
+
+  function purchaseTheme(themeId) {
+    const s = GameState.getState();
+    const theme = GameData.THEMES[themeId];
+    if (!theme) return false;
+    if (s.settings.purchasedThemes.includes(themeId)) return true; // Already owned
+
+    if (!GameState.canAfford(theme.currency, theme.cost)) return false;
+    GameState.spendCurrency(theme.currency, theme.cost);
+    s.settings.purchasedThemes.push(themeId);
+    applyTheme(themeId);
+
+    if (typeof Juice !== 'undefined') {
+      Juice.Celebrations.play(2, { title: 'New Theme!', subtitle: theme.name, icon: '\uD83C\uDFA8' });
+    }
+    return true;
+  }
+
+  // ===== Section 85: Accessibility Helpers =====
+
+  function announceToScreenReader(message) {
+    const s = GameState.getState();
+    if (!s.settings.screenReaderAnnouncements) return;
+
+    let announcer = document.getElementById('sr-announcer');
+    if (!announcer) {
+      announcer = document.createElement('div');
+      announcer.id = 'sr-announcer';
+      announcer.className = 'sr-only';
+      announcer.setAttribute('aria-live', 'assertive');
+      announcer.setAttribute('aria-atomic', 'true');
+      document.body.appendChild(announcer);
+    }
+    announcer.textContent = '';
+    // Brief delay so screen reader picks up the change
+    setTimeout(() => { announcer.textContent = message; }, 100);
+  }
+
+  function applyAccessibilitySettings() {
+    const s = GameState.getState();
+    const container = document.getElementById('game-container');
+    if (!container) return;
+
+    // Reduced motion
+    if (s.settings.reducedMotion) {
+      container.classList.add('perf-reduced');
+    } else {
+      container.classList.remove('perf-reduced');
+    }
+
+    // Large text
+    if (s.settings.largeText) {
+      document.documentElement.style.fontSize = '16px';
+    } else {
+      document.documentElement.style.fontSize = '';
+    }
+
+    // Colorblind mode
+    container.classList.remove('colorblind-protanopia', 'colorblind-deuteranopia', 'colorblind-tritanopia');
+    if (s.settings.colorblindMode !== 'none') {
+      container.classList.add('colorblind-' + s.settings.colorblindMode);
+    }
+  }
+
+  // ===== Section 77: Progress Bar Helpers =====
+
+  function createProgressBar(pct, size, label) {
+    const sizeClass = size === 'sm' ? 'ds-progress-sm' : size === 'lg' ? 'ds-progress-lg' : '';
+    const almostClass = pct >= 90 ? 'almost-full' : '';
+    let html = '<div class="ds-progress ' + sizeClass + '">';
+    html += '<div class="ds-progress-fill ' + almostClass + '" style="width:' + Math.min(100, pct) + '%"></div>';
+    html += '</div>';
+    if (label) {
+      html += '<div style="font-family:var(--ds-font-mono);font-size:var(--ds-type-caption);color:var(--ds-text-tertiary);margin-top:2px;">' + label + '</div>';
+    }
+    return html;
+  }
+
+  function createCircularGauge(pct, size, label) {
+    const radius = size === 'sm' ? 24 : size === 'lg' ? 48 : 36;
+    const strokeWidth = size === 'sm' ? 3 : size === 'lg' ? 5 : 4;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - pct / 100);
+
+    let html = '<div class="ds-ring-gauge" style="width:' + (radius * 2 + strokeWidth * 2) + 'px;height:' + (radius * 2 + strokeWidth * 2) + 'px;">';
+    html += '<svg width="' + (radius * 2 + strokeWidth * 2) + '" height="' + (radius * 2 + strokeWidth * 2) + '">';
+    html += '<circle class="ring-track" cx="' + (radius + strokeWidth) + '" cy="' + (radius + strokeWidth) + '" r="' + radius + '" stroke-width="' + strokeWidth + '"/>';
+    html += '<circle class="ring-fill" cx="' + (radius + strokeWidth) + '" cy="' + (radius + strokeWidth) + '" r="' + radius + '" stroke-width="' + strokeWidth + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"/>';
+    html += '</svg>';
+    if (label) {
+      html += '<div class="ring-label">' + label + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function createTerraformMegaBar(pct) {
+    let html = '<div class="ds-mega-bar">';
+    html += '<div class="ds-mega-bar-fill terraform" style="width:' + Math.min(100, pct) + '%"></div>';
+    html += '<div class="ds-mega-bar-label">' + pct.toFixed(1) + '% Terraformed</div>';
+    html += '</div>';
+    return html;
+  }
+
+  // ===== Section 84: Error State UI =====
+
+  function showSaveError() {
+    if (typeof Game !== 'undefined' && Game.ErrorRecovery) {
+      Game.ErrorRecovery.showError('Save failed! Check storage space.');
+    }
+  }
+
+  function showOfflineCapWarning() {
+    if (typeof Juice !== 'undefined' && Juice.ToastQueue) {
+      Juice.ToastQueue.add('warning', 'Offline Cap', 'Maximum 24 hours of offline earnings collected.');
+    }
+  }
+
   return {
     init, updateAll, updateTick, updateGenerators, updateUpgrades,
     updateCurrencyBar, updateRocketAssembly, updateCrew, updateFleet,
@@ -2206,6 +2523,12 @@ const UI = (() => {
     showArtifactFragment, hideArtifactFragment,
     showToast, showMilestoneNotification, showSynergyNotification,
     showContractCompleteNotification, showCollectionNotification,
-    updatePhaseColors, updateTapComboRing, closeMoreSheet
+    updatePhaseColors, updateTapComboRing, closeMoreSheet,
+    // Part 8/8 additions
+    showConfirmation, showWelcomeBackEnhanced, renderEmptyState,
+    applyTheme, purchaseTheme, applyAccessibilitySettings,
+    announceToScreenReader, createProgressBar, createCircularGauge,
+    createTerraformMegaBar, showSaveError, showOfflineCapWarning,
+    animateTabTransition, formatDuration
   };
 })();

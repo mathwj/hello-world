@@ -974,6 +974,112 @@ const GameData = (() => {
     { count: 500, cdBonus: 500000, desc: '"The Eternal" — ultimate prestige reward', title: 'The Eternal', permanentMult: 25, rocketSkin: 'eternal' }
   ];
 
+  // ========== Section 80: PURCHASABLE THEMES ==========
+  const THEMES = {
+    default: { name: 'Deep Space', desc: 'The original dark theme', cost: 0, currency: 'credits', cssClass: '' },
+    light: { name: 'Daylight', desc: 'Clean light interface', cost: 1e12, currency: 'credits', cssClass: 'theme-light' },
+    amoled: { name: 'AMOLED Black', desc: 'Pure black for OLED screens', cost: 5e12, currency: 'credits', cssClass: 'theme-amoled' },
+    warm: { name: 'Warm Glow', desc: 'Cozy amber-tinted interface', cost: 100, currency: 'cosmicDust', cssClass: 'theme-warm' },
+    ice: { name: 'Frozen Core', desc: 'Cool blue tones', cost: 200, currency: 'cosmicDust', cssClass: 'theme-ice' },
+    neon: { name: 'Neon Arcade', desc: 'Vibrant neon colors', cost: 500, currency: 'cosmicDust', cssClass: 'theme-neon' },
+    minimal: { name: 'Minimal', desc: 'Reduced visual noise', cost: 50, currency: 'cosmicDust', cssClass: 'theme-minimal' },
+    retro: { name: 'Retro Terminal', desc: 'Green-on-black terminal look', cost: 1000, currency: 'cosmicDust', cssClass: 'theme-retro' }
+  };
+
+  // ========== Section 83: EMPTY STATE CONTENT ==========
+  const EMPTY_STATES = {
+    generators: {
+      icon: '\u2699\uFE0F',
+      title: 'No Generators Yet',
+      text: 'Tap SCAVENGE to earn credits, then buy your first generator to automate income.',
+      hint: 'Try the Scrap Kid — only 100 credits!'
+    },
+    upgrades: {
+      icon: '\u2B06\uFE0F',
+      title: 'No Upgrades Available',
+      text: 'Keep growing your operation. Upgrades unlock as you buy more generators.',
+      hint: 'Buy generators to reveal upgrades'
+    },
+    crew: {
+      icon: '\uD83D\uDC64',
+      title: 'Crew Quarters Empty',
+      text: 'Unlock the Crew system by building Moon Base Modules in Phase 3.',
+      hint: 'Reach Phase 3 to hire crew'
+    },
+    fleet: {
+      icon: '\uD83D\uDE80',
+      title: 'No Ships in Fleet',
+      text: 'Build your fleet by progressing to the Asteroid Belt phase.',
+      hint: 'Reach Phase 5 to build ships'
+    },
+    research: {
+      icon: '\uD83D\uDD2C',
+      title: 'Research Lab Offline',
+      text: 'Earn Research Points to unlock technologies that boost all production.',
+      hint: 'Earn RP in Phase 2+'
+    },
+    collection: {
+      icon: '\uD83D\uDCDA',
+      title: 'Album is Empty',
+      text: 'Collect items from lucky drops, achievements, and milestones to fill your album.',
+      hint: 'Keep playing to find collectibles'
+    },
+    contracts: {
+      icon: '\uD83D\uDCCB',
+      title: 'No Active Contracts',
+      text: 'Contracts are timed challenges with big rewards. New ones appear regularly!',
+      hint: 'Check back soon for contracts'
+    },
+    boosters: {
+      icon: '\u26A1',
+      title: 'No Boosters',
+      text: 'Earn boosters from milestones, lucky drops, and daily rewards.',
+      hint: 'Play regularly for booster drops'
+    },
+    eggs: {
+      icon: '\uD83E\uDD5A',
+      title: 'No Eggs Incubating',
+      text: 'Find eggs through lucky drops and special events. Hatch them by tapping!',
+      hint: 'Catch lucky drops for eggs'
+    },
+    achievements: {
+      icon: '\uD83C\uDFC6',
+      title: 'No Achievements Yet',
+      text: 'Play the game to unlock achievements. There are over 100 to discover!',
+      hint: 'Start by tapping 100 times'
+    },
+    log: {
+      icon: '\uD83D\uDCD6',
+      title: "Captain's Log is Empty",
+      text: 'Your journey entries will appear here as you progress through the game.',
+      hint: 'Keep exploring to add entries'
+    },
+    prestige: {
+      icon: '\u2B50',
+      title: 'Prestige Not Available',
+      text: 'Earn enough credits in a single run to unlock the prestige system. Reset for powerful permanent bonuses!',
+      hint: 'Earn 1e18 credits to prestige'
+    },
+    synergies: {
+      icon: '\uD83D\uDD17',
+      title: 'No Synergies Active',
+      text: 'Own specific combinations of generators to activate powerful synergy bonuses.',
+      hint: 'Buy diverse generators'
+    }
+  };
+
+  // ========== Section 71: ICON REGISTRY ==========
+  const CURRENCY_ICON_MAP = {
+    credits: { icon: '\u20A1', color: '#FFD700', label: 'Credits' },
+    rp: { icon: '\uD83D\uDD2C', color: '#4A90D9', label: 'Research Points' },
+    ore: { icon: '\u26CF\uFE0F', color: '#A8A8A8', label: 'Lunar Ore' },
+    rm: { icon: '\uD83D\uDC8E', color: '#9B59B6', label: 'Rare Minerals' },
+    as: { icon: '\uD83D\uDCE1', color: '#2ECC71', label: 'Alien Signals' },
+    sd: { icon: '\u2728', color: '#F0E6FF', label: 'Stardust' },
+    cosmicDust: { icon: '\uD83C\uDF0C', color: '#FF6B6B', label: 'Cosmic Dust' },
+    it: { icon: '\u221E', color: '#FFD700', label: 'Infinity Tokens' }
+  };
+
   // Merge expansion data when available (Expansion loads before GameData is consumed)
   function mergeExpansionData() {
     if (typeof Expansion !== 'undefined') {
@@ -1003,6 +1109,7 @@ const GameData = (() => {
     ACHIEVEMENTS, CAPTAINS_LOG, EVENTS, DAILY_REWARDS, STAR_SYSTEM_TYPES,
     SPECIAL_STAR_SYSTEMS, ANOMALY_BONUSES, RARE_ASTEROID, ARTIFACT_FRAGMENTS,
     TERRAFORM_MILESTONES, UNIVERSES, IT_SHOP, ASTRONAUT_NAMES, CREW_TIERS,
-    PRESTIGE_MILESTONES, getTotalGenerators, mergeExpansionData
+    PRESTIGE_MILESTONES, THEMES, EMPTY_STATES, CURRENCY_ICON_MAP,
+    getTotalGenerators, mergeExpansionData
   };
 })();

@@ -11,22 +11,41 @@
   <meta name="theme-color" content="#0a0a1a">
 </head>
 <body>
-  <div id="game-container">
+  <!-- Splash / Loading Screen (Section 73) -->
+  <div id="splash-screen">
+    <div id="splash-content">
+      <div id="splash-logo">
+        <div id="splash-rocket">&#128640;</div>
+        <div id="splash-title">DEEP SPACE INC.</div>
+        <div id="splash-subtitle">Build. Launch. Explore.</div>
+      </div>
+      <div id="splash-loading-bar-outer">
+        <div id="splash-loading-bar-inner"></div>
+      </div>
+      <div id="splash-loading-text">Initializing systems...</div>
+      <div id="splash-stars"></div>
+    </div>
+  </div>
+
+  <div id="game-container" role="application" aria-label="Deep Space Inc. — Incremental Space Game">
     <!-- Top Bar -->
-    <div id="top-bar">
-      <button id="menu-btn" class="icon-btn" title="Menu">&#9776;</button>
-      <span id="phase-name">PHASE 1: THE JUNKYARD</span>
-      <button id="settings-btn" class="icon-btn" title="Settings">&#9881;</button>
+    <div id="top-bar" role="banner">
+      <button id="menu-btn" class="icon-btn" title="Menu" aria-label="Open menu">&#9776;</button>
+      <span id="phase-name" role="heading" aria-level="1" aria-live="polite">PHASE 1: THE JUNKYARD</span>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Open settings">&#9881;</button>
     </div>
 
     <!-- Currency Bar -->
-    <div id="currency-bar"></div>
+    <div id="currency-bar" role="status" aria-label="Resources" aria-live="off"></div>
 
-    <!-- Scene Area -->
-    <div id="scene-area">
-      <canvas id="scene-canvas"></canvas>
+    <!-- Scene Area (Section 68: parallax scene zone) -->
+    <div id="scene-area" role="img" aria-label="Game scene">
+      <canvas id="scene-canvas" aria-hidden="true"></canvas>
+      <div id="scene-parallax-bg" class="parallax-layer" aria-hidden="true"></div>
+      <div id="scene-parallax-mid" class="parallax-layer" aria-hidden="true"></div>
+      <div id="scene-parallax-fg" class="parallax-layer" aria-hidden="true"></div>
       <div id="rocket-assembly"></div>
-      <div id="floating-numbers"></div>
+      <div id="floating-numbers" aria-hidden="true"></div>
       <!-- Combo Counter -->
       <div id="combo-display" class="hidden">
         <div id="combo-count"></div>
@@ -47,11 +66,11 @@
       <div id="idle-streak-display" class="hidden"></div>
       <!-- Active Boosters HUD -->
       <div id="active-boosters-hud" class="hidden"></div>
-      <!-- Tap Button -->
-      <button id="tap-btn">
-        <span id="tap-icon">&#128295;</span>
+      <!-- Tap Button (Section 81: thumb-zone optimized) -->
+      <button id="tap-btn" aria-label="Tap to earn resources">
+        <span id="tap-icon" aria-hidden="true">&#128295;</span>
         <span id="tap-label">SCAVENGE</span>
-        <span id="auto-tap-badge" class="hidden">AUTO</span>
+        <span id="auto-tap-badge" class="hidden" aria-label="Auto-tap active">AUTO</span>
       </button>
     </div>
 
@@ -62,44 +81,44 @@
     </div>
 
     <!-- Main Content Area -->
-    <div id="main-content">
+    <div id="main-content" role="main">
       <!-- Buy Amount Toggle -->
-      <div id="buy-toggle">
-        <button class="buy-amt active" data-amount="1">&times;1</button>
-        <button class="buy-amt" data-amount="10">&times;10</button>
-        <button class="buy-amt" data-amount="100">&times;100</button>
-        <button class="buy-amt" data-amount="max">MAX</button>
+      <div id="buy-toggle" role="radiogroup" aria-label="Purchase quantity">
+        <button class="buy-amt active" data-amount="1" role="radio" aria-checked="true">&times;1</button>
+        <button class="buy-amt" data-amount="10" role="radio" aria-checked="false">&times;10</button>
+        <button class="buy-amt" data-amount="100" role="radio" aria-checked="false">&times;100</button>
+        <button class="buy-amt" data-amount="max" role="radio" aria-checked="false">MAX</button>
       </div>
 
       <!-- Tab Panels -->
       <div id="tab-content">
-        <div id="panel-generators" class="tab-panel active"></div>
-        <div id="panel-upgrades" class="tab-panel"></div>
-        <div id="panel-zones" class="tab-panel"></div>
-        <div id="panel-crew" class="tab-panel"></div>
-        <div id="panel-fleet" class="tab-panel"></div>
-        <div id="panel-research" class="tab-panel"></div>
-        <div id="panel-collection" class="tab-panel"></div>
-        <div id="panel-contracts" class="tab-panel"></div>
-        <div id="panel-boosters" class="tab-panel"></div>
-        <div id="panel-synergies" class="tab-panel"></div>
-        <div id="panel-skins" class="tab-panel"></div>
-        <div id="panel-eggs" class="tab-panel"></div>
-        <div id="panel-log" class="tab-panel"></div>
-        <div id="panel-stats" class="tab-panel"></div>
-        <div id="panel-prestige" class="tab-panel"></div>
-        <div id="panel-achievements" class="tab-panel"></div>
-        <div id="panel-settings" class="tab-panel"></div>
+        <div id="panel-generators" class="tab-panel active" role="tabpanel" aria-labelledby="tab-generators"></div>
+        <div id="panel-upgrades" class="tab-panel" role="tabpanel" aria-labelledby="tab-upgrades"></div>
+        <div id="panel-zones" class="tab-panel" role="tabpanel" aria-labelledby="tab-zones"></div>
+        <div id="panel-crew" class="tab-panel" role="tabpanel" aria-labelledby="tab-crew"></div>
+        <div id="panel-fleet" class="tab-panel" role="tabpanel" aria-labelledby="tab-fleet"></div>
+        <div id="panel-research" class="tab-panel" role="tabpanel" aria-labelledby="tab-research"></div>
+        <div id="panel-collection" class="tab-panel" role="tabpanel" aria-labelledby="tab-collection"></div>
+        <div id="panel-contracts" class="tab-panel" role="tabpanel" aria-labelledby="tab-contracts"></div>
+        <div id="panel-boosters" class="tab-panel" role="tabpanel" aria-labelledby="tab-boosters"></div>
+        <div id="panel-synergies" class="tab-panel" role="tabpanel" aria-labelledby="tab-synergies"></div>
+        <div id="panel-skins" class="tab-panel" role="tabpanel" aria-labelledby="tab-skins"></div>
+        <div id="panel-eggs" class="tab-panel" role="tabpanel" aria-labelledby="tab-eggs"></div>
+        <div id="panel-log" class="tab-panel" role="tabpanel" aria-labelledby="tab-log"></div>
+        <div id="panel-stats" class="tab-panel" role="tabpanel" aria-labelledby="tab-stats"></div>
+        <div id="panel-prestige" class="tab-panel" role="tabpanel" aria-labelledby="tab-prestige"></div>
+        <div id="panel-achievements" class="tab-panel" role="tabpanel" aria-labelledby="tab-achievements"></div>
+        <div id="panel-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-settings"></div>
       </div>
     </div>
 
-    <!-- Bottom Tab Bar -->
-    <div id="bottom-tabs">
-      <button class="tab-btn active" data-tab="generators" data-label="Generators">&#9881;</button>
-      <button class="tab-btn" data-tab="upgrades" data-label="Upgrades">&#11014;</button>
-      <button class="tab-btn" data-tab="zones" data-label="Zones">&#127757;</button>
-      <button class="tab-btn" data-tab="achievements" data-label="Achievements">&#127942;</button>
-      <button class="tab-btn" data-tab="stats" data-label="Stats">&#128202;</button>
+    <!-- Bottom Tab Bar (Section 72: navigation system) -->
+    <div id="bottom-tabs" role="tablist" aria-label="Game sections">
+      <button class="tab-btn active" data-tab="generators" data-label="Generators" role="tab" aria-selected="true" id="tab-generators">&#9881;</button>
+      <button class="tab-btn" data-tab="upgrades" data-label="Upgrades" role="tab" aria-selected="false" id="tab-upgrades">&#11014;</button>
+      <button class="tab-btn" data-tab="zones" data-label="Zones" role="tab" aria-selected="false" id="tab-zones">&#127757;</button>
+      <button class="tab-btn" data-tab="achievements" data-label="Achievements" role="tab" aria-selected="false" id="tab-achievements">&#127942;</button>
+      <button class="tab-btn" data-tab="stats" data-label="Stats" role="tab" aria-selected="false" id="tab-stats">&#128202;</button>
       <button class="tab-btn hidden" data-tab="crew" data-label="Crew">&#128100;</button>
       <button class="tab-btn hidden" data-tab="fleet" data-label="Fleet">&#128640;</button>
       <button class="tab-btn hidden" data-tab="research" data-label="Research">&#128300;</button>
@@ -123,9 +142,23 @@
       </div>
     </div>
 
-    <!-- Modals -->
-    <div id="modal-overlay" class="hidden">
+    <!-- Modals (Section 74: spring animations, focus trap) -->
+    <div id="modal-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Dialog">
+      <div id="modal-backdrop"></div>
       <div id="modal-content"></div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-overlay" class="hidden" role="alertdialog" aria-modal="true" aria-label="Confirmation">
+      <div id="confirm-backdrop"></div>
+      <div id="confirm-content">
+        <div id="confirm-title"></div>
+        <div id="confirm-message"></div>
+        <div id="confirm-actions">
+          <button id="confirm-cancel" class="btn-secondary">Cancel</button>
+          <button id="confirm-ok" class="btn-primary">OK</button>
+        </div>
+      </div>
     </div>
 
     <!-- Event Banner -->
@@ -134,20 +167,48 @@
     <!-- Achievement Banner -->
     <div id="achievement-banner" class="hidden"></div>
 
-    <!-- Toast Notifications -->
-    <div id="toast-container"></div>
+    <!-- Toast Notifications (Section 75: queue system) -->
+    <div id="toast-container" role="log" aria-live="polite" aria-label="Notifications"></div>
 
-    <!-- Tutorial Overlay -->
-    <div id="tutorial-overlay" class="hidden">
-      <div id="tutorial-spotlight"></div>
-      <div id="tutorial-tooltip"></div>
+    <!-- Error Recovery Banner -->
+    <div id="error-banner" class="hidden" role="alert">
+      <span id="error-banner-text"></span>
+      <button id="error-banner-dismiss" aria-label="Dismiss error">&times;</button>
+    </div>
+
+    <!-- Performance Warning -->
+    <div id="perf-warning" class="hidden" role="status" aria-live="polite">
+      <span id="perf-warning-text">Performance degraded — effects reduced</span>
+    </div>
+
+    <!-- Tutorial Overlay (Section 86: progressive onboarding) -->
+    <div id="tutorial-overlay" class="hidden" role="dialog" aria-modal="true" aria-label="Tutorial">
+      <div id="tutorial-spotlight" aria-hidden="true"></div>
+      <div id="tutorial-tooltip">
+        <div id="tutorial-step-indicator" aria-hidden="true"></div>
+        <div id="tutorial-text"></div>
+        <div id="tutorial-actions">
+          <button id="tutorial-skip" class="btn-text">Skip</button>
+          <button id="tutorial-next" class="btn-primary btn-sm">Next</button>
+        </div>
+      </div>
     </div>
 
     <!-- Transition Overlay -->
     <div id="transition-overlay" class="hidden"></div>
 
+    <!-- Celebration Overlay (Section 87: 5-tier ceremonies) -->
+    <div id="celebration-overlay" class="hidden" aria-hidden="true">
+      <canvas id="celebration-canvas"></canvas>
+      <div id="celebration-content" class="hidden">
+        <div id="celebration-icon"></div>
+        <div id="celebration-title"></div>
+        <div id="celebration-subtitle"></div>
+      </div>
+    </div>
+
     <!-- Big Bang Prestige Animation -->
-    <div id="big-bang-overlay" class="hidden">
+    <div id="big-bang-overlay" class="hidden" aria-hidden="true">
       <canvas id="big-bang-canvas"></canvas>
       <div id="big-bang-text" class="hidden"></div>
     </div>
