@@ -912,9 +912,9 @@ const Engine = (() => {
       if (systemType.effect.oneTimeRP) {
         GameState.addCurrency('rp', systemType.effect.oneTimeRP);
       }
-      // Black Hole: permanent offline earnings multiplier bonus
+      // Black Hole: permanent offline earnings multiplier (×10 multiplicative per spec)
       if (systemType.effect.offlineMultiplierBonus) {
-        s.offlineEarningsMultiplier += systemType.effect.offlineMultiplierBonus;
+        s.offlineEarningsMultiplier *= systemType.effect.offlineMultiplierBonus;
       }
       // Nebula: passive SD/sec
       if (systemType.effect.passiveSD) {

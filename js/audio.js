@@ -379,6 +379,119 @@ const AdaptiveAudio = (() => {
     shimmer.stop(now + 1.6);
   }
 
+  function playLaunchSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+
+    const now = audioCtx.currentTime;
+    // Deep rumble building to roar
+    const rumble = audioCtx.createOscillator();
+    const rGain = audioCtx.createGain();
+    rumble.type = 'sawtooth';
+    rumble.frequency.setValueAtTime(30, now);
+    rumble.frequency.exponentialRampToValueAtTime(120, now + 1.5);
+    rumble.frequency.exponentialRampToValueAtTime(300, now + 3);
+    rGain.gain.setValueAtTime(0.01, now);
+    rGain.gain.linearRampToValueAtTime(0.12, now + 1);
+    rGain.gain.linearRampToValueAtTime(0.15, now + 2);
+    rGain.gain.exponentialRampToValueAtTime(0.001, now + 3.5);
+    rumble.connect(rGain);
+    rGain.connect(sfxGain);
+    rumble.start(now);
+    rumble.stop(now + 3.6);
+  }
+
+  function playRadarPingSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+
+    const now = audioCtx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 1200;
+      gain.gain.setValueAtTime(0.08, now + i * 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.3 + 0.2);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.3);
+      osc.stop(now + i * 0.3 + 0.25);
+    }
+  }
+
+  function playAlienSignalSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+
+    const now = audioCtx.currentTime;
+    // Eerie electronic warble
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 6;
+    lfoGain.gain.value = 80;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    osc.type = 'sine';
+    osc.frequency.value = 660;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.2);
+    gain.gain.setValueAtTime(0.08, now + 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    lfo.start(now);
+    osc.start(now);
+    lfo.stop(now + 1.3);
+    osc.stop(now + 1.3);
+  }
+
+  function playDailyRewardSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+
+    const now = audioCtx.currentTime;
+    // Coin shower: rapid rising notes
+    const notes = [523, 587, 659, 784, 880, 988, 1047];
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.06, now + i * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.2);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.05);
+      osc.stop(now + i * 0.05 + 0.25);
+    });
+  }
+
+  function playEventAlertSound(positive) {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    if (positive) {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.linearRampToValueAtTime(880, now + 0.15);
+    } else {
+      osc.type = 'square';
+      osc.frequency.value = 200;
+    }
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+
   // ========== EVENT MUSIC ==========
   function startEventMusic() {
     // Crossfade event layer in
@@ -400,7 +513,9 @@ const AdaptiveAudio = (() => {
     playTapSound, playPurchaseSound, playCriticalSound,
     playSuperCriticalSound, playAchievementSound,
     playMilestoneSound, playPrestigeSound, playErrorSound,
-    playEggHatchSound, startEventMusic, stopEventMusic,
+    playEggHatchSound, playLaunchSound, playRadarPingSound,
+    playAlienSignalSound, playDailyRewardSound, playEventAlertSound,
+    startEventMusic, stopEventMusic,
     getActivityState, getTapRate,
     PHASE_MUSIC, AMBIENT_SOUNDS, GEN_SOUND_TYPES
   };

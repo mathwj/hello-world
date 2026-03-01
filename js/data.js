@@ -630,6 +630,8 @@ const GameData = (() => {
     { id: 'evt_goldRush', name: 'Gold Rush', duration: 180, effect: { creditMultiplier: 10 }, desc: 'Credits x10!', type: 'positive', icon: '\u{1F4B0}' },
     { id: 'evt_tax', name: 'Tax Collector', duration: 0, effect: { loseCreditPercent: 0.05 }, desc: 'Lost 5% of credits!', type: 'negative', icon: '\u{1F4DC}' },
     { id: 'evt_wormhole', name: 'Wormhole Shortcut', duration: 10, effect: { skipProduction: 3600 }, desc: 'Tap for 1 hour of production!', type: 'positive', icon: '\u{1F300}' },
+    { id: 'evt_alientrader', name: 'Alien Trader', duration: 60, effect: { alienTrader: true }, desc: 'Exchange currencies at favorable rates!', type: 'positive', icon: '\u{1F6F8}' },
+    { id: 'evt_mysterysignal', name: 'Mysterious Signal', duration: 0, effect: { grantAS: 1 }, desc: '+1 Alien Signal detected!', type: 'positive', icon: '\u{1F4E1}', phaseReq: 6 },
     // ===== EXPANSION B: 20 New Events =====
     { id: 'evt_doubledown', name: 'Double Down', duration: 300, effect: { doublePurchaseChance: 0.5 }, desc: '50% chance of 2-for-1 on purchases!', type: 'positive', icon: '\u{1F3B2}' },
     { id: 'evt_inspiration', name: 'Inspiration Wave', duration: 180, effect: { rpMultiplier: 10 }, desc: 'RP generation x10!', type: 'positive', icon: '\u{1F9E0}', phaseReq: 2 },

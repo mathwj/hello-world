@@ -106,6 +106,7 @@ const GameEvents = (() => {
     const events = GameData.EVENTS;
     const eligible = events.filter(e => {
       if (e.id === 'evt_malfunction' && GameData.getTotalGenerators(s) < 1) return false;
+      if (e.phaseReq && s.currentPhase < e.phaseReq) return false;
       return true;
     });
 
@@ -143,6 +144,10 @@ const GameEvents = (() => {
       GameState.addCurrency('credits', s.creditsPerSecond * eff.skipProduction);
       GameState.addCurrency('rp', s.rpPerSecond * eff.skipProduction);
       GameState.addCurrency('ore', s.orePerSecond * eff.skipProduction);
+    }
+    if (eff.grantAS) {
+      GameState.addCurrency('as', eff.grantAS);
+      s.stats.totalAlienSignalsDecoded = (s.stats.totalAlienSignalsDecoded || 0) + eff.grantAS;
     }
   }
 

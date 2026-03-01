@@ -791,6 +791,7 @@ const UI = (() => {
         <div class="stat-row"><span>Credits/sec</span><span>\u20A1${fmt(s.creditsPerSecond)}</span></div>
         <div class="stat-row"><span>Generators Owned</span><span>${fmt(GameData.getTotalGenerators(s))}</span></div>
         <div class="stat-row"><span>Crew</span><span>${s.crew.totalAstronauts}</span></div>
+        <div class="stat-row"><span>Ships</span><span>${s.fleet.totalShips || 0}</span></div>
         <div class="stat-row"><span>Mars Terraform</span><span>${s.terraforming.marsPercent.toFixed(1)}%</span></div>
       </div>
       <div class="stats-section">
@@ -1161,6 +1162,18 @@ const UI = (() => {
           <input type="checkbox" id="set-confirm" ${s.settings.confirmPrestige ? 'checked' : ''}>
         </div>
         <div class="setting-row">
+          <label>Notifications</label>
+          <input type="checkbox" id="set-notifications" ${s.settings.notificationsEnabled ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <label>Auto-Save Interval</label>
+          <select id="set-autosave">
+            <option value="15" ${s.settings.autoSaveInterval === 15 ? 'selected' : ''}>15s</option>
+            <option value="30" ${s.settings.autoSaveInterval === 30 ? 'selected' : ''}>30s</option>
+            <option value="60" ${s.settings.autoSaveInterval === 60 ? 'selected' : ''}>60s</option>
+          </select>
+        </div>
+        <div class="setting-row">
           <button class="action-btn" id="export-btn">Export Save</button>
           <button class="action-btn" id="import-btn">Import Save</button>
         </div>
@@ -1191,6 +1204,12 @@ const UI = (() => {
     });
     document.getElementById('set-confirm')?.addEventListener('change', e => {
       s.settings.confirmPrestige = e.target.checked;
+    });
+    document.getElementById('set-notifications')?.addEventListener('change', e => {
+      s.settings.notificationsEnabled = e.target.checked;
+    });
+    document.getElementById('set-autosave')?.addEventListener('change', e => {
+      s.settings.autoSaveInterval = parseInt(e.target.value);
     });
 
     document.getElementById('export-btn')?.addEventListener('click', () => {
@@ -1612,7 +1631,20 @@ const UI = (() => {
       `<p>You were away for ${ft(earnings.time)}</p>
        <p>Your operations earned:</p>
        <div class="welcome-rewards">${rewardList}</div>`,
-      [{ label: 'COLLECT', action: () => { GameState.applyOfflineEarnings(earnings); hideModal(); } }]);
+      [
+        { label: 'COLLECT', action: () => { GameState.applyOfflineEarnings(earnings); hideModal(); } },
+        { label: 'DOUBLE IT', action: () => {
+          const doubled = { ...earnings };
+          doubled.credits *= 2;
+          doubled.rp *= 2;
+          doubled.ore *= 2;
+          doubled.rm *= 2;
+          doubled.sd *= 2;
+          doubled.terraforming *= 2;
+          GameState.applyOfflineEarnings(doubled);
+          hideModal();
+        }}
+      ]);
   }
 
   // ===== DAILY REWARD =====
