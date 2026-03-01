@@ -601,6 +601,42 @@ html, body {
   text-overflow: ellipsis;
 }
 
+.gen-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  margin-top: 1px;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gen-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--gen-type-color) 20%, transparent);
+  color: var(--gen-type-color);
+  border: 1px solid color-mix(in srgb, var(--gen-type-color) 40%, transparent);
+  vertical-align: middle;
+  margin-left: 4px;
+  line-height: 1.2;
+}
+
+.gen-type-worker { --gen-type-color: #4FC3F7; }
+.gen-type-machine { --gen-type-color: #FFB74D; }
+.gen-type-building { --gen-type-color: #81C784; }
+.gen-type-ship { --gen-type-color: #CE93D8; }
+.gen-type-hightech { --gen-type-color: #4DD0E1; }
+.gen-type-alien { --gen-type-color: #FF8A65; }
+
 .gen-output {
   font-size: 10px;
   color: var(--text-muted);
@@ -4735,6 +4771,8 @@ html, body {
   }
 
   .gen-name { font-size: 11px; }
+  .gen-desc { font-size: 9px; }
+  .gen-type-badge { font-size: 7px; padding: 0px 3px; }
 
   #tap-icon { font-size: 18px; }
 

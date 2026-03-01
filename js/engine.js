@@ -388,21 +388,15 @@ const Engine = (() => {
     // Expansion: milestones, purchase streak, contracts
     Expansion.onGeneratorBuy(s, genId, count);
 
-    // Audio & juice on purchase
+    // Audio & juice on purchase — use auto-detection from genId and pass owned count for scaled sound
+    const newTotal = s.generators[genId];
     if (typeof AdaptiveAudio !== 'undefined') {
-      const name = gen.name.toLowerCase();
-      let soundType = 'machine';
-      if (name.includes('worker') || name.includes('kid') || name.includes('team')) soundType = 'worker';
-      else if (name.includes('ship') || name.includes('shuttle') || name.includes('tug')) soundType = 'ship';
-      else if (name.includes('base') || name.includes('hub') || name.includes('station')) soundType = 'building';
-      else if (name.includes('ai') || name.includes('quantum') || name.includes('computer')) soundType = 'hightech';
-      else if (name.includes('alien') || name.includes('artifact') || name.includes('ansible')) soundType = 'alien';
-      AdaptiveAudio.playPurchaseSound(soundType);
+      AdaptiveAudio.playPurchaseSound(genId, newTotal);
     }
     if (typeof Juice !== 'undefined') {
       Juice.Haptics.success();
       Juice.ScreenShake.purchase();
-      Juice.GenAnims.popCount(genId);
+      Juice.GenAnims.purchaseCelebration(genId, newTotal);
     }
 
     calculateRates(s);
@@ -871,6 +865,7 @@ const Engine = (() => {
       Juice.Haptics.achievement();
       Juice.ScreenFlash.achievement();
       Juice.Confetti.achievement();
+      if (Juice.Celebrations) Juice.Celebrations.playPreset('achievement');
     }
   }
 
@@ -1163,6 +1158,16 @@ const Engine = (() => {
       s.stats.phaseReachTime[toPhase] = runTime;
     }
 
+    // Scene transition animation — phase-colored overlay with name label
+    if (typeof Juice !== 'undefined' && Juice.SceneTransition) {
+      Juice.SceneTransition.transitionTo(toPhase);
+    }
+
+    // Celebration preset for phase unlock
+    if (typeof Juice !== 'undefined' && Juice.Celebrations) {
+      Juice.Celebrations.playPreset('phaseUnlock');
+    }
+
     // Design system: update phase-adaptive colors
     if (typeof UI !== 'undefined' && UI.updatePhaseColors) {
       UI.updatePhaseColors();
@@ -1173,6 +1178,17 @@ const Engine = (() => {
   function onPrestige() {
     if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playPrestigeBigBang();
     if (typeof Juice !== 'undefined' && Juice.PrestigeBigBang) Juice.PrestigeBigBang.play();
+
+    // Show prestige reward summary panel
+    if (typeof Juice !== 'undefined' && Juice.PrestigeSummary && typeof GameState !== 'undefined') {
+      const rewards = GameState.getLastPrestigeRewards();
+      if (rewards) Juice.PrestigeSummary.show(rewards);
+    }
+
+    // Celebration preset for prestige
+    if (typeof Juice !== 'undefined' && Juice.Celebrations) {
+      Juice.Celebrations.playPreset('prestige');
+    }
   }
 
   // ===== Section 90: Performance Budget =====

@@ -185,6 +185,13 @@ const Expansion = (() => {
       s.goldenRush.active = true;
       s.goldenRush.generatorId = allGens[Math.floor(Math.random() * allGens.length)];
       s.goldenRush.endTime = Date.now() + 30000;
+      // Trigger golden rush sound and celebration
+      if (typeof AdaptiveAudio !== 'undefined' && AdaptiveAudio.playGoldenRushSound) {
+        AdaptiveAudio.playGoldenRushSound();
+      }
+      if (typeof Juice !== 'undefined' && Juice.Celebrations) {
+        Juice.Celebrations.playPreset('goldenRush');
+      }
     },
 
     getMultiplier(s, genId) {
@@ -1081,6 +1088,10 @@ const Expansion = (() => {
       s.weather.lastChange = Date.now();
       const dur = newWeather.duration;
       s.weather.nextChangeIn = dur[0] + Math.random() * (dur[1] - dur[0]);
+      // Weather transition sound
+      if (typeof AdaptiveAudio !== 'undefined' && AdaptiveAudio.playWeatherTransitionSound) {
+        AdaptiveAudio.playWeatherTransitionSound(newWeather.id);
+      }
     },
 
     getCurrentEffect(s) {
@@ -1422,6 +1433,9 @@ const Expansion = (() => {
       const newSyns = Synergies.checkAll(s);
       for (const syn of newSyns) {
         UI.showSynergyNotification(syn);
+        if (typeof AdaptiveAudio !== 'undefined' && AdaptiveAudio.playSynergySound) {
+          AdaptiveAudio.playSynergySound();
+        }
       }
     }
 

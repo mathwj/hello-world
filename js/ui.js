@@ -175,7 +175,10 @@ const UI = (() => {
     updateCurrencyBar();
     updateTopBar();
     // Only update active panel content to reduce DOM thrash
-    if (currentTab === 'generators') updateGeneratorCosts();
+    if (currentTab === 'generators') {
+      updateGeneratorCosts();
+      updateProductionShimmers();
+    }
     if (currentTab === 'stats') updateStats();
     if (currentTab === 'contracts') updateContracts();
     if (currentTab === 'eggs') updateEggProgress();
@@ -193,6 +196,18 @@ const UI = (() => {
     // Design system: phase color sync and combo ring
     updatePhaseColors();
     updateTapComboRing();
+
+    // Number satisfaction — check round number crossings for credits
+    if (typeof Juice !== 'undefined' && Juice.NumberSatisfaction) {
+      const s = GameState.getState();
+      Juice.NumberSatisfaction.checkRoundNumber(s.credits, 'credits');
+    }
+
+    // CPS jump detection
+    if (typeof Juice !== 'undefined' && Juice.CurrencyAnims) {
+      const s = GameState.getState();
+      Juice.CurrencyAnims.checkCPSJump(s.creditsPerSecond);
+    }
   }
 
   function updateTopBar() {
@@ -431,6 +446,45 @@ const UI = (() => {
     return html;
   }
 
+  // Generator type detection — maps gen name/desc keywords to a display-friendly type
+  const GEN_TYPE_LABELS = {
+    worker: { label: 'Crew', color: '#4FC3F7', icon: '\u{1F464}' },
+    machine: { label: 'Machine', color: '#FFB74D', icon: '\u2699' },
+    building: { label: 'Structure', color: '#81C784', icon: '\u{1F3D7}' },
+    ship: { label: 'Ship', color: '#CE93D8', icon: '\u{1F680}' },
+    hightech: { label: 'Tech', color: '#4DD0E1', icon: '\u26A1' },
+    alien: { label: 'Alien', color: '#FF8A65', icon: '\u{1F47E}' }
+  };
+
+  function getGenDisplayType(gen) {
+    const n = (gen.name + ' ' + (gen.desc || '')).toLowerCase();
+    if (n.includes('kid') || n.includes('scavenger') || n.includes('team') || n.includes('negotiator') ||
+        n.includes('crew') || n.includes('academy') || n.includes('astronaut') || n.includes('tourist') ||
+        n.includes('worker') || n.includes('rover fleet'))
+      return 'worker';
+    if (n.includes('ship') || n.includes('shuttle') || n.includes('probe') || n.includes('tug') ||
+        n.includes('freighter') || n.includes('destroyer') || n.includes('capital') || n.includes('harvester') ||
+        n.includes('barge') || n.includes('frigate') || n.includes('sail') || n.includes('skimmer') ||
+        n.includes('scoop'))
+      return 'ship';
+    if (n.includes('base') || n.includes('station') || n.includes('hub') || n.includes('dome') ||
+        n.includes('habitat') || n.includes('outpost') || n.includes('city') || n.includes('hotel') ||
+        n.includes('colony') || n.includes('complex') || n.includes('citadel') || n.includes('ring') ||
+        n.includes('module') || n.includes('megastructure') || n.includes('observatory') ||
+        n.includes('factory') || n.includes('plant') || n.includes('biodome') || n.includes('greenhouse'))
+      return 'building';
+    if (n.includes('ai') || n.includes('quantum') || n.includes('singularity') || n.includes('dyson') ||
+        n.includes('warp') || n.includes('fusion') || n.includes('antimatter') || n.includes('nano') ||
+        n.includes('world mind') || n.includes('dimensional') || n.includes('computer') ||
+        n.includes('crystal') || n.includes('mass driver') || n.includes('elevator') ||
+        n.includes('gene lab') || n.includes('terraform engine') || n.includes('orbital mirror'))
+      return 'hightech';
+    if (n.includes('alien') || n.includes('signal') || n.includes('decoder') || n.includes('ansible') ||
+        n.includes('reality') || n.includes('anomaly'))
+      return 'alien';
+    return 'machine';
+  }
+
   function renderGenerator(gen, s) {
     const owned = s.generators[gen.id] || 0;
     const currency = gen.costCurrency || 'credits';
@@ -469,11 +523,20 @@ const UI = (() => {
     let totalOutput = '';
     if (owned > 0 && gen.output.credits) totalOutput = '\u20A1' + fmt(gen.output.credits * owned) + '/s total';
 
-    return `<div class="generator-row ${canAfford ? 'affordable' : 'expensive'} ${levelClass}">
+    // Generator type badge
+    const genType = getGenDisplayType(gen);
+    const typeInfo = GEN_TYPE_LABELS[genType];
+    const typeBadge = `<span class="gen-type-badge gen-type-${genType}" style="--gen-type-color:${typeInfo.color}">${typeInfo.icon} ${typeInfo.label}</span>`;
+
+    // Icon animation class from juice system
+    const iconAnim = (typeof Juice !== 'undefined' && Juice.GenAnims) ? Juice.GenAnims.getIconAnimation(gen.id) : '';
+
+    return `<div class="generator-row ${canAfford ? 'affordable' : 'expensive'} ${levelClass}" data-genid="${gen.id}">
       <div class="gen-info">
-        <span class="gen-icon">${gen.icon}</span>
+        <span class="gen-icon ${iconAnim}">${gen.icon}</span>
         <div class="gen-details">
-          <div class="gen-name">${gen.name} ${getGeneratorBadgeHTML(gen.id)}</div>
+          <div class="gen-name">${gen.name} ${typeBadge} ${getGeneratorBadgeHTML(gen.id)}</div>
+          <div class="gen-desc">${gen.desc || ''}</div>
           <div class="gen-output">Owned: <strong>${owned}</strong> | ${outputDesc}</div>
           ${owned > 0 && totalOutput ? `<div class="gen-total-output">${totalOutput}</div>` : ''}
           ${ioInfo}
@@ -501,6 +564,31 @@ const UI = (() => {
       btn.closest('.generator-row')?.classList.toggle('affordable', canAfford);
       btn.closest('.generator-row')?.classList.toggle('expensive', !canAfford);
     });
+  }
+
+  // Production shimmer — show visual intensity per generator row based on production share
+  function updateProductionShimmers() {
+    if (typeof Juice === 'undefined' || !Juice.GenAnims) return;
+    const s = GameState.getState();
+    const totalCPS = s.creditsPerSecond || 0;
+    if (totalCPS <= 0) {
+      Juice.GenAnims.clearAllShimmers();
+      return;
+    }
+    const phase = s.currentPhase;
+    const activeKey = phase === 6 ? (s.currentSubZone || '6_orbit') :
+      phase === 7 ? (s.currentSubZone || '7_haven') :
+      String(phase);
+    const gens = GameData.GENERATORS[activeKey];
+    if (!gens) return;
+    for (const gen of gens) {
+      const owned = s.generators[gen.id] || 0;
+      if (owned > 0 && gen.output.credits) {
+        const genCPS = gen.output.credits * owned;
+        const ratio = genCPS / totalCPS;
+        Juice.GenAnims.updateProductionShimmer(gen.id, ratio);
+      }
+    }
   }
 
   function updateRocketAssembly() {
