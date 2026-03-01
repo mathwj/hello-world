@@ -1,43 +1,30 @@
-/* =============================================
-   DEEP SPACE INC. — UI SYSTEM
-   Currency display, tap button, floating numbers,
-   generators, buy toggle, tabs, tooltips, modals
-   ============================================= */
+// ui.js — All UI rendering, tab management, modals, popups
 'use strict';
 
 const UI = (() => {
   let currentTab = 'generators';
-  let buyAmount = 1;       // 1, 10, 100, or 'max'
-  let floatingNumbers = []; // pool for floating "+₡X" animations
-
-  // 5.1 Phase-specific tap labels
-  const TAP_CONFIG = {
-    1: { label: 'SCAVENGE', icon: '\uD83D\uDD27' },
-    2: { label: 'DEPLOY',   icon: '\uD83D\uDEF0' },
-    3: { label: 'MINE',     icon: '\u26CF' },
-    4: { label: 'TERRAFORM', icon: '\uD83C\uDF3F' },
-    5: { label: 'HARVEST',  icon: '\u2604' },
-    6: { label: 'SCAN',     icon: '\uD83D\uDCE1' },
-    7: { label: 'EXPLORE',  icon: '\uD83D\uDD2D' },
-    8: { label: 'EXPLORE',  icon: '\uD83D\uDD2D' },
-    9: { label: 'EXPLORE',  icon: '\uD83D\uDD2D' }
-  };
-
-  // ---------- Init ----------
+  let buyAmount = 1;
+  let activePhaseView = 1;
+  let floatingNumberPool = [];
 
   function init() {
     setupTabs();
     setupBuyToggle();
     setupTapButton();
     setupMenuButtons();
+    setupTooltipLongPress();
+    // Initialize juice systems
+    if (typeof Juice !== 'undefined') Juice.init();
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.init();
     updateAll();
   }
 
-  // ---------- Tab Management ----------
-
   function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        switchTab(tab);
+      });
     });
   }
 
@@ -45,14 +32,15 @@ const UI = (() => {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
     const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
     if (btn) btn.classList.add('active');
     const panel = document.getElementById('panel-' + tab);
     if (panel) panel.classList.add('active');
 
-    // Show buy toggle only on generators tab
+    // Show/hide buy toggle
     const buyToggle = document.getElementById('buy-toggle');
-    if (buyToggle) buyToggle.style.display = (tab === 'generators') ? 'flex' : 'none';
+    buyToggle.style.display = (tab === 'generators') ? 'flex' : 'none';
 
     refreshPanel(tab);
   }
@@ -61,565 +49,1955 @@ const UI = (() => {
     switch (tab) {
       case 'generators': updateGenerators(); break;
       case 'upgrades': updateUpgrades(); break;
-      case 'achievements': updateAchievements(); break;
+      case 'zones': updateZones(); break;
+      case 'crew': updateCrew(); break;
+      case 'fleet': updateFleet(); break;
+      case 'research': updateResearch(); break;
+      case 'collection': updateCollection(); break;
+      case 'contracts': updateContracts(); break;
+      case 'boosters': updateBoosters(); break;
+      case 'eggs': updateEggs(); break;
+      case 'log': updateLog(); break;
       case 'stats': updateStats(); break;
+      case 'prestige': updatePrestigePanel(); break;
+      case 'achievements': updateAchievements(); break;
       case 'settings': updateSettings(); break;
+      case 'synergies': updateSynergies(); break;
+      case 'skins': updateRocketSkins(); break;
     }
   }
-
-  // ---------- 4.3 Buy Amount Toggle ----------
 
   function setupBuyToggle() {
     document.querySelectorAll('.buy-amt').forEach(btn => {
       btn.addEventListener('click', () => {
-        const val = btn.dataset.amount;
-        buyAmount = (val === 'max') ? 'max' : parseInt(val);
         document.querySelectorAll('.buy-amt').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        buyAmount = btn.dataset.amount === 'max' ? 'max' : parseInt(btn.dataset.amount);
         updateGenerators();
       });
     });
   }
 
-  function getBuyAmount() { return buyAmount; }
-
-  // ---------- 5.1 Tap Button ----------
+  function getBuyAmount() {
+    return buyAmount;
+  }
 
   function setupTapButton() {
-    const btn = document.getElementById('tap-btn');
-    if (!btn) return;
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      Engine.doTap(false);
+    const tapBtn = document.getElementById('tap-btn');
+    tapBtn.addEventListener('click', (e) => {
+      const s = GameState.getState();
+      const amount = Engine.doTap(s, false);
+      animateTapButton(tapBtn);
     });
+
     // Prevent double-tap zoom on mobile
-    btn.addEventListener('touchend', (e) => {
+    tapBtn.addEventListener('touchend', (e) => {
       e.preventDefault();
-      Engine.doTap(false);
+      tapBtn.click();
+    });
+
+    // Lucky Drop click handler on scene area
+    const sceneArea = document.getElementById('scene-area');
+    sceneArea.addEventListener('click', (e) => {
+      if (e.target.id === 'lucky-drop' || e.target.closest('#lucky-drop')) {
+        const s = GameState.getState();
+        const result = Expansion.LuckyDrops.collect(s);
+        if (result) {
+          const dropEl = document.getElementById('lucky-drop');
+          dropEl.classList.add('hidden');
+          showFloatingNumber(0, { type: 'drop', dropName: result.drop.type.name, dropColor: result.drop.type.color });
+          if (!s.captainsLog.includes('log35')) Engine.addLogEntry('log35');
+        }
+      }
     });
   }
 
-  // ---------- Menu Buttons ----------
+  function animateTapButton(btn) {
+    btn.classList.remove('tap-active');
+    // Force reflow so animation restarts even on rapid taps
+    void btn.offsetWidth;
+    btn.classList.add('tap-active');
+    setTimeout(() => btn.classList.remove('tap-active'), 150);
+  }
+
+  function setupTooltipLongPress() {
+    // Long-press support for tooltips on touch devices
+    let longPressTimer = null;
+    let activeTooltip = null;
+
+    document.addEventListener('touchstart', (e) => {
+      const target = e.target.closest('.has-tooltip');
+      if (!target) return;
+      longPressTimer = setTimeout(() => {
+        target.classList.add('tooltip-active');
+        activeTooltip = target;
+      }, 400);
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      clearTimeout(longPressTimer);
+      if (activeTooltip) {
+        activeTooltip.classList.remove('tooltip-active');
+        activeTooltip = null;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', () => {
+      clearTimeout(longPressTimer);
+    }, { passive: true });
+  }
 
   function setupMenuButtons() {
-    const settingsBtn = document.getElementById('settings-btn');
-    if (settingsBtn) settingsBtn.addEventListener('click', () => switchTab('settings'));
+    document.getElementById('menu-btn').addEventListener('click', () => {
+      switchTab('zones');
+    });
+    document.getElementById('settings-btn').addEventListener('click', () => {
+      switchTab('settings');
+    });
   }
 
-  // ---------- 5.2 Tap Feedback ----------
+  // ===== UPDATE FUNCTIONS =====
 
-  function onTap(amount) {
-    const s = State.get();
-    // Button press animation (5.2.1)
-    const btn = document.getElementById('tap-btn');
-    if (btn) {
-      btn.classList.remove('tap-press');
-      void btn.offsetWidth; // force reflow
-      btn.classList.add('tap-press');
-    }
-    // Floating number (5.2.2)
-    spawnFloatingNumber('+' + Num.currency(amount, '\u20A1'), false);
-    // Particle burst (5.2.3) — handled by CSS
+  function updateAll() {
+    updateTopBar();
+    updateCurrencyBar();
+    updateTapButton();
+    updateGenerators();
+    updateRocketAssembly();
+    updateTabVisibility();
   }
-
-  function onAutoTap(amount) {
-    // Auto-tap: smaller, lighter floating number (5.4)
-    spawnFloatingNumber('+' + Num.currency(amount, '\u20A1'), true);
-  }
-
-  function spawnFloatingNumber(text, isAuto) {
-    const container = document.getElementById('floating-numbers');
-    if (!container) return;
-    const el = document.createElement('div');
-    el.className = 'floating-number' + (isAuto ? ' auto' : '');
-    el.textContent = text;
-    // Random horizontal offset
-    el.style.left = (40 + Math.random() * 20) + '%';
-    container.appendChild(el);
-    // Remove after animation
-    setTimeout(() => el.remove(), 900);
-  }
-
-  // ---------- Tooltip on long-press / hover (2.3) ----------
-
-  function showTooltip(el, fullValue) {
-    let tip = document.getElementById('number-tooltip');
-    if (!tip) {
-      tip = document.createElement('div');
-      tip.id = 'number-tooltip';
-      document.body.appendChild(tip);
-    }
-    tip.textContent = fullValue;
-    const rect = el.getBoundingClientRect();
-    tip.style.left = rect.left + 'px';
-    tip.style.top = (rect.top - 30) + 'px';
-    tip.classList.add('visible');
-  }
-
-  function hideTooltip() {
-    const tip = document.getElementById('number-tooltip');
-    if (tip) tip.classList.remove('visible');
-  }
-
-  // ---------- Per-Tick UI Update ----------
 
   function updateTick() {
     updateCurrencyBar();
-    updateTapButton();
-    // Update auto-tap badge visibility
-    const badge = document.getElementById('auto-tap-badge');
-    if (badge) {
-      const s = State.get();
-      badge.classList.toggle('hidden', s.autoTapPerSecond <= 0);
-    }
+    updateTopBar();
+    // Only update active panel content to reduce DOM thrash
+    if (currentTab === 'generators') updateGeneratorCosts();
+    if (currentTab === 'stats') updateStats();
+    if (currentTab === 'contracts') updateContracts();
+    if (currentTab === 'eggs') updateEggProgress();
+
+    // Expansion HUD updates
+    updateComboDisplay();
+    updateWeatherIndicator();
+    updateLuckyDropDisplay();
+    updateGoldenRushBanner();
+    updateNextUnlockBar();
+    updateIdleStreakDisplay();
+    updateActiveBoosterHUD();
   }
 
-  // ---------- Currency Bar (Section 3) ----------
+  function updateTopBar() {
+    const s = GameState.getState();
+    const phaseData = GameData.PHASES[s.currentPhase];
+    document.getElementById('phase-name').textContent =
+      'PHASE ' + s.currentPhase + ': ' + (phaseData ? phaseData.name : '');
+  }
+
+  function ttip(value) {
+    // Wrap a formatted number with a tooltip showing the full unabbreviated value
+    if (value < 1000) return NumberFormatter.format(value);
+    return `<span class="has-tooltip">${NumberFormatter.format(value)}<span class="num-tooltip">${NumberFormatter.formatFull(value)}</span></span>`;
+  }
 
   function updateCurrencyBar() {
-    const s = State.get();
+    const s = GameState.getState();
     const bar = document.getElementById('currency-bar');
-    if (!bar) return;
+    const fmt = NumberFormatter.format;
 
-    // Build currency display — show only active currencies
-    let html = '';
-    // Credits always visible
-    html += currencyChip('credits', '\u20A1', s.credits, s.creditsPerSecond, '#FFD700');
-    // RP — Phase 2+
+    let html = `<div class="currency credits">
+      <span class="cur-icon" style="color:#FFD700">\u20A1</span>
+      <span class="cur-val">${ttip(s.credits)}</span>
+      <span class="cur-rate">\u20A1${fmt(s.creditsPerSecond)}/sec</span>
+    </div>`;
+
     if (s.highestPhaseReached >= 2) {
-      html += currencyChip('rp', 'RP', s.researchPoints, s.rpPerSecond, '#4A90D9');
+      html += `<div class="currency rp">
+        <span class="cur-icon" style="color:#4A90D9">RP</span>
+        <span class="cur-val">${ttip(s.researchPoints)}</span>
+        ${s.rpPerSecond > 0 ? `<span class="cur-rate">${fmt(s.rpPerSecond)}/sec</span>` : ''}
+      </div>`;
     }
-    // Ore — Phase 3+
+
     if (s.highestPhaseReached >= 3) {
-      html += currencyChip('ore', 'Ore', s.lunarOre, s.orePerSecond, '#A8A8A8');
+      html += `<div class="currency ore">
+        <span class="cur-icon" style="color:#A8A8A8">Ore</span>
+        <span class="cur-val">${ttip(s.lunarOre)}</span>
+        ${s.orePerSecond > 0 ? `<span class="cur-rate">${fmt(s.orePerSecond)}/sec</span>` : ''}
+      </div>`;
     }
-    // RM — Phase 5+
+
     if (s.highestPhaseReached >= 5) {
-      html += currencyChip('rm', 'RM', s.rareMinerals, s.rmPerSecond, '#9B59B6');
+      html += `<div class="currency rm">
+        <span class="cur-icon" style="color:#9B59B6">RM</span>
+        <span class="cur-val">${ttip(s.rareMinerals)}</span>
+        ${s.rmPerSecond > 0 ? `<span class="cur-rate">${fmt(s.rmPerSecond)}/sec</span>` : ''}
+      </div>`;
     }
-    // AS — Phase 6+
-    if (s.highestPhaseReached >= 6 && s.alienSignals > 0) {
-      html += currencyChip('as', 'AS', s.alienSignals, 0, '#2ECC71');
+
+    if (s.highestPhaseReached >= 6) {
+      html += `<div class="currency as">
+        <span class="cur-icon" style="color:#2ECC71">AS</span>
+        <span class="cur-val">${ttip(s.alienSignals)}</span>
+      </div>`;
     }
-    // SD — Phase 7+
+
     if (s.highestPhaseReached >= 7) {
-      html += currencyChip('sd', 'SD', s.stardust, s.sdPerSecond, '#F0E6FF');
+      html += `<div class="currency sd">
+        <span class="cur-icon" style="color:#F0E6FF">SD</span>
+        <span class="cur-val">${ttip(s.stardust)}</span>
+        ${s.sdPerSecond > 0 ? `<span class="cur-rate">${fmt(s.sdPerSecond)}/sec</span>` : ''}
+      </div>`;
     }
-    // CD — after first prestige
-    if (s.totalPrestigeCount > 0 || s.cosmicDust > 0) {
-      html += currencyChip('cd', 'CD', s.cosmicDust, 0, '#FF69B4');
+
+    if (s.cosmicDust > 0) {
+      html += `<div class="currency cd">
+        <span class="cur-icon cd-icon">CD</span>
+        <span class="cur-val">${ttip(s.cosmicDust)}</span>
+      </div>`;
+    }
+
+    if (s.infinityTokens > 0) {
+      html += `<div class="currency it">
+        <span class="cur-icon" style="color:#FFD700">IT</span>
+        <span class="cur-val">${ttip(s.infinityTokens)}</span>
+      </div>`;
     }
 
     bar.innerHTML = html;
   }
 
-  function currencyChip(id, symbol, amount, perSec, color) {
-    let display = '<div class="currency-chip" data-currency="' + id + '" style="color:' + color + '">';
-    display += '<span class="currency-symbol">' + symbol + '</span>';
-    display += '<span class="currency-amount" data-full="' + Num.formatFull(amount) + '">' + Num.format(amount) + '</span>';
-    if (perSec > 0) {
-      display += '<span class="currency-rate">' + Num.perSec(perSec, '') + '</span>';
-    }
-    display += '</div>';
-    return display;
-  }
-
-  // ---------- Tap Button Update (5.1) ----------
-
   function updateTapButton() {
-    const s = State.get();
-    const cfg = TAP_CONFIG[s.currentPhase] || TAP_CONFIG[1];
-    const icon = document.getElementById('tap-icon');
-    const label = document.getElementById('tap-label');
-    if (icon) icon.textContent = cfg.icon;
-    if (label) label.textContent = cfg.label;
+    const s = GameState.getState();
+    const phaseData = GameData.PHASES[s.currentPhase];
+    if (phaseData) {
+      document.getElementById('tap-label').textContent = phaseData.tapLabel;
+      document.getElementById('tap-icon').textContent = phaseData.tapIcon;
+    }
+    const badge = document.getElementById('auto-tap-badge');
+    const tapBtn = document.getElementById('tap-btn');
+    if (s.autoTapPerSecond > 0) {
+      badge.classList.remove('hidden');
+      tapBtn.classList.add('auto-tapping');
+    } else {
+      badge.classList.add('hidden');
+      tapBtn.classList.remove('auto-tapping');
+    }
   }
 
-  // ---------- Phase Name ----------
-
-  function updatePhaseName() {
-    const s = State.get();
-    const names = {
-      1: 'PHASE 1: THE JUNKYARD',
-      2: 'PHASE 2: LOW EARTH ORBIT',
-      3: 'PHASE 3: THE MOON',
-      4: 'PHASE 4: MARS',
-      5: 'PHASE 5: ASTEROID BELT',
-      6: 'PHASE 6: JUPITER',
-      7: 'PHASE 7: INTERSTELLAR',
-      8: 'PHASE 8: GALAXY MAP',
-      9: 'PHASE 9: MULTIVERSE'
-    };
-    const el = document.getElementById('phase-name');
-    if (el) el.textContent = names[s.currentPhase] || 'DEEP SPACE INC.';
+  function updateTabVisibility() {
+    const s = GameState.getState();
+    showTabBtn('crew', s.crew.unlocked);
+    showTabBtn('fleet', s.fleet.unlocked || s.highestPhaseReached >= 5);
+    showTabBtn('research', s.highestPhaseReached >= 2);
+    showTabBtn('log', s.captainsLog.length > 0);
+    showTabBtn('prestige', s.highestPhaseReached >= 8 || s.totalPrestigeCount > 0);
+    // Expansion tabs
+    showTabBtn('collection', Object.keys(s.collection.items).length > 0 || s.highestPhaseReached >= 3);
+    showTabBtn('contracts', s.contracts.completed > 0 || s.contracts.active.length > 0 || s.highestPhaseReached >= 2);
+    showTabBtn('boosters', s.boosters.inventory.length > 0 || s.boosters.totalUsed > 0 || s.highestPhaseReached >= 2);
+    showTabBtn('eggs', s.eggs.totalHatched > 0 || s.eggs.slots.some(e => e !== null) || s.highestPhaseReached >= 3);
   }
 
-  // ---------- Generators Panel ----------
+  function showTabBtn(tab, visible) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) btn.classList.toggle('hidden', !visible);
+  }
+
+  function showTab(tab) {
+    showTabBtn(tab, true);
+  }
+
+  // ===== GENERATORS =====
 
   function updateGenerators() {
-    const s = State.get();
+    const s = GameState.getState();
     const panel = document.getElementById('panel-generators');
-    if (!panel) return;
+    const phase = s.currentPhase;
+    const keys = Engine.getActiveGeneratorKeysForPhase(phase);
 
-    if (typeof GameData === 'undefined' || !GameData.GENERATORS) {
-      panel.innerHTML = '<div class="empty-msg">No generators available yet.</div>';
-      return;
-    }
-
-    // Get generators for current phase
-    const phaseKey = String(s.currentPhase);
-    const gens = GameData.GENERATORS[phaseKey];
-    if (!gens || gens.length === 0) {
-      panel.innerHTML = '<div class="empty-msg">No generators in this phase.</div>';
-      return;
-    }
-
+    // Sub-zone selector for Phase 6 and 7
     let html = '';
-    for (const gen of gens) {
-      const owned = s.generators[gen.id] || 0;
-      const growth = gen.growth || 1.15;
-      const currency = gen.costCurrency || 'credits';
-      const currInfo = State.getCurrencyInfo(currency) || { symbol: '\u20A1', color: '#FFD700' };
-
-      let cost, costLabel;
-      if (buyAmount === 'max') {
-        const result = Num.maxAffordable(gen.baseCost, growth, owned, State.getCurrency(currency));
-        cost = result.totalCost;
-        costLabel = result.count > 0 ? Num.currency(cost, currInfo.symbol) + ' (\u00D7' + result.count + ')' : 'MAX';
-      } else {
-        cost = Num.costBulk(gen.baseCost, growth, owned, buyAmount);
-        costLabel = Num.currency(cost, currInfo.symbol);
-      }
-
-      const canBuy = State.canAfford(currency, cost) && cost > 0;
-      const output = gen.output || {};
-      const outputStr = Object.entries(output).map(([k, v]) => {
-        const ci = State.getCurrencyInfo(k);
-        return (ci ? ci.symbol : k) + Num.format(v * owned);
-      }).join(' ');
-
-      html += '<div class="generator-row' + (canBuy ? ' affordable' : '') + '" data-gen="' + gen.id + '">';
-      html += '  <div class="gen-info">';
-      html += '    <div class="gen-name">' + gen.name + '</div>';
-      html += '    <div class="gen-desc">' + (gen.desc || '') + '</div>';
-      html += '    <div class="gen-output">' + (owned > 0 ? outputStr + '/sec' : '') + '</div>';
-      html += '  </div>';
-      html += '  <div class="gen-right">';
-      html += '    <div class="gen-count">' + owned + '</div>';
-      html += '    <button class="gen-buy-btn' + (canBuy ? '' : ' disabled') + '" data-gen="' + gen.id + '">';
-      html += costLabel;
-      html += '    </button>';
-      html += '  </div>';
-      html += '</div>';
+    if (phase === 6) {
+      html += renderSubZoneSelector(['6_orbit', '6_io', '6_europa', '6_ganymede', '6_callisto'],
+        ['Jupiter Orbit', 'Io', 'Europa', 'Ganymede', 'Callisto']);
+    } else if (phase === 7) {
+      html += renderSubZoneSelector(['7_haven', '7_ferrum', '7_nebula'],
+        ["Kepler's Haven", 'Ferrum Prime', 'Nebula Giant']);
     }
 
-    // Rocket parts (Phase 1 only)
-    if (s.currentPhase === 1 && typeof GameData !== 'undefined' && GameData.ROCKET_PARTS) {
-      html += '<div class="section-divider">ROCKET ASSEMBLY</div>';
-      for (const part of GameData.ROCKET_PARTS) {
-        const owned = s.rocketParts[part.id];
-        const canBuy = !owned && s.credits >= part.cost;
-        html += '<div class="generator-row rocket-part' + (owned ? ' owned' : '') + (canBuy ? ' affordable' : '') + '">';
-        html += '  <div class="gen-info">';
-        html += '    <div class="gen-name">' + part.name + (owned ? ' \u2705' : '') + '</div>';
-        html += '  </div>';
-        html += '  <div class="gen-right">';
-        if (!owned) {
-          html += '    <button class="gen-buy-btn rocket-part-btn' + (canBuy ? '' : ' disabled') + '" data-part="' + part.id + '">';
-          html += Num.currency(part.cost, '\u20A1');
-          html += '    </button>';
-        }
-        html += '  </div>';
-        html += '</div>';
-      }
+    // Show rocket parts in phase 1
+    if (phase === 1 && !s.rocketLaunched) {
+      html += renderRocketPartsInline(s);
+    }
 
-      // Launch button
-      if (Object.values(s.rocketParts).every(v => v) && s.currentPhase === 1) {
-        html += '<button id="launch-btn" class="launch-btn">LAUNCH ROCKET \uD83D\uDE80</button>';
+    // Mars terraform bar
+    if (phase === 4) {
+      const pct = s.terraforming.marsPercent.toFixed(1);
+      html += `<div class="terraform-bar">
+        <div class="terraform-label">TERRAFORMING MARS: ${pct}%</div>
+        <div class="progress-outer"><div class="progress-inner" style="width:${Math.min(100, pct)}%"></div></div>
+        <div class="terraform-rate">+${s.terraforming.marsPerSecond.toFixed(3)}%/sec</div>
+      </div>`;
+    }
+
+    // Generator list
+    const activeKey = phase === 6 ? (s.currentSubZone || '6_orbit') :
+      phase === 7 ? (s.currentSubZone || '7_haven') :
+      String(phase);
+
+    const gens = GameData.GENERATORS[activeKey];
+    if (gens) {
+      for (const gen of gens) {
+        html += renderGenerator(gen, s);
       }
+    }
+
+    // Launch button
+    if (phase === 1 && !s.rocketLaunched && Object.values(s.rocketParts).every(v => v)) {
+      html += `<button class="launch-btn" onclick="Engine.launchRocket()">
+        <span class="launch-icon">\u{1F680}</span> LAUNCH!
+      </button>`;
     }
 
     panel.innerHTML = html;
 
-    // Bind buy buttons
-    panel.querySelectorAll('.gen-buy-btn[data-gen]').forEach(btn => {
-      btn.addEventListener('click', () => Engine.buyGenerator(btn.dataset.gen, buyAmount));
+    // Attach buy handlers
+    panel.querySelectorAll('.gen-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyGenerator(btn.dataset.genid));
     });
-    panel.querySelectorAll('.rocket-part-btn').forEach(btn => {
-      btn.addEventListener('click', () => Engine.buyRocketPart(btn.dataset.part));
+
+    // Attach rocket part handlers
+    panel.querySelectorAll('.part-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyRocketPart(btn.dataset.partid));
     });
-    const launchBtn = panel.querySelector('#launch-btn');
-    if (launchBtn) {
-      launchBtn.addEventListener('click', () => Engine.launchRocket());
+
+    // Attach sub-zone handlers
+    panel.querySelectorAll('.subzone-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        s.currentSubZone = btn.dataset.zone;
+        updateGenerators();
+      });
+    });
+
+    // Repair buttons for Io
+    panel.querySelectorAll('.repair-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.repairIoGenerator(btn.dataset.genid));
+    });
+  }
+
+  function renderSubZoneSelector(zones, labels) {
+    const s = GameState.getState();
+    const current = s.currentSubZone || zones[0];
+    let html = '<div class="subzone-selector">';
+    zones.forEach((z, i) => {
+      html += `<button class="subzone-btn ${z === current ? 'active' : ''}" data-zone="${z}">${labels[i]}</button>`;
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderRocketPartsInline(s) {
+    let html = '<div class="rocket-parts-section"><h3>Rocket Assembly</h3><div class="rocket-parts-grid">';
+    for (const part of GameData.ROCKET_PARTS) {
+      const owned = s.rocketParts[part.id];
+      let cost = part.cost;
+      if (s.cdShopPurchased && s.cdShopPurchased['cd_quick']) cost *= 0.5;
+      const canBuy = !owned && s.credits >= cost;
+      html += `<div class="rocket-part ${owned ? 'owned' : ''} ${canBuy ? 'affordable' : ''}">
+        <div class="part-name">${part.name}</div>
+        <div class="part-desc">${part.desc}</div>
+        ${owned ? '<div class="part-status">\u2714 Installed</div>' :
+          `<button class="part-buy-btn ${canBuy ? '' : 'disabled'}" data-partid="${part.id}">\u20A1${NumberFormatter.format(cost)}</button>`}
+      </div>`;
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderGenerator(gen, s) {
+    const owned = s.generators[gen.id] || 0;
+    const currency = gen.costCurrency || 'credits';
+    const amt = buyAmount === 'max' ?
+      NumberFormatter.maxAffordable(gen.baseCost, gen.growth, owned, GameState.getCurrency(currency)).count :
+      buyAmount;
+    const cost = buyAmount === 'max' ?
+      NumberFormatter.maxAffordable(gen.baseCost, gen.growth, owned, GameState.getCurrency(currency)).totalCost :
+      NumberFormatter.bulkCost(gen.baseCost, gen.growth, owned, amt);
+
+    const canAfford = GameState.canAfford(currency, cost) && amt > 0;
+    const currencySymbol = currency === 'credits' ? '\u20A1' : currency === 'ore' ? 'Ore ' : currency.toUpperCase() + ' ';
+
+    // Output description
+    let outputDesc = '';
+    if (gen.output.credits) outputDesc += '\u20A1' + NumberFormatter.format(gen.output.credits) + '/s ';
+    if (gen.output.rp) outputDesc += NumberFormatter.format(gen.output.rp) + ' RP/s ';
+    if (gen.output.ore) outputDesc += NumberFormatter.format(gen.output.ore) + ' Ore/s ';
+    if (gen.output.rm) outputDesc += NumberFormatter.format(gen.output.rm) + ' RM/s ';
+    if (gen.output.sd) outputDesc += NumberFormatter.format(gen.output.sd) + ' SD/s ';
+    if (gen.terraform) outputDesc += '+' + gen.terraform + '%/s terraform ';
+    if (gen.globalBoost) outputDesc += '+' + (gen.globalBoost * 100) + '% all income ';
+    if (gen.crewCapacity) outputDesc += '+' + gen.crewCapacity + ' crew ';
+
+    let ioInfo = '';
+    if (gen.degrades && owned > 0) {
+      const eff = ((s.ioEfficiency[gen.id] || 1) * 100).toFixed(0);
+      ioInfo = `<div class="io-eff">Efficiency: ${eff}% <button class="repair-btn" data-genid="${gen.id}">Repair</button></div>`;
+    }
+
+    return `<div class="generator-row ${canAfford ? 'affordable' : 'expensive'}">
+      <div class="gen-info">
+        <span class="gen-icon">${gen.icon}</span>
+        <div class="gen-details">
+          <div class="gen-name">${gen.name} ${getGeneratorBadgeHTML(gen.id)}</div>
+          <div class="gen-output">Owned: ${owned} | ${outputDesc}</div>
+          ${ioInfo}
+        </div>
+      </div>
+      <button class="gen-buy-btn ${canAfford ? '' : 'disabled'}" data-genid="${gen.id}">
+        <div class="gen-cost">${currencySymbol}${ttip(cost)}</div>
+        <div class="gen-buy-label">BUY${amt > 1 ? ' x' + amt : ''}</div>
+      </button>
+    </div>`;
+  }
+
+  function updateGeneratorCosts() {
+    // Lightweight update for generator affordability
+    const s = GameState.getState();
+    document.querySelectorAll('.gen-buy-btn').forEach(btn => {
+      const genId = btn.dataset.genid;
+      const gen = Engine.findGenerator(genId);
+      if (!gen) return;
+      const currency = gen.costCurrency || 'credits';
+      const owned = s.generators[genId] || 0;
+      const cost = NumberFormatter.nextCost(gen.baseCost, gen.growth, owned);
+      const canAfford = GameState.canAfford(currency, cost);
+      btn.classList.toggle('disabled', !canAfford);
+      btn.closest('.generator-row')?.classList.toggle('affordable', canAfford);
+      btn.closest('.generator-row')?.classList.toggle('expensive', !canAfford);
+    });
+  }
+
+  function updateRocketAssembly() {
+    // Handled in updateGenerators for phase 1
+    if (GameState.getState().currentPhase === 1) {
+      updateGenerators();
     }
   }
 
-  // ---------- Upgrades Panel ----------
+  // ===== UPGRADES =====
 
   function updateUpgrades() {
-    const s = State.get();
+    const s = GameState.getState();
     const panel = document.getElementById('panel-upgrades');
-    if (!panel) return;
+    const phase = s.currentPhase;
+    const upgrades = GameData.UPGRADES[phase] || [];
 
-    if (typeof GameData === 'undefined' || !GameData.UPGRADES) {
-      panel.innerHTML = '<div class="empty-msg">No upgrades available yet.</div>';
-      return;
-    }
+    let html = '<h3>Upgrades - Phase ' + phase + '</h3>';
 
-    const phaseKey = String(s.currentPhase);
-    const upgrades = GameData.UPGRADES[phaseKey] || [];
+    for (const upg of upgrades) {
+      if (s.upgradesPurchased[upg.id]) {
+        // Check if this upgrade is tierable and show tier-up button
+        const isTierable = Expansion.TieredUpgrades.isTierable(upg);
+        const currentTier = isTierable ? Expansion.TieredUpgrades.getCurrentTier(s, upg.id) : 0;
+        const tierLabel = currentTier > 0 ? Expansion.UPGRADE_TIERS[currentTier - 1].label : '';
+        const tierColor = currentTier > 0 ? Expansion.UPGRADE_TIERS[currentTier - 1].color : '';
+        const maxed = currentTier >= 5;
 
-    let html = '';
-    for (const up of upgrades) {
-      const purchased = s.upgradesPurchased[up.id];
-      const currency = up.currency || 'credits';
-      const currInfo = State.getCurrencyInfo(currency) || { symbol: '\u20A1' };
-      const canBuy = !purchased && State.canAfford(currency, up.cost);
+        if (isTierable && !maxed) {
+          const nextTier = currentTier + 1;
+          const nextTierData = Expansion.UPGRADE_TIERS[nextTier - 1];
+          const tierCost = Expansion.TieredUpgrades.getTierCost(upg, nextTier);
+          const canAffordTier = GameState.canAfford(upg.currency, tierCost);
+          const currSym = upg.currency === 'credits' ? '\u20A1' : upg.currency.toUpperCase() + ' ';
 
-      html += '<div class="upgrade-row' + (purchased ? ' purchased' : '') + (canBuy ? ' affordable' : '') + '">';
-      html += '  <div class="up-info">';
-      html += '    <div class="up-name">' + up.name + (purchased ? ' \u2705' : '') + '</div>';
-      html += '    <div class="up-desc">' + (up.desc || '') + '</div>';
-      html += '  </div>';
-      if (!purchased) {
-        html += '  <button class="up-buy-btn' + (canBuy ? '' : ' disabled') + '" data-up="' + up.id + '">';
-        html += Num.currency(up.cost, currInfo.symbol);
-        html += '  </button>';
+          html += `<div class="upgrade-row purchased" style="border-left:3px solid ${tierColor || '#2a2a4a'}">
+            <div class="upg-info">
+              <div class="upg-name">\u2714 ${upg.name} ${tierLabel ? '<span class="tier-badge" style="color:' + tierColor + '">[' + tierLabel + ']</span>' : ''}</div>
+              <div class="upg-desc">${upg.desc} (x${Expansion.TieredUpgrades.getCumulativeMultiplier(s, upg.id)})</div>
+            </div>
+            <button class="upg-buy-btn tier-btn ${canAffordTier ? '' : 'disabled'}" data-tierid="${upg.id}" style="border-color:${nextTierData.color}">
+              <div class="upg-cost">${currSym}${NumberFormatter.format(tierCost)}</div>
+              <div>${nextTierData.label}</div>
+            </button>
+          </div>`;
+        } else {
+          html += `<div class="upgrade-row purchased" style="border-left:3px solid ${tierColor || '#2a2a4a'}">
+            <div class="upg-info">
+              <div class="upg-name">\u2714 ${upg.name} ${maxed ? '<span class="tier-badge" style="color:#B9F2FF">[MASTERED]</span>' : tierLabel ? '<span class="tier-badge" style="color:' + tierColor + '">[' + tierLabel + ']</span>' : ''}</div>
+              <div class="upg-desc">${upg.desc}${currentTier > 0 ? ' (x' + Expansion.TieredUpgrades.getCumulativeMultiplier(s, upg.id) + ')' : ''}</div>
+            </div>
+          </div>`;
+        }
+        continue;
       }
-      html += '</div>';
+
+      // Check if requirements met (hide if not)
+      if (upg.req) {
+        if (upg.req.generator && (s.generators[upg.req.generator] || 0) < upg.req.count) continue;
+        if (upg.req.totalTaps && s.totalTaps < upg.req.totalTaps) continue;
+        if (upg.req.allGeneratorsPhase) {
+          const phaseGens = GameData.GENERATORS[upg.req.allGeneratorsPhase];
+          if (phaseGens && !phaseGens.every(g => (s.generators[g.id] || 0) > 0)) continue;
+        }
+      }
+
+      const canAfford = GameState.canAfford(upg.currency, upg.cost) &&
+        (!upg.costSecondary || Object.entries(upg.costSecondary).every(([c, a]) => GameState.canAfford(c, a)));
+
+      const currencySymbol = upg.currency === 'credits' ? '\u20A1' : upg.currency.toUpperCase() + ' ';
+      let costStr = currencySymbol + NumberFormatter.format(upg.cost);
+      if (upg.costSecondary) {
+        for (const [c, a] of Object.entries(upg.costSecondary)) {
+          costStr += ' + ' + (c === 'credits' ? '\u20A1' : c.toUpperCase() + ' ') + NumberFormatter.format(a);
+        }
+      }
+
+      html += `<div class="upgrade-row ${canAfford ? 'affordable' : 'expensive'}">
+        <div class="upg-info">
+          <div class="upg-name">${upg.name}</div>
+          <div class="upg-desc">${upg.desc}</div>
+        </div>
+        <button class="upg-buy-btn ${canAfford ? '' : 'disabled'}" data-upgid="${upg.id}">
+          <div class="upg-cost">${costStr}</div>
+          <div>BUY</div>
+        </button>
+      </div>`;
     }
 
     if (upgrades.length === 0) {
-      html = '<div class="empty-msg">No upgrades available for this phase.</div>';
+      html += '<p class="empty-msg">No upgrades available for this phase yet.</p>';
     }
 
     panel.innerHTML = html;
 
-    panel.querySelectorAll('.up-buy-btn').forEach(btn => {
-      btn.addEventListener('click', () => Engine.buyUpgrade(btn.dataset.up));
+    panel.querySelectorAll('.upg-buy-btn:not(.tier-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Engine.buyUpgrade(btn.dataset.upgid);
+      });
+    });
+    panel.querySelectorAll('.tier-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        const result = Expansion.TieredUpgrades.buyTier(s, btn.dataset.tierid);
+        if (result) {
+          const tier = Expansion.UPGRADE_TIERS[result - 1];
+          showToast(`Upgrade ${tier.label}! x${Expansion.TieredUpgrades.getTierEffectMultiplier(result)}`, tier.color);
+        }
+        updateUpgrades();
+        updateCurrencyBar();
+      });
     });
   }
 
-  // ---------- Rocket Assembly Display ----------
+  // ===== ZONES =====
 
-  function updateRocketAssembly() {
-    // Visual in scene area — updated by updateGenerators
-    updateGenerators();
+  function updateZones() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-zones');
+    let html = '<h3>Zones</h3>';
+
+    for (let i = 1; i <= 9; i++) {
+      const phaseData = GameData.PHASES[i];
+      const unlocked = i <= s.highestPhaseReached;
+      const isCurrent = i === s.currentPhase;
+
+      html += `<div class="zone-row ${unlocked ? 'unlocked' : 'locked'} ${isCurrent ? 'current' : ''}"
+        ${unlocked ? 'data-phase="' + i + '"' : ''}>
+        <div class="zone-icon">${phaseData.tapIcon}</div>
+        <div class="zone-info">
+          <div class="zone-name">Phase ${i}: ${phaseData.name}</div>
+          <div class="zone-location">${phaseData.location}</div>
+        </div>
+        ${unlocked ? '<div class="zone-status">' + (isCurrent ? '\u25C6 Current' : 'Travel') + '</div>' :
+          '<div class="zone-lock">\u{1F512} Locked</div>'}
+      </div>`;
+    }
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.zone-row.unlocked').forEach(row => {
+      row.addEventListener('click', () => {
+        const phase = parseInt(row.dataset.phase);
+        if (phase) {
+          s.currentPhase = phase;
+          updateAll();
+          switchTab('generators');
+        }
+      });
+    });
   }
 
-  // ---------- Achievements Panel ----------
+  // ===== CREW =====
 
-  function updateAchievements() {
-    const s = State.get();
-    const panel = document.getElementById('panel-achievements');
-    if (!panel) return;
+  function updateCrew() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-crew');
 
-    if (typeof GameData === 'undefined' || !GameData.ACHIEVEMENTS) {
-      panel.innerHTML = '<div class="empty-msg">Achievements coming soon...</div>';
+    if (!s.crew.unlocked) {
+      panel.innerHTML = '<p class="empty-msg">Crew system not yet unlocked. Purchase "Habitat Expansion" on the Moon.</p>';
       return;
     }
 
-    const unlocked = Object.keys(s.achievements).length;
-    const total = GameData.ACHIEVEMENTS.length;
+    const crewBonus = Engine.getCrewBonus();
+    const hireCost = 100 * Math.pow(1.2, s.crew.totalAstronauts);
+    const canHire = s.crew.totalAstronauts < s.crew.maxCapacity && GameState.canAfford('ore', hireCost);
 
-    let html = '<div class="ach-header">' + unlocked + ' / ' + total + ' Unlocked</div>';
-    for (const ach of GameData.ACHIEVEMENTS) {
-      const done = s.achievements[ach.id];
-      html += '<div class="ach-row' + (done ? ' unlocked' : '') + '">';
-      html += '  <div class="ach-icon">' + (done ? '\uD83C\uDFC6' : '\uD83D\uDD12') + '</div>';
-      html += '  <div class="ach-info">';
-      html += '    <div class="ach-name">' + (done ? ach.name : '???') + '</div>';
-      html += '    <div class="ach-desc">' + (done ? ach.desc : 'Keep playing to discover...') + '</div>';
-      html += '  </div>';
+    let html = `<h3>Crew</h3>
+      <div class="crew-summary">
+        <div>Crew: ${s.crew.totalAstronauts} / ${s.crew.maxCapacity}</div>
+        <div>Total Bonus: +${(crewBonus * 100).toFixed(0)}% all generators</div>
+      </div>
+      <div class="crew-actions">
+        <button class="action-btn ${canHire ? '' : 'disabled'}" id="hire-crew-btn">
+          Hire Astronaut (${NumberFormatter.format(hireCost)} Ore)
+        </button>
+        <button class="action-btn" id="upgrade-all-crew-btn">Upgrade All</button>
+      </div>
+      <div class="crew-list">`;
+
+    for (let i = 0; i < s.crew.astronauts.length; i++) {
+      const a = s.crew.astronauts[i];
+      const tierName = GameData.CREW_TIERS[a.tier].name;
+      const canUpgrade = a.tier < 4;
+      html += `<div class="crew-row">
+        <div class="crew-name">${a.name}</div>
+        <div class="crew-tier tier-${a.tier}">${tierName}</div>
+        <div class="crew-bonus">+${(a.bonus * 100).toFixed(0)}%</div>
+        ${canUpgrade ? `<button class="crew-upgrade-btn" data-idx="${i}">Upgrade</button>` : '<span class="max-tier">MAX</span>'}
+      </div>`;
+    }
+
+    html += '</div>';
+    panel.innerHTML = html;
+
+    document.getElementById('hire-crew-btn')?.addEventListener('click', () => {
+      Engine.hireCrew();
+    });
+    document.getElementById('upgrade-all-crew-btn')?.addEventListener('click', () => {
+      Engine.upgradeAllCrew();
+    });
+    panel.querySelectorAll('.crew-upgrade-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.upgradeCrewMember(parseInt(btn.dataset.idx)));
+    });
+  }
+
+  // ===== FLEET =====
+
+  function updateFleet() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-fleet');
+
+    if (s.highestPhaseReached < 5) {
+      panel.innerHTML = '<p class="empty-msg">Fleet unlocks at Phase 5: The Asteroid Belt.</p>';
+      return;
+    }
+
+    let totalShips = 0;
+    const gens = GameData.GENERATORS[5] || [];
+    let html = '<h3>Fleet</h3>';
+
+    for (const gen of gens) {
+      const count = s.generators[gen.id] || 0;
+      totalShips += count;
+    }
+
+    html += `<div class="fleet-summary">Total Ships: ${totalShips}</div>`;
+    html += '<div class="fleet-list">';
+    for (const gen of gens) {
+      const count = s.generators[gen.id] || 0;
+      html += `<div class="fleet-row">
+        <span class="fleet-icon">${gen.icon}</span>
+        <span class="fleet-name">${gen.name}</span>
+        <span class="fleet-count">x${count}</span>
+      </div>`;
+    }
+    html += '</div>';
+    panel.innerHTML = html;
+  }
+
+  // ===== RESEARCH =====
+
+  function updateResearch() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-research');
+
+    let html = '<h3>Research Tree</h3>';
+    let currentTier = 0;
+
+    for (const res of GameData.RESEARCH) {
+      if (res.tier !== currentTier) {
+        if (currentTier > 0) html += '</div>';
+        currentTier = res.tier;
+        html += `<div class="research-tier"><h4>Tier ${currentTier}</h4>`;
+      }
+
+      const purchased = s.researchPurchased[res.id];
+      const reqMet = !res.req || s.researchPurchased[res.req];
+      const canAfford = reqMet && !purchased && GameState.canAfford('rp', res.cost);
+
+      html += `<div class="research-node ${purchased ? 'purchased' : ''} ${reqMet ? '' : 'locked'} ${canAfford ? 'affordable' : ''}">
+        <div class="res-name">${purchased ? '\u2714 ' : ''}${res.name}</div>
+        <div class="res-desc">${res.desc}</div>
+        ${!purchased ? `<button class="res-buy-btn ${canAfford ? '' : 'disabled'}" data-resid="${res.id}">
+          ${reqMet ? NumberFormatter.format(res.cost) + ' RP' : '\u{1F512} Requires: ' + (res.req || '')}
+        </button>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.res-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyResearch(btn.dataset.resid));
+    });
+  }
+
+  // ===== LOG =====
+
+  function updateLog() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-log');
+    let html = '<h3>Captain\'s Log</h3><div class="log-entries">';
+
+    for (const logId of s.captainsLog) {
+      const entry = GameData.CAPTAINS_LOG.find(l => l.id === logId);
+      if (!entry) continue;
+      html += `<div class="log-entry">
+        <div class="log-title">${entry.title}</div>
+        <div class="log-text">${entry.text}</div>
+      </div>`;
+    }
+
+    html += '</div>';
+    panel.innerHTML = html;
+  }
+
+  // ===== STATS =====
+
+  function updateStats() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-stats');
+    const fmt = NumberFormatter.format;
+    const ft = NumberFormatter.formatTime;
+
+    const runTime = (Date.now() - (s.currentRunStartTime || s.firstPlayTimestamp)) / 1000;
+
+    let html = `<h3>Statistics</h3>
+      <div class="stats-section">
+        <h4>Current Run</h4>
+        <div class="stat-row"><span>Time Elapsed</span><span>${ft(runTime)}</span></div>
+        <div class="stat-row"><span>Current Phase</span><span>${s.currentPhase}</span></div>
+        <div class="stat-row"><span>Credits Earned</span><span>\u20A1${fmt(s.creditsThisRunEarned)}</span></div>
+        <div class="stat-row"><span>Credits/sec</span><span>\u20A1${fmt(s.creditsPerSecond)}</span></div>
+        <div class="stat-row"><span>Generators Owned</span><span>${fmt(GameData.getTotalGenerators(s))}</span></div>
+        <div class="stat-row"><span>Crew</span><span>${s.crew.totalAstronauts}</span></div>
+        <div class="stat-row"><span>Mars Terraform</span><span>${s.terraforming.marsPercent.toFixed(1)}%</span></div>
+      </div>
+      <div class="stats-section">
+        <h4>All-Time</h4>
+        <div class="stat-row"><span>Total Play Time</span><span>${ft(s.totalPlayTimeSeconds)}</span></div>
+        <div class="stat-row"><span>Total Taps</span><span>${fmt(s.totalTaps)}</span></div>
+        <div class="stat-row"><span>Total Credits Earned</span><span>\u20A1${fmt(s.creditsAllTimeEarned)}</span></div>
+        <div class="stat-row"><span>Prestige Resets</span><span>${s.totalPrestigeCount}</span></div>
+        <div class="stat-row"><span>Cosmic Dust (Lifetime)</span><span>${fmt(s.cosmicDustLifetime)}</span></div>
+        <div class="stat-row"><span>Highest Phase</span><span>${s.highestPhaseReached}</span></div>
+        <div class="stat-row"><span>Generators Purchased</span><span>${fmt(s.stats.totalGeneratorsEverPurchased)}</span></div>
+        <div class="stat-row"><span>Crew Hired</span><span>${fmt(s.stats.totalCrewEverHired)}</span></div>
+        <div class="stat-row"><span>Alien Signals</span><span>${s.stats.totalAlienSignalsDecoded}</span></div>
+        <div class="stat-row"><span>Star Systems</span><span>${s.stats.totalStarSystemsColonized}</span></div>
+        <div class="stat-row"><span>Achievements</span><span>${Object.keys(s.achievements).length} / ${GameData.ACHIEVEMENTS.length}</span></div>
+        <div class="stat-row"><span>Log Entries</span><span>${s.captainsLog.length} / ${GameData.CAPTAINS_LOG.length}</span></div>
+      </div>`;
+
+    panel.innerHTML = html;
+  }
+
+  // ===== PRESTIGE =====
+
+  function updatePrestigePanel() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-prestige');
+    const fmt = NumberFormatter.format;
+
+    const projectedCD = GameState.calculatePrestigeReward();
+    const cdMult = (1 + s.cosmicDust * 0.01).toFixed(2);
+
+    let html = `<h3>Prestige - Big Bang</h3>
+      <div class="prestige-info">
+        <div class="prestige-stat">
+          <span>Cosmic Dust</span><span class="cd-icon">${fmt(s.cosmicDust)} CD</span>
+        </div>
+        <div class="prestige-stat">
+          <span>CD Multiplier</span><span>x${cdMult} all income</span>
+        </div>
+        <div class="prestige-stat">
+          <span>This Run Earnings</span><span>\u20A1${fmt(s.creditsThisRunEarned)}</span>
+        </div>
+        <div class="prestige-stat">
+          <span>Projected CD Reward</span><span class="cd-projected">${fmt(projectedCD)} CD</span>
+        </div>
+        <div class="prestige-stat">
+          <span>Prestiges Completed</span><span>${s.totalPrestigeCount}</span>
+        </div>
+      </div>`;
+
+    // Big Bang button
+    if (s.highestPhaseReached >= 8 && projectedCD > 0) {
+      html += `<button class="prestige-btn" id="prestige-btn">
+        <span class="prestige-icon">\u{1F4A5}</span>
+        <span>BIG BANG</span>
+        <span class="prestige-reward">+${fmt(projectedCD)} CD</span>
+      </button>
+      <div class="prestige-warning">This will reset all progress except permanent upgrades!</div>`;
+    } else {
+      html += `<div class="prestige-locked">Reach the Galactic Core (Phase 8) to unlock Prestige.</div>`;
+    }
+
+    // CD Shop
+    html += '<h3>Cosmic Dust Shop</h3><div class="cd-shop">';
+    for (const item of GameData.CD_SHOP) {
+      const purchased = s.cdShopPurchased[item.id];
+      const reqMet = !item.req || s.cdShopPurchased[item.req];
+      const canAfford = reqMet && !purchased && GameState.canAfford('cosmicDust', item.cost);
+
+      html += `<div class="cd-shop-item ${purchased ? 'purchased' : ''} ${canAfford ? 'affordable' : ''} ${reqMet ? '' : 'locked'}">
+        <div class="cd-item-info">
+          <div class="cd-item-name">${purchased ? '\u2714 ' : ''}${item.name}</div>
+          <div class="cd-item-desc">${item.desc}</div>
+        </div>
+        ${!purchased ? `<button class="cd-buy-btn ${canAfford ? '' : 'disabled'}" data-cdid="${item.id}">
+          ${reqMet ? item.cost + ' CD' : '\u{1F512}'}
+        </button>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+
+    panel.innerHTML = html;
+
+    document.getElementById('prestige-btn')?.addEventListener('click', () => {
+      if (s.settings.confirmPrestige) {
+        showModal('Confirm Prestige',
+          `<p>Are you sure? You will earn <strong>${fmt(projectedCD)} CD</strong>.</p>
+           <p>All progress will be reset except permanent upgrades.</p>`,
+          [
+            { label: 'Cancel', action: () => hideModal() },
+            { label: 'BIG BANG', action: () => { hideModal(); doPrestige(); }, className: 'danger' }
+          ]);
+      } else {
+        doPrestige();
+      }
+    });
+
+    panel.querySelectorAll('.cd-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyCDShopItem(btn.dataset.cdid));
+    });
+  }
+
+  function doPrestige() {
+    const cdEarned = GameState.performPrestige();
+    if (cdEarned <= 0) return;
+
+    Engine.addLogEntry('log22');
+    const s = GameState.getState();
+    if (s.totalPrestigeCount === 1) Engine.unlockAchievement('ach_prestige');
+    if (s.totalPrestigeCount >= 5) Engine.addLogEntry('log23');
+    if (s.totalPrestigeCount >= 10) Engine.addLogEntry('log24');
+
+    // Expansion C: Prestige rewards — random eggs and booster
+    const eggCount = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < eggCount; i++) {
+      if (typeof Expansion !== 'undefined' && Expansion.Eggs) {
+        Expansion.Eggs.grantRandomEgg(s);
+      }
+    }
+    if (typeof Expansion !== 'undefined' && Expansion.Boosters && Expansion.Boosters.grantRandom) {
+      Expansion.Boosters.grantRandom(s);
+    }
+
+    // Cosmic Egg on Prestige (CD shop)
+    if (s.cdShopPurchased && s.cdShopPurchased['cd_cosmicegg']) {
+      if (typeof Expansion !== 'undefined' && Expansion.Eggs && Expansion.Eggs.grantEgg) {
+        Expansion.Eggs.grantEgg(s, 'cosmic');
+      }
+    }
+
+    // Audio & juice
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playPrestigeSound();
+    if (typeof Juice !== 'undefined') {
+      Juice.Haptics.prestige();
+      Juice.ScreenShake.prestige();
+      Juice.Confetti.prestige();
+    }
+
+    playBigBangAnimation(cdEarned);
+  }
+
+  function playBigBangAnimation(cdEarned) {
+    const overlay = document.getElementById('big-bang-overlay');
+    const canvas = document.getElementById('big-bang-canvas');
+    const textEl = document.getElementById('big-bang-text');
+    overlay.classList.remove('hidden');
+    textEl.classList.add('hidden');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const startTime = Date.now();
+    const totalDuration = 8000;
+
+    // Starfield for collapse
+    const bbStars = [];
+    for (let i = 0; i < 200; i++) {
+      bbStars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 0.5
+      });
+    }
+    // Explosion particles
+    const bbParticles = [];
+
+    function animate() {
+      const elapsed = Date.now() - startTime;
+      const t = elapsed / totalDuration;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (t < 0.125) {
+        // Phase 1: Zoom out to show galaxy (0-1s)
+        const p = t / 0.125;
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const star of bbStars) {
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Galaxy glow
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 150 * (1 + p));
+        grad.addColorStop(0, 'rgba(255,255,200,0.3)');
+        grad.addColorStop(1, 'rgba(255,255,200,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 150 * (1 + p), 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (t < 0.375) {
+        // Phase 2: Stars collapsing inward (1-3s)
+        const p = (t - 0.125) / 0.25;
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const star of bbStars) {
+          const sx = star.x + (cx - star.x) * p;
+          const sy = star.y + (cy - star.y) * p;
+          ctx.fillStyle = `rgba(255,255,${Math.floor(200 + 55 * p)},${0.8 + 0.2 * p})`;
+          ctx.beginPath();
+          ctx.arc(sx, sy, star.size * (1 + p * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (t < 0.5) {
+        // Phase 3: Compress to single point (3-4s)
+        const p = (t - 0.375) / 0.125;
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const pointSize = 100 * (1 - p) + 3;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, pointSize);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.5, 'rgba(255,255,200,0.8)');
+        grad.addColorStop(1, 'rgba(255,200,100,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, pointSize, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (t < 0.5625) {
+        // Phase 4: FLASH — white screen (4-4.5s)
+        const p = (t - 0.5) / 0.0625;
+        ctx.fillStyle = `rgba(255,255,255,${1 - p * 0.2})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Spawn explosion particles at peak
+        if (bbParticles.length === 0) {
+          for (let i = 0; i < 100; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 3 + Math.random() * 8;
+            const hue = Math.random() * 360;
+            bbParticles.push({
+              x: cx, y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              hue: hue,
+              size: 2 + Math.random() * 4,
+              life: 1
+            });
+          }
+        }
+
+      } else if (t < 0.8125) {
+        // Phase 5: Explosion expanding outward (4.5-6.5s)
+        const p = (t - 0.5625) / 0.25;
+        ctx.fillStyle = `rgba(0,0,0,${Math.min(1, p * 0.8)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const part of bbParticles) {
+          part.x += part.vx;
+          part.y += part.vy;
+          part.life -= 0.005;
+          if (part.life > 0) {
+            ctx.fillStyle = `hsla(${part.hue},80%,60%,${part.life})`;
+            ctx.beginPath();
+            ctx.arc(part.x, part.y, part.size * part.life, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        // Center glow fading
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 200 * p);
+        glow.addColorStop(0, `rgba(255,255,200,${0.5 * (1 - p)})`);
+        glow.addColorStop(1, 'rgba(255,255,200,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 200 * p, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        // Phase 6-8: Fade to black, then text (6.5-8s)
+        const p = (t - 0.8125) / 0.1875;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (p > 0.3) {
+          textEl.classList.remove('hidden');
+          textEl.innerHTML = `<div class="bb-line1">A new universe begins...</div>
+            <div class="bb-cd-reward">+${NumberFormatter.format(cdEarned)} Cosmic Dust</div>`;
+        }
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete - let user click to proceed
+        overlay.onclick = () => {
+          overlay.classList.add('hidden');
+          overlay.onclick = null;
+          textEl.classList.add('hidden');
+          updateAll();
+          switchTab('generators');
+          SceneRenderer.setPhase(GameState.getState().currentPhase);
+        };
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // ===== ACHIEVEMENTS =====
+
+  function updateAchievements() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-achievements');
+
+    let html = '<h3>Achievements</h3>';
+    const categories = ['progression', 'earning', 'tapping', 'generator', 'crew', 'terraform', 'prestige',
+      'speed', 'combo', 'critical', 'collection', 'luckyDrop', 'egg', 'contract', 'synergy', 'weather',
+      'milestone', 'booster', 'secret'];
+    const catNames = ['Progression', 'Earning', 'Tapping', 'Generators', 'Crew', 'Terraforming', 'Prestige',
+      'Speed', 'Combo', 'Critical', 'Collection', 'Lucky Drop', 'Egg', 'Contract', 'Synergy', 'Weather',
+      'Milestone', 'Booster', 'Secret'];
+
+    categories.forEach((cat, i) => {
+      const achs = GameData.ACHIEVEMENTS.filter(a => a.category === cat);
+      html += `<h4>${catNames[i]}</h4>`;
+      for (const ach of achs) {
+        const unlocked = s.achievements[ach.id];
+        if (ach.secret && !unlocked) {
+          html += `<div class="ach-row locked"><div class="ach-name">???</div><div class="ach-desc">Secret achievement</div></div>`;
+        } else {
+          html += `<div class="ach-row ${unlocked ? 'unlocked' : ''}">
+            <div class="ach-name">${unlocked ? '\u2714 ' : '\u25CB '}${ach.name}</div>
+            <div class="ach-desc">${ach.desc}</div>
+          </div>`;
+        }
+      }
+    });
+
+    panel.innerHTML = html;
+  }
+
+  // ===== SETTINGS =====
+
+  function updateSettings() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-settings');
+
+    panel.innerHTML = `<h3>Settings</h3>
+      <div class="settings-list">
+        <div class="setting-row">
+          <label>Music Volume</label>
+          <input type="range" min="0" max="100" value="${s.settings.musicVolume * 100}" id="set-music">
+        </div>
+        <div class="setting-row">
+          <label>SFX Volume</label>
+          <input type="range" min="0" max="100" value="${s.settings.sfxVolume * 100}" id="set-sfx">
+        </div>
+        <div class="setting-row">
+          <label>Number Format</label>
+          <select id="set-numformat">
+            <option value="abbreviated" ${s.settings.numberFormat === 'abbreviated' ? 'selected' : ''}>Abbreviated</option>
+            <option value="scientific" ${s.settings.numberFormat === 'scientific' ? 'selected' : ''}>Scientific</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Particle Effects</label>
+          <input type="checkbox" id="set-particles" ${s.settings.particleEffects ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <label>Screen Shake</label>
+          <input type="checkbox" id="set-shake" ${s.settings.screenShake ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <label>Confirm Prestige</label>
+          <input type="checkbox" id="set-confirm" ${s.settings.confirmPrestige ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <button class="action-btn" id="export-btn">Export Save</button>
+          <button class="action-btn" id="import-btn">Import Save</button>
+        </div>
+        <div class="setting-row">
+          <button class="action-btn danger" id="reset-btn">Hard Reset</button>
+        </div>
+        <div class="setting-row credits-info">
+          <p>Deep Space Inc. v${s.version}</p>
+          <p>An idle space exploration tycoon game</p>
+        </div>
+      </div>`;
+
+    // Event listeners
+    document.getElementById('set-music')?.addEventListener('input', e => {
+      s.settings.musicVolume = e.target.value / 100;
+    });
+    document.getElementById('set-sfx')?.addEventListener('input', e => {
+      s.settings.sfxVolume = e.target.value / 100;
+    });
+    document.getElementById('set-numformat')?.addEventListener('change', e => {
+      s.settings.numberFormat = e.target.value;
+    });
+    document.getElementById('set-particles')?.addEventListener('change', e => {
+      s.settings.particleEffects = e.target.checked;
+    });
+    document.getElementById('set-shake')?.addEventListener('change', e => {
+      s.settings.screenShake = e.target.checked;
+    });
+    document.getElementById('set-confirm')?.addEventListener('change', e => {
+      s.settings.confirmPrestige = e.target.checked;
+    });
+
+    document.getElementById('export-btn')?.addEventListener('click', () => {
+      const b64 = GameState.exportSave();
+      navigator.clipboard.writeText(b64).then(() => {
+        showModal('Save Exported', '<p>Save data copied to clipboard!</p>',
+          [{ label: 'OK', action: hideModal }]);
+      }).catch(() => {
+        showModal('Save Exported', `<textarea class="export-text" readonly>${b64}</textarea><p>Copy the text above.</p>`,
+          [{ label: 'OK', action: hideModal }]);
+      });
+    });
+
+    document.getElementById('import-btn')?.addEventListener('click', () => {
+      showModal('Import Save', `<textarea class="import-text" id="import-text" placeholder="Paste save data here..."></textarea>`,
+        [
+          { label: 'Cancel', action: hideModal },
+          {
+            label: 'Import', action: () => {
+              const txt = document.getElementById('import-text')?.value;
+              if (txt && GameState.importSave(txt.trim())) {
+                hideModal();
+                location.reload();
+              } else {
+                alert('Invalid save data');
+              }
+            }
+          }
+        ]);
+    });
+
+    document.getElementById('reset-btn')?.addEventListener('click', () => {
+      showModal('Hard Reset',
+        `<p>Type RESET to confirm. This cannot be undone!</p>
+         <input type="text" id="reset-confirm" placeholder="Type RESET">`,
+        [
+          { label: 'Cancel', action: hideModal },
+          {
+            label: 'Reset', action: () => {
+              if (document.getElementById('reset-confirm')?.value === 'RESET') {
+                GameState.hardReset();
+                hideModal();
+                location.reload();
+              }
+            }, className: 'danger'
+          }
+        ]);
+    });
+  }
+
+  // ===== GALAXY MAP (Phase 8) =====
+
+  function updateGalaxyMap() {
+    // Updates handled in generators panel for phase 8
+    if (GameState.getState().currentPhase === 8) {
+      updateGenerators();
+    }
+  }
+
+  // ===== FLOATING NUMBERS =====
+
+  let rapidTapAccum = 0;
+  let rapidTapTimer = null;
+  let rapidTapEl = null;
+  let lastTapTimestamps = [];
+
+  function showFloatingNumber(amount, tapResult) {
+    const container = document.getElementById('floating-numbers');
+    const now = Date.now();
+
+    // Track tap rate for rapid-tap combining
+    lastTapTimestamps.push(now);
+    lastTapTimestamps = lastTapTimestamps.filter(t => now - t < 1000);
+    const tapsPerSec = lastTapTimestamps.length;
+
+    // Trigger particle burst on tap
+    const tapBtn = document.getElementById('tap-btn');
+    if (tapBtn) {
+      const rect = tapBtn.getBoundingClientRect();
+      const sceneArea = document.getElementById('scene-area');
+      const sceneRect = sceneArea.getBoundingClientRect();
+      const px = rect.left + rect.width / 2 - sceneRect.left;
+      const py = rect.top + rect.height / 2 - sceneRect.top;
+      const particleCount = tapsPerSec > 5 ? 8 : 6;
+      const color = (tapResult && tapResult.type === 'critical') ? '#E74C3C' :
+                    (tapResult && tapResult.type === 'super') ? '#FF69B4' : '#FFD700';
+      SceneRenderer.addParticleBurst(px, py, color, particleCount);
+    }
+
+    // Handle drop-type floaters (no combining)
+    if (tapResult && tapResult.type === 'drop') {
+      const el = document.createElement('div');
+      el.className = 'floating-num';
+      el.textContent = tapResult.dropName + '!';
+      el.style.color = tapResult.dropColor;
+      el.style.fontSize = '18px';
+      el.style.left = (40 + Math.random() * 20) + '%';
+      el.style.bottom = '120px';
+      container.appendChild(el);
+      requestAnimationFrame(() => { el.style.transform = 'translateY(-80px)'; el.style.opacity = '0'; });
+      setTimeout(() => el.remove(), 800);
+      return;
+    }
+
+    // Special floaters for crits/supers (no combining)
+    if (tapResult && (tapResult.type === 'super' || tapResult.type === 'critical')) {
+      const el = document.createElement('div');
+      el.className = 'floating-num critical-float';
+      if (tapResult.type === 'super') {
+        el.textContent = 'SUPER! +\u20A1' + NumberFormatter.format(amount);
+        el.style.color = '#FF69B4';
+        el.style.fontSize = '22px';
+      } else {
+        el.textContent = 'CRIT! +\u20A1' + NumberFormatter.format(amount);
+        el.style.color = '#E74C3C';
+        el.style.fontSize = '20px';
+      }
+      el.style.left = (40 + Math.random() * 20) + '%';
+      el.style.bottom = '120px';
+      container.appendChild(el);
+      requestAnimationFrame(() => { el.style.transform = 'translateY(-80px)'; el.style.opacity = '0'; });
+      setTimeout(() => el.remove(), 800);
+      return;
+    }
+
+    // Rapid tap combining: if >5 taps/sec, accumulate into one larger floater
+    if (tapsPerSec > 5) {
+      rapidTapAccum += amount;
+      if (rapidTapEl && rapidTapEl.parentNode) {
+        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.format(rapidTapAccum);
+        rapidTapEl.style.fontSize = Math.min(24, 16 + tapsPerSec * 0.5) + 'px';
+      } else {
+        rapidTapEl = document.createElement('div');
+        rapidTapEl.className = 'floating-num';
+        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.format(rapidTapAccum);
+        rapidTapEl.style.left = '45%';
+        rapidTapEl.style.bottom = '120px';
+        container.appendChild(rapidTapEl);
+      }
+      clearTimeout(rapidTapTimer);
+      rapidTapTimer = setTimeout(() => {
+        if (rapidTapEl) {
+          requestAnimationFrame(() => { rapidTapEl.style.transform = 'translateY(-80px)'; rapidTapEl.style.opacity = '0'; });
+          setTimeout(() => { if (rapidTapEl) { rapidTapEl.remove(); rapidTapEl = null; } }, 800);
+        }
+        rapidTapAccum = 0;
+      }, 200);
+      return;
+    }
+
+    // Normal single floater
+    rapidTapAccum = 0;
+    const el = document.createElement('div');
+    el.className = 'floating-num';
+    el.textContent = '+\u20A1' + NumberFormatter.format(amount);
+    el.style.left = (40 + Math.random() * 20) + '%';
+    el.style.bottom = '120px';
+    container.appendChild(el);
+
+    requestAnimationFrame(() => {
+      el.style.transform = 'translateY(-80px)';
+      el.style.opacity = '0';
+    });
+
+    setTimeout(() => el.remove(), 800);
+  }
+
+  // ===== MODALS =====
+
+  function showModal(title, content, buttons = []) {
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById('modal-content');
+
+    let html = `<h3>${title}</h3>${content}<div class="modal-buttons">`;
+    buttons.forEach((btn, i) => {
+      html += `<button class="modal-btn ${btn.className || ''}" data-idx="${i}">${btn.label}</button>`;
+    });
+    html += '</div>';
+    modal.innerHTML = html;
+
+    modal.querySelectorAll('.modal-btn').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.idx);
+        if (buttons[idx] && buttons[idx].action) buttons[idx].action();
+      });
+    });
+
+    overlay.classList.remove('hidden');
+  }
+
+  function hideModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+  }
+
+  // ===== TOAST NOTIFICATIONS =====
+
+  function showToast(msg, color) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast-item';
+    if (color) toast.style.borderColor = color;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
+  }
+
+  function showMilestoneNotification(genName, milestone) {
+    showToast(`${genName} reached ${milestone.count}! x${milestone.mult} ${milestone.badge}`, '#FFD700');
+  }
+
+  function showSynergyNotification(synergy) {
+    showToast(`SYNERGY: ${synergy.name}! x${synergy.bonus}`, '#9B59B6');
+  }
+
+  function showContractCompleteNotification(contract) {
+    showToast(`CONTRACT COMPLETE: ${contract.name}!`, '#27AE60');
+  }
+
+  function showCollectionNotification(itemId) {
+    let itemName = itemId;
+    for (const setKey in Expansion.COLLECTIONS) {
+      const item = Expansion.COLLECTIONS[setKey].items.find(i => i.id === itemId);
+      if (item) { itemName = item.name; break; }
+    }
+    showToast(`NEW COLLECTION: ${itemName}!`, '#4A90D9');
+  }
+
+  // ===== SYNERGY PANEL =====
+
+  function updateSynergies() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-synergies');
+    if (!panel) return;
+    let html = '<h3>\u{1F517} Synergies</h3>';
+
+    const allSynergies = Expansion.SYNERGIES;
+    const unlocked = s.synergies.unlocked;
+
+    let activeCount = 0;
+    for (const syn of allSynergies) {
+      const isUnlocked = unlocked.includes(syn.id);
+      if (isUnlocked) activeCount++;
+      const genNames = syn.gens.map(gid => {
+        const gen = Engine.findGenerator(gid);
+        return gen ? gen.name : gid;
+      });
+      const progress = syn.gens.map(gid => Math.min(syn.minCount, s.generators[gid] || 0));
+      const allMet = progress.every(p => p >= syn.minCount);
+
+      html += `<div class="synergy-row ${isUnlocked ? 'active' : ''}" ${!isUnlocked && !allMet ? 'style="opacity:0.5"' : ''}>
+        <div class="syn-name">${syn.name} ${isUnlocked ? '\u2705' : ''}</div>
+        <div class="syn-gens">${genNames.join(' + ')}</div>
+        <div class="syn-progress">${isUnlocked ? 'x' + syn.bonus + ' bonus active' : progress.map((p, i) => p + '/' + syn.minCount).join(', ')}</div>
+      </div>`;
+    }
+
+    if (activeCount === 0) {
+      html += '<p class="empty-msg">No synergies unlocked yet. Own pairs of generators to activate synergies!</p>';
+    }
+
+    panel.innerHTML = html;
+  }
+
+  // ===== ROCKET SKINS PANEL =====
+
+  function updateRocketSkins() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-skins');
+    if (!panel) return;
+    let html = '<h3>\u{1F680} Rocket Skins</h3>';
+    html += `<div class="current-skin">Current: ${s.rocket.currentSkin}</div>`;
+
+    for (const skin of Expansion.ROCKET_SKINS) {
+      const owned = s.rocket.unlockedSkins.includes(skin.id);
+      const equipped = s.rocket.currentSkin === skin.id;
+      const canBuy = !owned && GameState.canAfford('it', skin.cost);
+
+      html += `<div class="skin-row ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
+        <div class="skin-info">
+          <div class="skin-name">${skin.name} ${equipped ? '(EQUIPPED)' : ''}</div>
+          <div class="skin-desc">${skin.desc}</div>
+        </div>`;
+
+      if (!owned && skin.cost > 0) {
+        html += `<button class="skin-buy-btn ${canBuy ? '' : 'disabled'}" data-skinid="${skin.id}">
+          <div>${skin.cost} IT</div><div>BUY</div>
+        </button>`;
+      } else if (owned && !equipped) {
+        html += `<button class="skin-equip-btn" data-skinid="${skin.id}">EQUIP</button>`;
+      }
       html += '</div>';
     }
 
     panel.innerHTML = html;
-  }
 
-  // ---------- Stats Panel ----------
-
-  function updateStats() {
-    const s = State.get();
-    const panel = document.getElementById('panel-stats');
-    if (!panel) return;
-
-    let html = '<div class="stats-section">';
-    html += statRow('Total Play Time', Num.time(s.totalPlayTimeSeconds));
-    html += statRow('Current Phase', s.currentPhase);
-    html += statRow('Highest Phase', s.highestPhaseReached);
-    html += statRow('Total Taps', Num.format(s.totalTaps));
-    html += statRow('Credits Earned (All Time)', Num.currency(s.creditsAllTimeEarned, '\u20A1'));
-    html += statRow('Credits/sec', Num.perSec(s.creditsPerSecond, '\u20A1'));
-    html += statRow('Credits/tap', Num.currency(s.creditsPerTap, '\u20A1'));
-    html += statRow('Prestige Count', s.totalPrestigeCount);
-    if (s.cosmicDust > 0) html += statRow('Cosmic Dust', Num.format(s.cosmicDust));
-    html += statRow('CD Multiplier', s.cosmicDustMultiplier.toFixed(2) + 'x');
-    html += '</div>';
-
-    panel.innerHTML = html;
-  }
-
-  function statRow(label, value) {
-    return '<div class="stat-row"><span class="stat-label">' + label + '</span><span class="stat-value">' + value + '</span></div>';
-  }
-
-  // ---------- Settings Panel ----------
-
-  function updateSettings() {
-    const s = State.get();
-    const panel = document.getElementById('panel-settings');
-    if (!panel) return;
-
-    let html = '<div class="settings-section">';
-    html += '<div class="setting-row">';
-    html += '  <span>Number Format</span>';
-    html += '  <select id="setting-numformat">';
-    html += '    <option value="abbreviated"' + (s.settings.numberFormat === 'abbreviated' ? ' selected' : '') + '>Abbreviated</option>';
-    html += '    <option value="scientific"' + (s.settings.numberFormat === 'scientific' ? ' selected' : '') + '>Scientific</option>';
-    html += '  </select>';
-    html += '</div>';
-    html += '<div class="setting-row">';
-    html += '  <span>Music Volume</span>';
-    html += '  <input type="range" id="setting-music" min="0" max="100" value="' + (s.settings.musicVolume * 100) + '">';
-    html += '</div>';
-    html += '<div class="setting-row">';
-    html += '  <span>SFX Volume</span>';
-    html += '  <input type="range" id="setting-sfx" min="0" max="100" value="' + (s.settings.sfxVolume * 100) + '">';
-    html += '</div>';
-    html += '<div class="settings-actions">';
-    html += '  <button id="btn-save">Save Game</button>';
-    html += '  <button id="btn-export">Export Save</button>';
-    html += '  <button id="btn-import">Import Save</button>';
-    html += '  <button id="btn-reset" class="danger-btn">Hard Reset</button>';
-    html += '</div>';
-    html += '</div>';
-
-    panel.innerHTML = html;
-
-    // Bind settings controls
-    const numFmt = document.getElementById('setting-numformat');
-    if (numFmt) numFmt.addEventListener('change', () => { s.settings.numberFormat = numFmt.value; });
-    const musicVol = document.getElementById('setting-music');
-    if (musicVol) musicVol.addEventListener('input', () => { s.settings.musicVolume = musicVol.value / 100; });
-    const sfxVol = document.getElementById('setting-sfx');
-    if (sfxVol) sfxVol.addEventListener('input', () => { s.settings.sfxVolume = sfxVol.value / 100; });
-
-    const saveBtn = document.getElementById('btn-save');
-    if (saveBtn) saveBtn.addEventListener('click', () => { State.save(); showToast('Game saved!'); });
-    const exportBtn = document.getElementById('btn-export');
-    if (exportBtn) exportBtn.addEventListener('click', () => {
-      const b64 = State.exportSave();
-      navigator.clipboard.writeText(b64).then(() => showToast('Save copied to clipboard!'));
+    panel.querySelectorAll('.skin-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        if (Expansion.RocketSkins.buySkin(s, btn.dataset.skinid)) {
+          showToast('Skin unlocked: ' + btn.dataset.skinid, '#FFD700');
+          updateRocketSkins();
+          updateCurrencyBar();
+        }
+      });
     });
-    const importBtn = document.getElementById('btn-import');
-    if (importBtn) importBtn.addEventListener('click', () => {
-      const b64 = prompt('Paste your save data:');
-      if (b64 && State.importSave(b64)) {
-        showToast('Save imported! Reloading...');
-        setTimeout(() => location.reload(), 500);
-      } else if (b64) {
-        showToast('Invalid save data!');
-      }
-    });
-    const resetBtn = document.getElementById('btn-reset');
-    if (resetBtn) resetBtn.addEventListener('click', () => {
-      if (confirm('Are you sure? This will DELETE all progress permanently!')) {
-        State.hardReset();
-        location.reload();
-      }
+    panel.querySelectorAll('.skin-equip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        Expansion.RocketSkins.equipSkin(s, btn.dataset.skinid);
+        updateRocketSkins();
+      });
     });
   }
 
-  // ---------- Achievement Banner ----------
+  // ===== BANNERS =====
 
   function showAchievementBanner(ach) {
     const banner = document.getElementById('achievement-banner');
-    if (!banner) return;
-    banner.innerHTML = '<div class="ach-banner-icon">\uD83C\uDFC6</div><div class="ach-banner-text"><div class="ach-banner-title">Achievement Unlocked!</div><div class="ach-banner-name">' + ach.name + '</div></div>';
+    banner.innerHTML = `<div class="ach-banner-content">
+      <span class="ach-banner-icon">\u{1F3C6}</span>
+      <span class="ach-banner-text"><strong>${ach.name}</strong> — ${ach.desc}</span>
+    </div>`;
     banner.classList.remove('hidden');
-    setTimeout(() => banner.classList.add('hidden'), 3500);
-  }
-
-  // ---------- Toast Notifications (Section 32) ----------
-
-  function showToast(message) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(() => toast.classList.add('show'), 10);
+    banner.classList.add('show');
     setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
+      banner.classList.remove('show');
+      banner.classList.add('hidden');
     }, 3000);
   }
 
-  // ---------- Phase Transition ----------
-
-  function playPhaseTransition(phase) {
-    updatePhaseName();
-    updateTapButton();
-    showToast('Welcome to Phase ' + phase + '!');
-    updateAll();
+  function showAlienSignalPopup() {
+    showModal('ALIEN SIGNAL DETECTED!',
+      '<p class="alien-signal">An alien signal has been decoded!</p><p>+1 Alien Signal</p>',
+      [{ label: 'Decode', action: hideModal }]);
   }
 
-  // ---------- Offline Earnings Modal ----------
+  // ===== EVENTS =====
 
-  function showOfflineEarnings(earnings) {
-    const overlay = document.getElementById('modal-overlay');
-    const content = document.getElementById('modal-content');
-    if (!overlay || !content) return;
+  function showEventBanner(event) {
+    const banner = document.getElementById('event-banner');
+    const typeClass = event.type === 'positive' ? 'event-positive' :
+      event.type === 'negative' ? 'event-negative' : 'event-neutral';
+    const isMiniGame = event.icon === '\uD83C\uDFAE';
+    const playBtn = isMiniGame ? '<button class="mg-play-btn" id="mg-accept-btn">PLAY</button>' : '';
+    banner.innerHTML = `<div class="event-content ${typeClass}">
+      <span class="event-icon">${event.icon}</span>
+      <span class="event-name">${event.name}</span>
+      <span class="event-desc">${event.desc}</span>
+      ${playBtn}
+      <span class="event-timer" id="event-timer"></span>
+    </div>`;
+    banner.classList.remove('hidden');
 
-    let html = '<div class="modal-title">Welcome Back!</div>';
-    html += '<div class="modal-body">';
-    html += '<p>You were away for ' + Num.time(earnings.seconds) + '</p>';
-    if (earnings.credits > 0) html += '<p>+' + Num.currency(earnings.credits, '\u20A1') + ' Credits</p>';
-    if (earnings.rp > 0) html += '<p>+' + Num.format(earnings.rp) + ' RP</p>';
-    if (earnings.ore > 0) html += '<p>+' + Num.format(earnings.ore) + ' Ore</p>';
-    html += '</div>';
-    html += '<button class="modal-close-btn" id="close-offline-modal">Collect</button>';
+    if (isMiniGame) {
+      const btn = document.getElementById('mg-accept-btn');
+      if (btn) btn.addEventListener('click', () => GameEvents.acceptMiniGame());
+    }
+  }
 
-    content.innerHTML = html;
+  function hideEventBanner() {
+    document.getElementById('event-banner').classList.add('hidden');
+  }
+
+  function updateEventTimer(remaining) {
+    const timer = document.getElementById('event-timer');
+    if (timer) timer.textContent = Math.ceil(remaining) + 's';
+  }
+
+  // ===== PHASE TRANSITION =====
+
+  function playPhaseTransition(phase) {
+    const overlay = document.getElementById('transition-overlay');
+    const phaseData = GameData.PHASES[phase];
+    overlay.innerHTML = `<div class="transition-content">
+      <div class="transition-icon">${phaseData.tapIcon}</div>
+      <div class="transition-title">Phase ${phase}</div>
+      <div class="transition-name">${phaseData.name}</div>
+      <div class="transition-location">${phaseData.location}</div>
+    </div>`;
     overlay.classList.remove('hidden');
+    overlay.classList.add('active');
 
-    document.getElementById('close-offline-modal').addEventListener('click', () => {
+    // Juice: confetti, shake, flash
+    if (typeof Juice !== 'undefined') {
+      Juice.ScreenShake.phaseTransition();
+      Juice.ScreenFlash.phaseTransition();
+      Juice.Confetti.phaseUnlock();
+    }
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setPhase(phase);
+
+    setTimeout(() => {
+      overlay.classList.remove('active');
       overlay.classList.add('hidden');
+      updateAll();
+      updateTapButton();
+      updateTabVisibility();
+      SceneRenderer.setPhase(phase);
+    }, 3000);
+  }
+
+  // ===== WELCOME BACK =====
+
+  function showWelcomeBack(earnings) {
+    const fmt = NumberFormatter.format;
+    const ft = NumberFormatter.formatTime;
+    let rewardList = '';
+    if (earnings.credits > 0) rewardList += `<div>\u20A1${fmt(earnings.credits)}</div>`;
+    if (earnings.rp > 0) rewardList += `<div>${fmt(earnings.rp)} RP</div>`;
+    if (earnings.ore > 0) rewardList += `<div>${fmt(earnings.ore)} Ore</div>`;
+    if (earnings.rm > 0) rewardList += `<div>${fmt(earnings.rm)} RM</div>`;
+    if (earnings.sd > 0) rewardList += `<div>${fmt(earnings.sd)} SD</div>`;
+
+    showModal('Welcome Back, Captain!',
+      `<p>You were away for ${ft(earnings.time)}</p>
+       <p>Your operations earned:</p>
+       <div class="welcome-rewards">${rewardList}</div>`,
+      [{ label: 'COLLECT', action: () => { GameState.applyOfflineEarnings(earnings); hideModal(); } }]);
+  }
+
+  // ===== DAILY REWARD =====
+
+  function showDailyReward(reward) {
+    const fmt = NumberFormatter.format;
+    showModal(`Day ${reward.day} Streak!`,
+      `<p>${reward.reward.desc}</p>
+       ${reward.amount > 0 ? `<p class="daily-amount">${fmt(reward.amount)}</p>` :
+        '<p>Bonus activated!</p>'}
+       <p>Streak multiplier: x${reward.multiplier.toFixed(1)}</p>`,
+      [{ label: 'Claim', action: hideModal }]);
+  }
+
+  // ===== EXPANSION UI: COMBO DISPLAY =====
+  function updateComboDisplay() {
+    const s = GameState.getState();
+    const el = document.getElementById('combo-display');
+    if (!el) return;
+    if (s.combo.current >= 5) {
+      el.classList.remove('hidden');
+      const tier = Expansion.Combo.getTier(s.combo.current);
+      document.getElementById('combo-count').textContent = s.combo.current;
+      document.getElementById('combo-label').textContent = tier.label;
+      document.getElementById('combo-mult').textContent = 'x' + tier.mult;
+      // Set color intensity by tier
+      const intensity = Math.min(1, s.combo.current / 100);
+      el.style.borderColor = `hsl(${50 - intensity * 50}, 100%, ${50 + intensity * 20}%)`;
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  // ===== EXPANSION UI: WEATHER INDICATOR =====
+  function updateWeatherIndicator() {
+    const s = GameState.getState();
+    const el = document.getElementById('weather-indicator');
+    if (!el) return;
+    const name = Expansion.Weather.getCurrentName(s);
+    const effect = Expansion.Weather.getCurrentEffect(s);
+    el.classList.remove('hidden');
+    document.getElementById('weather-name').textContent = name + (effect ? ' \u2728' : '');
+  }
+
+  // ===== EXPANSION UI: LUCKY DROP =====
+  function updateLuckyDropDisplay() {
+    const s = GameState.getState();
+    const el = document.getElementById('lucky-drop');
+    if (!el) return;
+    const drop = Expansion.LuckyDrops.activeDrop;
+    if (drop) {
+      el.classList.remove('hidden');
+      el.style.left = drop.x + '%';
+      el.style.top = drop.y + '%';
+      el.style.background = drop.type.color;
+      el.textContent = '\u2B50';
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  // ===== EXPANSION UI: GOLDEN RUSH BANNER =====
+  function updateGoldenRushBanner() {
+    const s = GameState.getState();
+    const el = document.getElementById('golden-rush-banner');
+    if (!el) return;
+    if (s.goldenRush.active) {
+      el.classList.remove('hidden');
+      const remaining = Math.ceil((s.goldenRush.endTime - Date.now()) / 1000);
+      document.getElementById('golden-rush-text').textContent = 'GOLDEN RUSH! ' + remaining + 's';
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  // ===== EXPANSION UI: NEXT UNLOCK BAR =====
+  function updateNextUnlockBar() {
+    const s = GameState.getState();
+    const bar = document.getElementById('next-unlock-bar');
+    if (!bar) return;
+
+    // Use enhanced TeaserSystem from Juice if available, else fall back to Expansion.NextUnlock
+    let teaser = null;
+    if (typeof Juice !== 'undefined') {
+      teaser = Juice.TeaserSystem.getNextUnlock(s);
+    } else {
+      teaser = Expansion.NextUnlock.get(s);
+    }
+
+    if (teaser) {
+      bar.classList.remove('hidden');
+      const pct = Math.floor(teaser.progress * 100);
+      const infoEl = document.getElementById('next-unlock-info');
+      const progressEl = document.getElementById('next-unlock-progress-inner');
+
+      if (pct >= 100) {
+        infoEl.textContent = '\u{1F389} READY! ' + teaser.name;
+        bar.classList.remove('almost-there');
+        bar.classList.add('ready');
+      } else if (teaser.almostThere) {
+        infoEl.textContent = '\u{1F512} ALMOST THERE! ' + teaser.name + ' — ' + pct + '%';
+        bar.classList.add('almost-there');
+        bar.classList.remove('ready');
+      } else {
+        infoEl.textContent = '\u{1F512} NEXT: ' + teaser.name + ' — ' + pct + '%';
+        bar.classList.remove('almost-there', 'ready');
+      }
+      if (progressEl) progressEl.style.width = Math.min(100, pct) + '%';
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  // ===== EXPANSION UI: IDLE STREAK DISPLAY =====
+  function updateIdleStreakDisplay() {
+    const el = document.getElementById('idle-streak-display');
+    if (!el) return;
+    const s = GameState.getState();
+    const bonus = s.streaks.idleStreakBonus;
+    if (bonus > 0) {
+      const elapsed = Math.floor((Date.now() - s.streaks.idleStreakStartTimestamp) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      el.classList.remove('hidden');
+      el.textContent = `Idle ${mins}m +${Math.round(bonus * 100)}%`;
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  // ===== EXPANSION UI: ACTIVE BOOSTER HUD =====
+  function updateActiveBoosterHUD() {
+    const el = document.getElementById('active-boosters-hud');
+    if (!el) return;
+    const s = GameState.getState();
+    if (s.boosters.active.length === 0) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    let html = '';
+    for (const b of s.boosters.active) {
+      const bt = Expansion.BOOSTER_TYPES.find(t => t.id === b.type);
+      const secs = Math.ceil(b.remainingMs / 1000);
+      const m = Math.floor(secs / 60);
+      const sec = secs % 60;
+      html += `<span class="booster-badge" style="border-color:${bt ? bt.color : '#fff'}">${bt ? bt.icon : ''} ${m}:${String(sec).padStart(2, '0')}</span>`;
+    }
+    el.innerHTML = html;
+  }
+
+  // ===== EXPANSION UI: COLLECTION PANEL =====
+  function updateCollection() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-collection');
+    if (!panel) return;
+    const progress = Expansion.Collections.getProgress(s);
+    let html = `<h3>\u{1F4DA} Collection Album (${progress.found}/${progress.total})</h3>`;
+
+    for (const setKey in Expansion.COLLECTIONS) {
+      const set = Expansion.COLLECTIONS[setKey];
+      const completed = s.collection.setsCompleted.includes(setKey);
+      const found = set.items.filter(i => s.collection.items[i.id]).length;
+      html += `<div class="collection-set ${completed ? 'completed' : ''}">
+        <h4>${set.name} (${found}/${set.items.length}) ${completed ? '\u2705' : ''}</h4>
+        ${completed ? `<div class="set-bonus">\u{1F31F} ${set.bonus}</div>` : ''}
+        <div class="collection-grid">`;
+      for (const item of set.items) {
+        const found = s.collection.items[item.id];
+        html += `<div class="collection-item ${found ? 'found' : 'locked'} rarity-${item.rarity}">
+          <div class="col-item-name">${found ? item.name : '???'}</div>
+          <div class="col-item-hint">${found ? item.rarity : item.hint}</div>
+        </div>`;
+      }
+      html += '</div></div>';
+    }
+    panel.innerHTML = html;
+  }
+
+  // ===== EXPANSION UI: CONTRACTS PANEL =====
+  function updateContracts() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-contracts');
+    if (!panel) return;
+    let html = `<h3>\u{1F4CB} Contracts (${s.contracts.completed} completed)</h3>`;
+
+    if (s.contracts.active.length === 0) {
+      html += '<p class="empty-msg">No active contracts. New ones will appear shortly!</p>';
+    }
+
+    for (const c of s.contracts.active) {
+      const progress = Math.min(1, c.progress / c.target);
+      const timeLeft = Math.max(0, Math.ceil(c.timeRemaining));
+      const mins = Math.floor(timeLeft / 60);
+      const secs = timeLeft % 60;
+      html += `<div class="contract-row">
+        <div class="contract-info">
+          <div class="contract-name">${c.name}</div>
+          <div class="contract-progress-outer">
+            <div class="contract-progress-inner" style="width:${progress * 100}%"></div>
+          </div>
+          <div class="contract-detail">${NumberFormatter.format(c.progress)} / ${NumberFormatter.format(c.target)} — ${mins}:${String(secs).padStart(2, '0')}</div>
+        </div>
+      </div>`;
+    }
+    panel.innerHTML = html;
+  }
+
+  // ===== EXPANSION UI: BOOSTERS PANEL =====
+  function updateBoosters() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-boosters');
+    if (!panel) return;
+    let html = `<h3>\u26A1 Boosters</h3>`;
+
+    // Active boosters
+    if (s.boosters.active.length > 0) {
+      html += '<h4>Active</h4>';
+      for (const b of s.boosters.active) {
+        const bt = Expansion.BOOSTER_TYPES.find(t => t.id === b.type);
+        const secs = Math.ceil(b.remainingMs / 1000);
+        html += `<div class="booster-active" style="border-color:${bt ? bt.color : '#fff'}">
+          <span class="booster-icon">${bt ? bt.icon : ''}</span>
+          <span class="booster-name">${bt ? bt.name : b.type}</span>
+          <span class="booster-timer">x${b.mult} — ${secs}s</span>
+        </div>`;
+      }
+    }
+
+    // Inventory
+    html += `<h4>Inventory (${s.boosters.inventory.length}/5)</h4>`;
+    if (s.boosters.inventory.length === 0) {
+      html += '<p class="empty-msg">No boosters. Earn them from eggs, drops, and contracts!</p>';
+    }
+    s.boosters.inventory.forEach((item, idx) => {
+      const bt = Expansion.BOOSTER_TYPES.find(t => t.id === item.type);
+      html += `<div class="booster-item rarity-${item.rarity}" style="border-color:${bt ? bt.color : '#fff'}">
+        <span class="booster-icon">${bt ? bt.icon : ''}</span>
+        <div class="booster-info">
+          <div class="booster-name">${bt ? bt.name : item.type}</div>
+          <div class="booster-desc">${bt ? (bt.target === 'instant' ? 'Instant' : bt.duration + 's x' + bt.mult) : ''}</div>
+        </div>
+        <button class="booster-use-btn" onclick="(function(){ const s=GameState.getState(); Expansion.Boosters.activate(s,${idx}); UI.updateBoosters(); })()">USE</button>
+      </div>`;
+    });
+    panel.innerHTML = html;
+  }
+
+  // ===== EXPANSION UI: EGGS PANEL =====
+  function updateEggs() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-eggs');
+    if (!panel) return;
+    let html = `<h3>\u{1F95A} Egg Incubator (${s.eggs.totalHatched} hatched)</h3>`;
+    html += '<div class="egg-slots">';
+
+    for (let i = 0; i < s.eggs.maxSlots; i++) {
+      const egg = s.eggs.slots[i];
+      if (egg) {
+        const progress = Expansion.Eggs.getProgress(egg);
+        const ready = Expansion.Eggs.isReady(egg);
+        html += `<div class="egg-slot filled" style="border-color:${egg.color}">
+          <div class="egg-icon" style="color:${egg.color}">\u{1F95A}</div>
+          <div class="egg-name">${egg.name}</div>
+          <div class="egg-progress-outer">
+            <div class="egg-progress-inner" style="width:${progress * 100}%;background:${egg.color}"></div>
+          </div>
+          <div class="egg-status">${ready ? 'READY!' : Math.floor(progress * 100) + '%'}</div>
+          ${ready ? '<button class="egg-hatch-btn" data-slot="' + i + '">HATCH</button>' : ''}
+        </div>`;
+      } else {
+        html += `<div class="egg-slot empty">
+          <div class="egg-icon">\u2B55</div>
+          <div class="egg-name">Empty Slot</div>
+        </div>`;
+      }
+    }
+    html += '</div>';
+    panel.innerHTML = html;
+
+    // Attach hatch button handlers
+    panel.querySelectorAll('.egg-hatch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slot = parseInt(btn.dataset.slot);
+        const s = GameState.getState();
+        const egg = s.eggs.slots[slot];
+        const result = Expansion.Eggs.hatch(s, slot);
+        if (result) {
+          const name = egg ? egg.name : 'Egg';
+          showModal('Hatched!', '<p>' + name + ' hatched!</p>', [{ label: 'OK', action: hideModal }]);
+        }
+        updateEggs();
+      });
     });
   }
 
-  // ---------- Show/Hide Tabs ----------
-
-  function showTab(tabId) {
-    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-    if (btn) btn.classList.remove('hidden');
+  function updateEggProgress() {
+    const s = GameState.getState();
+    const slots = document.querySelectorAll('.egg-slot.filled');
+    if (slots.length === 0) return;
+    let idx = 0;
+    for (let i = 0; i < s.eggs.maxSlots; i++) {
+      const egg = s.eggs.slots[i];
+      if (egg && idx < slots.length) {
+        const progress = Expansion.Eggs.getProgress(egg);
+        const bar = slots[idx].querySelector('.egg-progress-inner');
+        const status = slots[idx].querySelector('.egg-status');
+        if (bar) bar.style.width = (progress * 100) + '%';
+        if (status) status.textContent = Expansion.Eggs.isReady(egg) ? 'READY!' : Math.floor(progress * 100) + '%';
+        idx++;
+      }
+    }
   }
 
-  function hideTab(tabId) {
-    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
-    if (btn) btn.classList.add('hidden');
+  // ===== EXPANSION UI: GENERATOR MILESTONE BADGES =====
+  function getGeneratorBadgeHTML(genId) {
+    const s = GameState.getState();
+    const badge = Expansion.Milestones.getBadge(s, genId);
+    if (!badge) return '';
+    return `<span class="gen-milestone-badge">${badge}</span>`;
   }
 
-  // ---------- Full Update ----------
+  // ===== RARE ASTEROID (Phase 5+) =====
+  function showRareAsteroid(isCritical) {
+    let el = document.getElementById('rare-asteroid');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'rare-asteroid';
+      document.getElementById('scene-area').appendChild(el);
+    }
+    el.className = 'rare-asteroid' + (isCritical ? ' critical' : '');
+    el.innerHTML = `<div class="asteroid-icon">${isCritical ? '\uD83C\uDF1F' : '\u2604\uFE0F'}</div>
+      <div class="asteroid-label">${isCritical ? 'CRITICAL!' : 'RARE ASTEROID'}</div>
+      <div class="asteroid-taps" id="asteroid-taps"></div>
+      <div class="asteroid-timer" id="asteroid-timer"></div>`;
+    el.classList.remove('hidden');
+    el.onclick = () => GameEvents.tapRareAsteroid();
+  }
 
-  function updateAll() {
-    updatePhaseName();
-    updateCurrencyBar();
-    updateTapButton();
-    updateGenerators();
-    if (currentTab !== 'generators') refreshPanel(currentTab);
+  function updateRareAsteroid(tapsLeft, timeLeft, isCritical) {
+    const tapsEl = document.getElementById('asteroid-taps');
+    const timerEl = document.getElementById('asteroid-timer');
+    if (tapsEl) tapsEl.textContent = tapsLeft + ' taps left';
+    if (timerEl) timerEl.textContent = Math.ceil(timeLeft) + 's';
+  }
+
+  function hideRareAsteroid() {
+    const el = document.getElementById('rare-asteroid');
+    if (el) el.classList.add('hidden');
+  }
+
+  // ===== ALIEN ARTIFACT FRAGMENT (Phase 4) =====
+  function showArtifactFragment() {
+    let el = document.getElementById('artifact-fragment');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'artifact-fragment';
+      document.getElementById('scene-area').appendChild(el);
+    }
+    el.className = 'artifact-fragment';
+    el.innerHTML = '<div class="artifact-icon">\uD83D\uDD2E</div><div class="artifact-label">ARTIFACT</div>';
+    el.classList.remove('hidden');
+    // Random position within scene
+    el.style.left = (20 + Math.random() * 60) + '%';
+    el.style.top = (30 + Math.random() * 40) + '%';
+    el.onclick = () => GameEvents.collectArtifactFragment();
+  }
+
+  function hideArtifactFragment() {
+    const el = document.getElementById('artifact-fragment');
+    if (el) el.classList.add('hidden');
   }
 
   return {
-    init, updateTick, updateAll,
-    updateCurrencyBar, updateTapButton, updatePhaseName,
-    updateGenerators, updateUpgrades, updateRocketAssembly,
-    updateAchievements, updateStats, updateSettings,
-    onTap, onAutoTap, spawnFloatingNumber,
-    showAchievementBanner, showToast, showOfflineEarnings,
-    playPhaseTransition, switchTab, showTab, hideTab,
-    getBuyAmount, refreshPanel
+    init, updateAll, updateTick, updateGenerators, updateUpgrades,
+    updateCurrencyBar, updateRocketAssembly, updateCrew, updateFleet,
+    updateResearch, updatePrestigePanel, updateGalaxyMap,
+    showFloatingNumber, showModal, hideModal, showAchievementBanner,
+    showEventBanner, hideEventBanner, updateEventTimer,
+    playPhaseTransition, showWelcomeBack, showDailyReward,
+    showAlienSignalPopup, switchTab, showTab, getBuyAmount, updateSettings,
+    updateCollection, updateContracts, updateBoosters, updateEggs,
+    updateSynergies, updateRocketSkins,
+    showRareAsteroid, updateRareAsteroid, hideRareAsteroid,
+    showArtifactFragment, hideArtifactFragment,
+    showToast, showMilestoneNotification, showSynergyNotification,
+    showContractCompleteNotification, showCollectionNotification
   };
 })();

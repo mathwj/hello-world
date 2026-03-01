@@ -1,49 +1,73 @@
-/* =============================================
-   DEEP SPACE INC. — GAME BOOTSTRAP
-   Main entry point: init, load, start
-   ============================================= */
+// game.js — Main entry point, initialization
 'use strict';
 
 const Game = (() => {
   function init() {
     console.log('Deep Space Inc. initializing...');
 
-    // Load save (if exists)
-    const loaded = State.load();
+    // Merge expansion data into GameData
+    GameData.mergeExpansionData();
+
+    // Try to load save
+    const loaded = GameState.load();
 
     if (loaded) {
-      const s = State.get();
-      // 1.2 Recalculate computed values
+      const s = GameState.getState();
+      // Recalculate CD multiplier
       s.cosmicDustMultiplier = 1 + (s.cosmicDust * 0.01);
+      GameState.applyPermanentUpgrades();
+      Expansion.applyCritUpgrades(s);
 
-      // 1.3 Check offline earnings
-      const earnings = State.calculateOfflineEarnings();
-
-      // Init UI
-      UI.init();
-
+      // Check for offline earnings
+      const earnings = GameState.calculateOfflineEarnings();
       if (earnings) {
-        State.applyOfflineEarnings(earnings);
-        UI.showOfflineEarnings(earnings);
+        // Initialize UI first so modal can show
+        SceneRenderer.init();
+        UI.init();
+        SceneRenderer.setPhase(s.currentPhase);
+        UI.showWelcomeBack(earnings);
+      } else {
+        SceneRenderer.init();
+        UI.init();
+        SceneRenderer.setPhase(s.currentPhase);
+      }
+
+      // Check daily reward
+      const today = new Date().toDateString();
+      if (s.dailyReward.lastClaimDate !== today) {
+        setTimeout(() => {
+          const reward = Engine.claimDailyReward();
+          if (reward) UI.showDailyReward(reward);
+        }, 1500);
       }
     } else {
       // New game
+      const s = GameState.getState();
+      Engine.addLogEntry('log1');
+      SceneRenderer.init();
       UI.init();
     }
 
-    // Start the 100ms tick engine (Section 4.1)
+    // Start game engine
     Engine.start();
 
-    // Save on page close / tab switch (Section 1.3)
-    window.addEventListener('beforeunload', () => State.save());
+    // Start tutorial for new players
+    if (!GameState.getState().tutorialComplete) {
+      setTimeout(() => Tutorial.init(), 500);
+    }
+
+    // Save on page close
+    window.addEventListener('beforeunload', () => {
+      GameState.save();
+    });
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) State.save();
+      if (document.hidden) GameState.save();
     });
 
     console.log('Deep Space Inc. started!');
   }
 
-  // Auto-init on DOM ready
+  // Auto-init when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
