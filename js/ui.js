@@ -60,6 +60,7 @@ const UI = (() => {
       case 'contracts': updateContracts(); break;
       case 'boosters': updateBoosters(); break;
       case 'eggs': updateEggs(); break;
+      case 'challenges': updateChallenges(); break;
       case 'log': updateLog(); break;
       case 'stats': updateStats(); break;
       case 'prestige': updatePrestigePanel(); break;
@@ -183,6 +184,7 @@ const UI = (() => {
     updateComboDisplay();
     updateWeatherIndicator();
     updateLuckyDropDisplay();
+    updateFlyingBonusDisplay();
     updateGoldenRushBanner();
     updateNextUnlockBar();
     updateIdleStreakDisplay();
@@ -2008,6 +2010,80 @@ const UI = (() => {
     });
   }
 
+  // ===== EXPANSION UI: CHALLENGE PANEL =====
+  function updateChallenges() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-challenges');
+    if (!panel) return;
+
+    // Only show after first prestige
+    if (s.totalPrestigeCount < 1) {
+      panel.innerHTML = '<h3>\u{1F3C6} Challenges</h3><p class="empty-msg">Complete your first prestige to unlock challenges!</p>';
+      return;
+    }
+
+    let html = '<h3>\u{1F3C6} Challenges</h3>';
+    html += `<div class="challenge-stats">Completed: ${s.stats.challengesCompleted || 0} \u00B7 Types: ${(s.stats.completedChallengeTypes || []).length}/${Expansion.CHALLENGE_TYPES.length}</div>`;
+
+    // Active challenge
+    const activeChallenge = Expansion.Challenges.getActiveChallenge(s);
+    if (activeChallenge && s.challenge.active) {
+      const elapsed = s.challenge.elapsed || 0;
+      const hrs = Math.floor(elapsed / 3600);
+      const mins = Math.floor((elapsed % 3600) / 60);
+      const progress = Expansion.Challenges.getProgress(s);
+      const pctStr = progress ? Math.floor(progress.pct * 100) + '%' : '...';
+
+      html += `<div class="challenge-active-card">
+        <div class="challenge-active-header">\u{1F525} ACTIVE CHALLENGE</div>
+        <div class="challenge-active-name">${activeChallenge.name}</div>
+        <div class="challenge-active-desc">${activeChallenge.desc}</div>
+        <div class="challenge-active-progress">
+          <div class="challenge-progress-bar"><div class="challenge-progress-fill" style="width:${pctStr}"></div></div>
+          <div class="challenge-progress-text">${pctStr} \u00B7 ${hrs}h ${mins}m elapsed</div>
+        </div>
+        <button class="challenge-abandon-btn" id="abandon-challenge-btn">\u274C Abandon</button>
+      </div>`;
+    } else {
+      // Challenge selection
+      html += '<h4>Available Challenges</h4><div class="challenge-list">';
+      for (const ch of Expansion.CHALLENGE_TYPES) {
+        const completed = (s.stats.completedChallengeTypes || []).includes(ch.id);
+        const reward = ch.reward ? ch.reward + ' CD' : (ch.rewards ? (ch.rewards.all || '?') + '+ CD' : '?');
+        html += `<div class="challenge-card ${completed ? 'challenge-done' : ''}">
+          <div class="challenge-card-name">${ch.name} ${completed ? '\u2705' : ''}</div>
+          <div class="challenge-card-desc">${ch.desc}</div>
+          <div class="challenge-card-reward">\u{1F4B0} ${reward}</div>
+          ${!completed ? `<button class="challenge-start-btn" data-challenge="${ch.id}">Start</button>` : ''}
+        </div>`;
+      }
+      html += '</div>';
+    }
+
+    panel.innerHTML = html;
+
+    // Attach handlers
+    const abandonBtn = document.getElementById('abandon-challenge-btn');
+    if (abandonBtn) {
+      abandonBtn.addEventListener('click', () => {
+        Expansion.Challenges.abandonChallenge(s);
+        showToast('Challenge abandoned', '#E74C3C');
+        updateChallenges();
+      });
+    }
+
+    panel.querySelectorAll('.challenge-start-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        if (Expansion.Challenges.startChallenge(s, btn.dataset.challenge)) {
+          showToast('Challenge started!', '#FFD700');
+          if (typeof Juice !== 'undefined' && Juice.Confetti) Juice.Confetti.burst('small');
+          updateChallenges();
+        }
+      });
+    });
+  }
+
   // ===== BANNERS =====
 
   function showAchievementBanner(ach) {
@@ -2193,14 +2269,46 @@ const UI = (() => {
     if (s.combo.current >= 5) {
       el.classList.remove('hidden');
       const tier = Expansion.Combo.getTier(s.combo.current);
-      document.getElementById('combo-count').textContent = s.combo.current;
-      document.getElementById('combo-label').textContent = tier.label;
-      document.getElementById('combo-mult').textContent = 'x' + tier.mult;
-      // Set color intensity by tier
-      const intensity = Math.min(1, s.combo.current / 100);
-      el.style.borderColor = `hsl(${50 - intensity * 50}, 100%, ${50 + intensity * 20}%)`;
+      const timerProgress = Expansion.Combo.getTimerProgress(s);
+
+      const countEl = document.getElementById('combo-count');
+      const labelEl = document.getElementById('combo-label');
+      const multEl = document.getElementById('combo-mult');
+      const ringEl = document.getElementById('combo-timer-ring');
+
+      if (countEl) {
+        countEl.textContent = '\u00D7' + s.combo.current;
+        countEl.style.fontSize = tier.fontSize + 'px';
+        countEl.style.color = tier.color;
+      }
+      if (labelEl) labelEl.textContent = tier.label;
+      if (multEl) multEl.textContent = '\u00D7' + tier.mult + ' bonus';
+
+      // Combo timer ring around tap button
+      if (ringEl) {
+        ringEl.style.background = `conic-gradient(${tier.color} ${timerProgress * 360}deg, transparent ${timerProgress * 360}deg)`;
+        ringEl.classList.remove('hidden');
+      }
+
+      el.style.borderColor = tier.color;
+
+      // Shake effect for high combos
+      if (s.combo.current >= 50) {
+        el.classList.add('combo-shake');
+      } else {
+        el.classList.remove('combo-shake');
+      }
+
+      // Session best indicator
+      if (s.combo.current === s.combo.bestThisSession && s.combo.current >= 10) {
+        el.classList.add('combo-best');
+      } else {
+        el.classList.remove('combo-best');
+      }
     } else {
       el.classList.add('hidden');
+      const ringEl = document.getElementById('combo-timer-ring');
+      if (ringEl) ringEl.classList.add('hidden');
     }
   }
 
@@ -2212,12 +2320,33 @@ const UI = (() => {
     const name = Expansion.Weather.getCurrentName(s);
     const effect = Expansion.Weather.getCurrentEffect(s);
     el.classList.remove('hidden');
-    document.getElementById('weather-name').textContent = name + (effect ? ' \u2728' : '');
+
+    const nameEl = document.getElementById('weather-name');
+    const effectEl = document.getElementById('weather-effect');
+
+    if (nameEl) nameEl.textContent = name;
+
+    if (effectEl) {
+      if (effect) {
+        const effects = [];
+        if (effect.creditMult && effect.creditMult !== 1) effects.push('\u20A1' + (effect.creditMult > 1 ? '+' : '') + Math.round((effect.creditMult - 1) * 100) + '%');
+        if (effect.rpMult && effect.rpMult !== 1) effects.push('RP' + (effect.rpMult > 1 ? '+' : '') + Math.round((effect.rpMult - 1) * 100) + '%');
+        if (effect.tapMult && effect.tapMult !== 1) effects.push('Tap' + (effect.tapMult > 1 ? '+' : '') + Math.round((effect.tapMult - 1) * 100) + '%');
+        if (effect.terraformMult && effect.terraformMult !== 1) effects.push('Terra' + (effect.terraformMult > 1 ? '+' : '') + Math.round((effect.terraformMult - 1) * 100) + '%');
+        if (effect.sdMult && effect.sdMult !== 1) effects.push('SD' + (effect.sdMult > 1 ? '+' : '') + Math.round((effect.sdMult - 1) * 100) + '%');
+        effectEl.textContent = effects.length > 0 ? effects.join(' \u00B7 ') : '';
+        effectEl.classList.toggle('hidden', effects.length === 0);
+        el.classList.add('weather-active');
+      } else {
+        effectEl.classList.add('hidden');
+        el.classList.remove('weather-active');
+      }
+    }
   }
 
   // ===== EXPANSION UI: LUCKY DROP =====
+  const DROP_ICONS = { gold: '\u{1F4B0}', crystal: '\u{1F48E}', ore: '\u{1FA78}', mystery: '\u{1F52E}', rainbow: '\u{1F308}', cosmic: '\u2728' };
   function updateLuckyDropDisplay() {
-    const s = GameState.getState();
     const el = document.getElementById('lucky-drop');
     if (!el) return;
     const drop = Expansion.LuckyDrops.activeDrop;
@@ -2225,11 +2354,43 @@ const UI = (() => {
       el.classList.remove('hidden');
       el.style.left = drop.x + '%';
       el.style.top = drop.y + '%';
-      el.style.background = drop.type.color;
-      el.textContent = '\u2B50';
+      el.style.setProperty('--drop-color', drop.type.color);
+      el.textContent = DROP_ICONS[drop.type.id] || '\u2B50';
+      el.style.boxShadow = '0 0 12px ' + drop.type.color + ', 0 0 24px ' + drop.type.color + '40';
     } else {
       el.classList.add('hidden');
     }
+  }
+
+  // ===== EXPANSION UI: FLYING BONUS =====
+  function updateFlyingBonusDisplay() {
+    let el = document.getElementById('flying-bonus');
+    const obj = Expansion.FlyingBonus.activeObject;
+    if (!obj) {
+      if (el) el.classList.add('hidden');
+      return;
+    }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'flying-bonus';
+      el.className = 'flying-bonus-obj';
+      const scene = document.getElementById('scene-area');
+      if (scene) scene.appendChild(el);
+    }
+    el.classList.remove('hidden');
+    el.style.left = obj.x + '%';
+    el.style.top = obj.y + '%';
+    el.textContent = obj.icon;
+    el.title = 'Tap to collect: ' + obj.name;
+    el.onclick = () => {
+      const s = GameState.getState();
+      const result = Expansion.FlyingBonus.collect(s);
+      if (result) {
+        showToast(result.name + ' caught!', '#FFD700');
+        if (typeof Juice !== 'undefined' && Juice.Confetti) Juice.Confetti.burst('small');
+      }
+      el.classList.add('hidden');
+    };
   }
 
   // ===== EXPANSION UI: GOLDEN RUSH BANNER =====
@@ -2239,10 +2400,18 @@ const UI = (() => {
     if (!el) return;
     if (s.goldenRush.active) {
       el.classList.remove('hidden');
-      const remaining = Math.ceil((s.goldenRush.endTime - Date.now()) / 1000);
-      document.getElementById('golden-rush-text').textContent = 'GOLDEN RUSH! ' + remaining + 's';
+      const remaining = Math.max(0, Math.ceil((s.goldenRush.endTime - Date.now()) / 1000));
+      const gen = typeof Engine !== 'undefined' ? Engine.findGenerator(s.goldenRush.generatorId) : null;
+      const genName = gen ? gen.name : 'Generator';
+      const textEl = document.getElementById('golden-rush-text');
+      if (textEl) textEl.innerHTML = '\u{1F31F} GOLDEN RUSH: <strong>' + genName + '</strong> \u00D710 — ' + remaining + 's';
+
+      // Highlight generator row
+      const genRow = document.querySelector('.generator-row[data-genid="' + s.goldenRush.generatorId + '"]');
+      if (genRow) genRow.classList.add('golden-rush-active');
     } else {
       el.classList.add('hidden');
+      document.querySelectorAll('.golden-rush-active').forEach(row => row.classList.remove('golden-rush-active'));
     }
   }
 
@@ -2327,21 +2496,33 @@ const UI = (() => {
     const panel = document.getElementById('panel-collection');
     if (!panel) return;
     const progress = Expansion.Collections.getProgress(s);
-    let html = `<h3>\u{1F4DA} Collection Album (${progress.found}/${progress.total})</h3>`;
+    const pct = progress.total > 0 ? Math.floor(progress.found / progress.total * 100) : 0;
+    let html = `<h3>\u{1F4DA} Collection Album</h3>
+      <div class="collection-progress-summary">
+        <div class="collection-progress-bar"><div class="collection-progress-fill" style="width:${pct}%"></div></div>
+        <div class="collection-progress-text">${progress.found}/${progress.total} (${pct}%)</div>
+      </div>`;
 
     for (const setKey in Expansion.COLLECTIONS) {
       const set = Expansion.COLLECTIONS[setKey];
       const completed = s.collection.setsCompleted.includes(setKey);
-      const found = set.items.filter(i => s.collection.items[i.id]).length;
-      html += `<div class="collection-set ${completed ? 'completed' : ''}">
-        <h4>${set.name} (${found}/${set.items.length}) ${completed ? '\u2705' : ''}</h4>
-        ${completed ? `<div class="set-bonus">\u{1F31F} ${set.bonus}</div>` : ''}
+      const foundCount = set.items.filter(i => s.collection.items[i.id]).length;
+      const setPct = set.items.length > 0 ? Math.floor(foundCount / set.items.length * 100) : 0;
+
+      html += `<div class="collection-set ${completed ? 'set-complete' : ''}">
+        <div class="set-header">
+          <span class="set-name">${set.name}</span>
+          <span class="set-count">${foundCount}/${set.items.length} ${completed ? '\u2705' : ''}</span>
+        </div>
+        <div class="set-progress-bar"><div class="set-progress-fill" style="width:${setPct}%"></div></div>
+        ${completed ? `<div class="set-bonus-active">\u{1F31F} SET BONUS: ${set.bonus}</div>` : `<div class="set-bonus-locked">\u{1F512} ${set.bonus}</div>`}
         <div class="collection-grid">`;
       for (const item of set.items) {
-        const found = s.collection.items[item.id];
-        html += `<div class="collection-item ${found ? 'found' : 'locked'} rarity-${item.rarity}">
-          <div class="col-item-name">${found ? item.name : '???'}</div>
-          <div class="col-item-hint">${found ? item.rarity : item.hint}</div>
+        const isFound = s.collection.items[item.id];
+        html += `<div class="collection-item ${isFound ? 'found' : 'locked'} rarity-${item.rarity}">
+          <div class="col-item-icon">${isFound ? '\u2B50' : '\u2753'}</div>
+          <div class="col-item-name">${isFound ? item.name : '???'}</div>
+          <div class="col-item-rarity">${isFound ? item.rarity : item.hint}</div>
         </div>`;
       }
       html += '</div></div>';
@@ -2354,7 +2535,12 @@ const UI = (() => {
     const s = GameState.getState();
     const panel = document.getElementById('panel-contracts');
     if (!panel) return;
-    let html = `<h3>\u{1F4CB} Contracts (${s.contracts.completed} completed)</h3>`;
+    const fmt = NumberFormatter.formatSmart || NumberFormatter.format;
+    let html = `<h3>\u{1F4CB} Contracts</h3>
+      <div class="contract-stats">
+        <span>Completed: ${s.contracts.completed || 0}</span>
+        <span>Streak: ${s.stats.contractStreak || 0}</span>
+      </div>`;
 
     if (s.contracts.active.length === 0) {
       html += '<p class="empty-msg">No active contracts. New ones will appear shortly!</p>';
@@ -2362,16 +2548,34 @@ const UI = (() => {
 
     for (const c of s.contracts.active) {
       const progress = Math.min(1, c.progress / c.target);
+      const isComplete = progress >= 1;
       const timeLeft = Math.max(0, Math.ceil(c.timeRemaining));
       const mins = Math.floor(timeLeft / 60);
       const secs = timeLeft % 60;
-      html += `<div class="contract-row">
-        <div class="contract-info">
-          <div class="contract-name">${c.name}</div>
-          <div class="contract-progress-outer">
-            <div class="contract-progress-inner" style="width:${progress * 100}%"></div>
-          </div>
-          <div class="contract-detail">${NumberFormatter.format(c.progress)} / ${NumberFormatter.format(c.target)} — ${mins}:${String(secs).padStart(2, '0')}</div>
+      const isUrgent = timeLeft < 120 && !isComplete;
+
+      // Format reward display
+      const r = c.reward || {};
+      const rewardParts = [];
+      if (r.credits) rewardParts.push('\u20A1' + (r.credits === -1 ? '~2min income' : fmt(r.credits)));
+      if (r.rp) rewardParts.push(fmt(r.rp) + ' RP');
+      if (r.ore) rewardParts.push(fmt(r.ore) + ' Ore');
+      if (r.rm) rewardParts.push(fmt(r.rm) + ' RM');
+      if (r.sd) rewardParts.push(fmt(r.sd) + ' SD');
+      if (r.cosmicDust) rewardParts.push(r.cosmicDust + ' CD');
+      if (r.special) rewardParts.push('\u2728 ' + r.special);
+
+      html += `<div class="contract-row ${isComplete ? 'contract-complete' : ''} ${isUrgent ? 'contract-urgent' : ''} ${c.special ? 'contract-special' : ''}">
+        <div class="contract-header">
+          <span class="contract-name">${c.name}</span>
+          <span class="contract-timer ${isUrgent ? 'urgent' : ''}">${isComplete ? '\u2705' : mins + ':' + String(secs).padStart(2, '0')}</span>
+        </div>
+        <div class="contract-progress-outer">
+          <div class="contract-progress-inner ${isComplete ? 'complete' : ''}" style="width:${progress * 100}%"></div>
+        </div>
+        <div class="contract-footer">
+          <span class="contract-detail">${fmt(c.progress)} / ${fmt(c.target)}</span>
+          <span class="contract-reward">${rewardParts.join(' + ')}</span>
         </div>
       </div>`;
     }
@@ -2383,39 +2587,72 @@ const UI = (() => {
     const s = GameState.getState();
     const panel = document.getElementById('panel-boosters');
     if (!panel) return;
-    let html = `<h3>\u26A1 Boosters</h3>`;
+    let html = `<h3>\u26A1 Boosters</h3>
+      <div class="booster-used-count">Total used: ${s.boosters.totalUsed || 0}</div>`;
 
-    // Active boosters
+    // Active boosters with progress bars
     if (s.boosters.active.length > 0) {
-      html += '<h4>Active</h4>';
+      html += '<h4>Active</h4><div class="booster-active-list">';
       for (const b of s.boosters.active) {
         const bt = Expansion.BOOSTER_TYPES.find(t => t.id === b.type);
         const secs = Math.ceil(b.remainingMs / 1000);
-        html += `<div class="booster-active" style="border-color:${bt ? bt.color : '#fff'}">
+        const mins = Math.floor(secs / 60);
+        const sec = secs % 60;
+        const totalDuration = bt ? bt.duration * 1000 : b.remainingMs;
+        const pct = Math.min(100, (b.remainingMs / totalDuration) * 100);
+        html += `<div class="booster-active-row" style="--booster-color:${bt ? bt.color : '#fff'}">
           <span class="booster-icon">${bt ? bt.icon : ''}</span>
-          <span class="booster-name">${bt ? bt.name : b.type}</span>
-          <span class="booster-timer">x${b.mult} — ${secs}s</span>
+          <div class="booster-active-info">
+            <div class="booster-active-name">${bt ? bt.name : b.type} <span class="booster-mult">\u00D7${b.mult}</span></div>
+            <div class="booster-timer-bar"><div class="booster-timer-fill" style="width:${pct}%;background:${bt ? bt.color : '#fff'}"></div></div>
+          </div>
+          <span class="booster-countdown">${mins}:${String(sec).padStart(2, '0')}</span>
         </div>`;
       }
+      html += '</div>';
     }
 
-    // Inventory
+    // Inventory with improved layout
     html += `<h4>Inventory (${s.boosters.inventory.length}/5)</h4>`;
     if (s.boosters.inventory.length === 0) {
       html += '<p class="empty-msg">No boosters. Earn them from eggs, drops, and contracts!</p>';
     }
+    html += '<div class="booster-inventory">';
     s.boosters.inventory.forEach((item, idx) => {
       const bt = Expansion.BOOSTER_TYPES.find(t => t.id === item.type);
-      html += `<div class="booster-item rarity-${item.rarity}" style="border-color:${bt ? bt.color : '#fff'}">
+      const effectDesc = bt ? (bt.target === 'instant' || bt.target === 'prestige_preview' ? 'Instant effect' : bt.duration + 's \u00D7' + bt.mult + ' ' + bt.target) : '';
+      html += `<div class="booster-item rarity-${item.rarity}" style="--booster-color:${bt ? bt.color : '#fff'}">
         <span class="booster-icon">${bt ? bt.icon : ''}</span>
         <div class="booster-info">
           <div class="booster-name">${bt ? bt.name : item.type}</div>
-          <div class="booster-desc">${bt ? (bt.target === 'instant' ? 'Instant' : bt.duration + 's x' + bt.mult) : ''}</div>
+          <div class="booster-desc">${effectDesc}</div>
+          <div class="booster-rarity">${item.rarity}</div>
         </div>
-        <button class="booster-use-btn" onclick="(function(){ const s=GameState.getState(); Expansion.Boosters.activate(s,${idx}); UI.updateBoosters(); })()">USE</button>
+        <button class="booster-use-btn" data-booster-idx="${idx}">USE</button>
       </div>`;
     });
+    html += '</div>';
     panel.innerHTML = html;
+
+    // Attach handlers via data attributes (no inline onclick)
+    panel.querySelectorAll('.booster-use-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.boosterIdx);
+        const s = GameState.getState();
+        const result = Expansion.Boosters.activate(s, idx);
+        if (result) {
+          const name = result.boostType ? result.boostType.name : 'Booster';
+          if (result.instant) {
+            showToast(name + ' activated!', '#FFD700');
+          } else {
+            showToast(name + ' active for ' + (result.boostType.duration) + 's!', result.boostType.color);
+          }
+          if (typeof Juice !== 'undefined' && Juice.Confetti) Juice.Confetti.burst('small');
+        }
+        updateBoosters();
+        updateActiveBoosterHUD();
+      });
+    });
   }
 
   // ===== EXPANSION UI: EGGS PANEL =====
@@ -2423,27 +2660,50 @@ const UI = (() => {
     const s = GameState.getState();
     const panel = document.getElementById('panel-eggs');
     if (!panel) return;
-    let html = `<h3>\u{1F95A} Egg Incubator (${s.eggs.totalHatched} hatched)</h3>`;
-    html += '<div class="egg-slots">';
+    let html = `<h3>\u{1F95A} Egg Incubator</h3>
+      <div class="egg-stats">Total hatched: ${s.eggs.totalHatched} \u00B7 Slots: ${s.eggs.maxSlots}</div>
+      <div class="egg-slots">`;
 
     for (let i = 0; i < s.eggs.maxSlots; i++) {
       const egg = s.eggs.slots[i];
       if (egg) {
         const progress = Expansion.Eggs.getProgress(egg);
         const ready = Expansion.Eggs.isReady(egg);
-        html += `<div class="egg-slot filled" style="border-color:${egg.color}">
+        const pct = Math.floor(progress * 100);
+
+        // Estimate remaining time
+        let timeStr = '';
+        if (!ready && egg.duration) {
+          const elapsed = (Date.now() - egg.startTime) / 1000;
+          const remaining = Math.max(0, egg.duration - elapsed);
+          if (remaining > 3600) {
+            timeStr = Math.floor(remaining / 3600) + 'h ' + Math.floor((remaining % 3600) / 60) + 'm';
+          } else if (remaining > 60) {
+            timeStr = Math.floor(remaining / 60) + 'm ' + Math.floor(remaining % 60) + 's';
+          } else {
+            timeStr = Math.floor(remaining) + 's';
+          }
+        }
+
+        // Crack visual stages
+        const crackClass = ready ? 'egg-crack-ready' : pct >= 90 ? 'egg-crack-major' : pct >= 50 ? 'egg-crack-medium' : pct >= 25 ? 'egg-crack-light' : '';
+
+        html += `<div class="egg-slot filled ${crackClass} ${ready ? 'egg-ready' : ''}" style="--egg-color:${egg.color}">
           <div class="egg-icon" style="color:${egg.color}">\u{1F95A}</div>
           <div class="egg-name">${egg.name}</div>
+          <div class="egg-rarity">${egg.rarity || ''}</div>
           <div class="egg-progress-outer">
-            <div class="egg-progress-inner" style="width:${progress * 100}%;background:${egg.color}"></div>
+            <div class="egg-progress-inner" style="width:${pct}%;background:${egg.color}"></div>
           </div>
-          <div class="egg-status">${ready ? 'READY!' : Math.floor(progress * 100) + '%'}</div>
-          ${ready ? '<button class="egg-hatch-btn" data-slot="' + i + '">HATCH</button>' : ''}
+          <div class="egg-status">${ready ? '\u2728 READY TO HATCH!' : pct + '% \u2014 ' + timeStr}</div>
+          ${ready ? '<button class="egg-hatch-btn" data-slot="' + i + '">HATCH \u{1F95A}</button>' : ''}
         </div>`;
       } else {
-        html += `<div class="egg-slot empty">
-          <div class="egg-icon">\u2B55</div>
-          <div class="egg-name">Empty Slot</div>
+        const locked = i >= (s.currentPhase >= 5 ? 3 : s.currentPhase >= 3 ? 2 : 1);
+        html += `<div class="egg-slot empty ${locked ? 'egg-locked' : ''}">
+          <div class="egg-icon">${locked ? '\u{1F512}' : '\u2B55'}</div>
+          <div class="egg-name">${locked ? 'Locked' : 'Empty Slot'}</div>
+          ${locked ? '<div class="egg-unlock-hint">Unlocks at Phase ' + (i === 1 ? '3' : '5') + '</div>' : ''}
         </div>`;
       }
     }
@@ -2459,7 +2719,12 @@ const UI = (() => {
         const result = Expansion.Eggs.hatch(s, slot);
         if (result) {
           const name = egg ? egg.name : 'Egg';
-          showModal('Hatched!', '<p>' + name + ' hatched!</p>', [{ label: 'OK', action: hideModal }]);
+          const rarityColors = { common: '#CD7F32', uncommon: '#C0C0C0', rare: '#FFD700', epic: '#9B59B6', legendary: '#FF69B4' };
+          const eggColor = egg ? (rarityColors[egg.rarity] || '#FFD700') : '#FFD700';
+          showModal('\u{1F95A} ' + name + ' Hatched!',
+            '<p style="text-align:center;font-size:18px;color:' + eggColor + '">' + (result.description || 'You received a reward!') + '</p>',
+            [{ label: 'Collect!', action: hideModal }]);
+          if (typeof Juice !== 'undefined' && Juice.Confetti) Juice.Confetti.burst('achievement');
         }
         updateEggs();
       });
@@ -2488,8 +2753,19 @@ const UI = (() => {
   function getGeneratorBadgeHTML(genId) {
     const s = GameState.getState();
     const badge = Expansion.Milestones.getBadge(s, genId);
-    if (!badge) return '';
-    return `<span class="gen-milestone-badge">${badge}</span>`;
+    const next = Expansion.Milestones.getNextMilestone(s, genId);
+    let html = '';
+    if (badge) {
+      html += `<span class="gen-milestone-badge" title="Milestone badge">${badge}</span>`;
+    }
+    if (next) {
+      const count = s.generators[genId] || 0;
+      const needed = next.count - count;
+      if (needed > 0 && needed <= next.count) {
+        html += `<span class="gen-next-milestone">Next: ${next.count} (${needed} more)</span>`;
+      }
+    }
+    return html;
   }
 
   // ===== RARE ASTEROID (Phase 5+) =====
@@ -2606,6 +2882,7 @@ const UI = (() => {
     { tab: 'synergies', icon: '\uD83D\uDD17', label: 'Synergies' },
     { tab: 'skins', icon: '\uD83C\uDFA8', label: 'Skins' },
     { tab: 'eggs', icon: '\uD83E\uDD5A', label: 'Eggs' },
+    { tab: 'challenges', icon: '\uD83C\uDFC6', label: 'Challenges' },
     { tab: 'settings', icon: '\u2699\uFE0F', label: 'Settings' }
   ];
 
@@ -3026,7 +3303,8 @@ const UI = (() => {
     playPhaseTransition, showWelcomeBack, showDailyReward,
     showAlienSignalPopup, switchTab, showTab, getBuyAmount, updateSettings,
     updateCollection, updateContracts, updateBoosters, updateEggs,
-    updateSynergies, updateRocketSkins,
+    updateSynergies, updateRocketSkins, updateChallenges,
+    updateFlyingBonusDisplay,
     showRareAsteroid, updateRareAsteroid, hideRareAsteroid,
     showArtifactFragment, hideArtifactFragment,
     showToast, showMilestoneNotification, showSynergyNotification,

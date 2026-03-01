@@ -7934,3 +7934,603 @@ body.reduced-motion .tutorial-active {
   .zone-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .zone-row.current { grid-column: 1 / -1; }
 }
+
+/* ===== PART 6: COMBO SYSTEM ===== */
+
+.combo-shake {
+  animation: comboShake 0.15s ease-in-out infinite;
+}
+
+@keyframes comboShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.combo-best::after {
+  content: 'BEST!';
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 9px;
+  background: var(--accent-gold);
+  color: #000;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: var(--ds-weight-bold);
+}
+
+#combo-timer-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: -1;
+}
+
+@keyframes comboTierShockwave {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.6); }
+  100% { box-shadow: 0 0 0 30px rgba(255, 215, 0, 0); }
+}
+
+.combo-tier-change {
+  animation: comboTierShockwave 0.4s ease-out;
+}
+
+/* ===== PART 6: LUCKY DROP ===== */
+
+#lucky-drop {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  font-size: 24px;
+  text-align: center;
+  line-height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 20;
+  transition: left 0.1s linear, top 0.1s linear;
+  animation: dropBob 2s ease-in-out infinite;
+}
+
+@keyframes dropBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ===== PART 6: FLYING BONUS ===== */
+
+.flying-bonus-obj {
+  position: absolute;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 20;
+  transition: left 0.1s linear;
+  animation: flyBounce 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.5));
+}
+
+@keyframes flyBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(5deg); }
+}
+
+/* ===== PART 6: GOLDEN RUSH ===== */
+
+.golden-rush-active {
+  border-color: var(--accent-gold) !important;
+  background: rgba(255, 215, 0, 0.08) !important;
+  animation: goldenGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes goldenGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.6); }
+}
+
+/* ===== PART 6: WEATHER INDICATOR ===== */
+
+.weather-active {
+  border-color: var(--phase-primary) !important;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#weather-effect {
+  font-size: var(--ds-type-micro);
+  color: var(--accent-green);
+  margin-top: 2px;
+}
+
+/* ===== PART 6: COLLECTION ALBUM ===== */
+
+.collection-progress-summary {
+  margin-bottom: 12px;
+}
+
+.collection-progress-bar,
+.set-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.collection-progress-fill,
+.set-progress-fill {
+  height: 100%;
+  background: var(--phase-primary);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.collection-progress-text {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  text-align: right;
+}
+
+.collection-set {
+  margin-bottom: 16px;
+  padding: 10px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-bg);
+  border: 1px solid var(--ds-glass-border);
+}
+
+.collection-set.set-complete {
+  border-color: var(--accent-gold);
+}
+
+.set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.set-name {
+  font-weight: var(--ds-weight-semibold);
+}
+
+.set-count {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+}
+
+.set-bonus-active {
+  font-size: var(--ds-type-sm);
+  color: var(--accent-gold);
+  font-weight: var(--ds-weight-semibold);
+  margin: 6px 0;
+}
+
+.set-bonus-locked {
+  font-size: var(--ds-type-micro);
+  color: var(--ds-text-secondary);
+  opacity: 0.6;
+  margin: 4px 0;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.collection-item {
+  padding: 8px 6px;
+  border-radius: var(--ds-radius-sm);
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.2s;
+}
+
+.collection-item.found {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.collection-item.locked {
+  opacity: 0.4;
+}
+
+.collection-item.rarity-common { border-color: rgba(200, 200, 200, 0.15); }
+.collection-item.found.rarity-uncommon { border-color: rgba(74, 144, 217, 0.4); }
+.collection-item.found.rarity-rare { border-color: rgba(155, 89, 182, 0.4); }
+.collection-item.found.rarity-epic { border-color: rgba(255, 215, 0, 0.4); }
+.collection-item.found.rarity-legendary { border-color: rgba(255, 105, 180, 0.4); box-shadow: 0 0 8px rgba(255, 105, 180, 0.2); }
+
+.col-item-icon { font-size: 18px; margin-bottom: 4px; }
+.col-item-name { font-size: 10px; font-weight: var(--ds-weight-semibold); }
+.col-item-rarity { font-size: 9px; color: var(--ds-text-secondary); text-transform: capitalize; }
+
+/* ===== PART 6: CONTRACTS ===== */
+
+.contract-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  margin-bottom: 8px;
+}
+
+.contract-row {
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-bg);
+  border: 1px solid var(--ds-glass-border);
+}
+
+.contract-row.contract-complete {
+  border-color: var(--accent-green);
+  background: rgba(39, 174, 96, 0.08);
+}
+
+.contract-row.contract-urgent {
+  border-color: var(--accent-red);
+}
+
+.contract-row.contract-special {
+  border-color: var(--accent-gold);
+}
+
+.contract-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.contract-name { font-weight: var(--ds-weight-semibold); }
+
+.contract-timer {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+}
+
+.contract-timer.urgent {
+  color: var(--accent-red);
+  font-weight: var(--ds-weight-bold);
+}
+
+.contract-progress-outer {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.contract-progress-inner {
+  height: 100%;
+  background: var(--phase-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.contract-progress-inner.complete {
+  background: var(--accent-green);
+}
+
+.contract-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--ds-type-micro);
+}
+
+.contract-detail { color: var(--ds-text-secondary); }
+.contract-reward { color: var(--accent-gold); font-weight: var(--ds-weight-semibold); }
+
+/* ===== PART 6: BOOSTERS ===== */
+
+.booster-used-count {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  margin-bottom: 8px;
+}
+
+.booster-active-list {
+  margin-bottom: 12px;
+}
+
+.booster-active-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-bg);
+  border: 1px solid var(--booster-color, var(--ds-glass-border));
+}
+
+.booster-active-info { flex: 1; min-width: 0; }
+.booster-active-name { font-size: var(--ds-type-sm); font-weight: var(--ds-weight-semibold); }
+.booster-mult { color: var(--accent-gold); }
+.booster-countdown { font-size: var(--ds-type-sm); color: var(--ds-text-secondary); }
+
+.booster-timer-bar {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.booster-timer-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.booster-inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.booster-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-bg);
+  border: 1px solid var(--booster-color, var(--ds-glass-border));
+}
+
+.booster-icon { font-size: 22px; }
+.booster-info { flex: 1; min-width: 0; }
+.booster-name { font-weight: var(--ds-weight-semibold); font-size: var(--ds-type-sm); }
+.booster-desc { font-size: var(--ds-type-micro); color: var(--ds-text-secondary); }
+.booster-rarity { font-size: 9px; color: var(--ds-text-secondary); text-transform: capitalize; }
+
+.booster-use-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--phase-primary);
+  background: transparent;
+  color: var(--phase-primary);
+  border-radius: var(--ds-radius-sm);
+  font-weight: var(--ds-weight-bold);
+  font-size: var(--ds-type-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.booster-use-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== PART 6: EGGS ===== */
+
+.egg-stats {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  margin-bottom: 8px;
+}
+
+.egg-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.egg-slot {
+  padding: 12px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-bg);
+  border: 1px solid var(--egg-color, var(--ds-glass-border));
+  text-align: center;
+}
+
+.egg-slot.empty {
+  opacity: 0.4;
+}
+
+.egg-slot.egg-locked {
+  opacity: 0.25;
+}
+
+.egg-slot.egg-ready {
+  border-color: var(--accent-gold);
+  animation: eggReadyPulse 2s ease-in-out infinite;
+}
+
+@keyframes eggReadyPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.6); }
+}
+
+.egg-crack-light .egg-icon { filter: brightness(1.1); }
+.egg-crack-medium .egg-icon { filter: brightness(1.2); animation: eggCrackShake 3s ease-in-out infinite; }
+.egg-crack-major .egg-icon { filter: brightness(1.3); animation: eggCrackShake 1.5s ease-in-out infinite; }
+.egg-crack-ready .egg-icon { animation: eggReadyShake 0.5s ease-in-out infinite; }
+
+@keyframes eggCrackShake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(1deg); }
+  75% { transform: rotate(-1deg); }
+}
+
+@keyframes eggReadyShake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(3deg); }
+  75% { transform: rotate(-3deg); }
+}
+
+.egg-icon { font-size: 32px; margin-bottom: 6px; }
+.egg-name { font-weight: var(--ds-weight-semibold); font-size: var(--ds-type-sm); }
+.egg-rarity { font-size: 9px; color: var(--ds-text-secondary); text-transform: capitalize; margin-bottom: 6px; }
+
+.egg-progress-outer {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.egg-progress-inner {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.egg-status { font-size: var(--ds-type-micro); color: var(--ds-text-secondary); }
+.egg-slot.egg-ready .egg-status { color: var(--accent-gold); font-weight: var(--ds-weight-bold); }
+.egg-unlock-hint { font-size: 9px; color: var(--ds-text-secondary); margin-top: 4px; }
+
+.egg-hatch-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  border: none;
+  background: var(--accent-gold);
+  color: #000;
+  border-radius: var(--ds-radius-sm);
+  font-weight: var(--ds-weight-bold);
+  font-size: var(--ds-type-sm);
+  cursor: pointer;
+  animation: eggHatchPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes eggHatchPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ===== PART 6: CHALLENGES ===== */
+
+.challenge-stats {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  margin-bottom: 12px;
+}
+
+.challenge-active-card {
+  padding: 14px;
+  border-radius: var(--ds-radius-md);
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid var(--accent-gold);
+  margin-bottom: 12px;
+}
+
+.challenge-active-header {
+  font-size: var(--ds-type-sm);
+  color: var(--accent-gold);
+  font-weight: var(--ds-weight-bold);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.challenge-active-name {
+  font-size: var(--ds-type-lg);
+  font-weight: var(--ds-weight-bold);
+}
+
+.challenge-active-desc {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  margin: 4px 0 8px;
+}
+
+.challenge-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.challenge-progress-fill {
+  height: 100%;
+  background: var(--accent-gold);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.challenge-progress-text {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  margin-top: 4px;
+}
+
+.challenge-abandon-btn {
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--accent-red);
+  background: transparent;
+  color: var(--accent-red);
+  border-radius: var(--ds-radius-sm);
+  cursor: pointer;
+  font-size: var(--ds-type-sm);
+}
+
+.challenge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.challenge-card {
+  padding: 10px 12px;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-glass-bg);
+  border: 1px solid var(--ds-glass-border);
+}
+
+.challenge-card.challenge-done {
+  opacity: 0.6;
+  border-color: var(--accent-green);
+}
+
+.challenge-card-name { font-weight: var(--ds-weight-semibold); margin-bottom: 2px; }
+.challenge-card-desc { font-size: var(--ds-type-sm); color: var(--ds-text-secondary); margin-bottom: 6px; }
+.challenge-card-reward { font-size: var(--ds-type-sm); color: var(--accent-gold); margin-bottom: 6px; }
+
+.challenge-start-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--phase-primary);
+  background: transparent;
+  color: var(--phase-primary);
+  border-radius: var(--ds-radius-sm);
+  font-weight: var(--ds-weight-bold);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.challenge-start-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== PART 6: GENERATOR MILESTONE NEXT =====*/
+
+.gen-next-milestone {
+  font-size: 9px;
+  color: var(--ds-text-secondary);
+  display: block;
+  margin-top: 2px;
+}
+
+.gen-milestone-badge {
+  margin-right: 4px;
+}
+
+/* ===== PART 6: REDUCED MOTION OVERRIDES ===== */
+
+body.reduced-motion .combo-shake,
+body.reduced-motion .golden-rush-active,
+body.reduced-motion .egg-crack-medium .egg-icon,
+body.reduced-motion .egg-crack-major .egg-icon,
+body.reduced-motion .egg-crack-ready .egg-icon,
+body.reduced-motion .egg-hatch-btn,
+body.reduced-motion .egg-slot.egg-ready,
+body.reduced-motion #lucky-drop,
+body.reduced-motion .flying-bonus-obj {
+  animation: none !important;
+}

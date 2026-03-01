@@ -7,19 +7,20 @@ const Expansion = (() => {
   const Combo = {
     TIMEOUT: 0.8,
     TIERS: [
-      { min: 1, mult: 1, label: '' },
-      { min: 5, mult: 1.5, label: 'COMBO!' },
-      { min: 10, mult: 2, label: 'COMBO!' },
-      { min: 20, mult: 3, label: 'GREAT!' },
-      { min: 35, mult: 5, label: 'AMAZING!' },
-      { min: 50, mult: 8, label: 'FRENZY!' },
-      { min: 75, mult: 12, label: 'INSANE!' },
-      { min: 100, mult: 20, label: 'MEGA FRENZY!!!' }
+      { min: 1, mult: 1, label: '', color: '#ffffff', fontSize: 16 },
+      { min: 5, mult: 1.5, label: 'COMBO!', color: '#FFD700', fontSize: 20 },
+      { min: 10, mult: 2, label: 'COMBO!', color: '#FFA500', fontSize: 24 },
+      { min: 20, mult: 3, label: 'GREAT!', color: '#FF4500', fontSize: 28 },
+      { min: 35, mult: 5, label: 'AMAZING!', color: '#FF0000', fontSize: 32 },
+      { min: 50, mult: 8, label: 'FRENZY!', color: '#FF1493', fontSize: 36 },
+      { min: 75, mult: 12, label: 'INSANE!', color: '#9400D3', fontSize: 42 },
+      { min: 100, mult: 20, label: 'MEGA FRENZY!!!', color: '#FF69B4', fontSize: 48 }
     ],
 
     onTap(s) {
       const now = Date.now() / 1000;
       const comboTimeout = s.cdShopPurchased && s.cdShopPurchased['cd_combo'] ? 1.5 : this.TIMEOUT;
+      const prevTier = this.getTier(s.combo.current);
       if (now - s.combo.lastTapTimestamp < comboTimeout) {
         s.combo.current++;
       } else {
@@ -28,6 +29,10 @@ const Expansion = (() => {
       s.combo.lastTapTimestamp = now;
       s.combo.bestThisSession = Math.max(s.combo.bestThisSession, s.combo.current);
       s.combo.bestAllTime = Math.max(s.combo.bestAllTime, s.combo.current);
+
+      // Return tier change info for UI shockwave effect
+      const newTier = this.getTier(s.combo.current);
+      return { tierChanged: prevTier !== newTier, tier: newTier };
     },
 
     getTier(combo) {
@@ -39,6 +44,14 @@ const Expansion = (() => {
 
     getMultiplier(s) {
       return this.getTier(s.combo.current).mult;
+    },
+
+    // Returns 0-1 representing time left before combo resets
+    getTimerProgress(s) {
+      const now = Date.now() / 1000;
+      const comboTimeout = s.cdShopPurchased && s.cdShopPurchased['cd_combo'] ? 1.5 : this.TIMEOUT;
+      const elapsed = now - s.combo.lastTapTimestamp;
+      return Math.max(0, 1 - (elapsed / comboTimeout));
     },
 
     update(s, dt) {
@@ -665,6 +678,60 @@ const Expansion = (() => {
       if (r.rm) GameState.addCurrency('rm', r.rm);
       if (r.sd) GameState.addCurrency('sd', r.sd);
       if (r.cosmicDust) GameState.addCurrency('cosmicDust', r.cosmicDust);
+
+      // Handle special rewards
+      if (r.special) {
+        switch (r.special) {
+          case 'boost1h':
+            // All generators x1.2 for 1 hour — add as active booster
+            s.boosters.active.push({ type: 'boost_credits', remainingMs: 3600000, mult: 1.2, target: 'all' });
+            break;
+          case 'boost1h_1.5':
+            s.boosters.active.push({ type: 'boost_credits', remainingMs: 3600000, mult: 1.5, target: 'all' });
+            break;
+          case 'boost2h':
+            s.boosters.active.push({ type: 'boost_credits', remainingMs: 7200000, mult: 1.2, target: 'all' });
+            break;
+          case 'boost2h_2x':
+            s.boosters.active.push({ type: 'boost_credits', remainingMs: 7200000, mult: 2, target: 'all' });
+            break;
+          case 'randomEgg':
+            Eggs.addRandom(s, 'rare');
+            break;
+          case 'goldEgg':
+            Eggs.addEgg(s, 'egg_gold');
+            break;
+          case 'silverEgg':
+            Eggs.addEgg(s, 'egg_silver');
+            break;
+          case 'collection_item': {
+            const newItems = Collections.checkTriggers(s);
+            if (newItems.length === 0) {
+              // Grant a random booster instead if no items available
+              Boosters.addRandom(s, 'uncommon');
+            }
+            break;
+          }
+          case 'terraform_perm_1.5':
+            s.terraformMultiplier = (s.terraformMultiplier || 1) * 1.5;
+            break;
+          case 'legendaryBooster':
+            Boosters.addSpecific(s, 'boost_echo');
+            break;
+        }
+      }
+
+      // 30% chance to earn a booster on contract completion
+      if (Math.random() < 0.30) {
+        const booster = Boosters.grantRandom(s);
+        if (booster) {
+          contract._bonusBooster = booster.name;
+        }
+      }
+
+      // Track contract streak
+      s.stats.contractStreak = (s.stats.contractStreak || 0) + 1;
+      s.stats.contractsCompleted = (s.stats.contractsCompleted || 0) + 1;
     }
   };
 
@@ -1338,10 +1405,12 @@ const Expansion = (() => {
     Combo.update(s, dt);
     LuckyDrops.update(s, dt);
     GoldenRush.update(s, dt);
+    FlyingBonus.update(s, dt);
     Boosters.update(s, dt);
     Weather.update(s, dt);
     IdleStreak.update(s, dt);
     Contracts.update(s, dt);
+    Challenges.updateChallenge(s, dt);
 
     // Check collection triggers periodically (every 5 sec)
     if (!s._lastCollectionCheck || Date.now() - s._lastCollectionCheck > 5000) {
@@ -1371,11 +1440,71 @@ const Expansion = (() => {
     }
   }
 
+  // ==================== FLYING BONUS SYSTEM ====================
+  const FLYING_BONUS_OBJECTS = {
+    1: { name: 'Stray Cat', icon: '\u{1F408}', speed: 12.5, reward: (s) => ({ currency: 'credits', amount: s.creditsPerSecond * 60 }) },
+    2: { name: 'Rogue Satellite', icon: '\u{1F6F0}', speed: 20, reward: () => ({ currency: 'rp', amount: 10 }) },
+    3: { name: 'Moon Rock', icon: '\u{1FA78}', speed: 16, reward: () => ({ currency: 'ore', amount: 20 }) },
+    4: { name: 'Dust Devil', icon: '\u{1F32A}', speed: 14, reward: (s) => ({ currency: 'terraform', amount: 0.5 }) },
+    5: { name: 'Glowing Asteroid', icon: '\u2604', speed: 25, reward: () => ({ currency: 'rm', amount: 5 }) },
+    6: { name: 'Alien Probe', icon: '\u{1F47E}', speed: 33, reward: () => ({ currency: 'as', amount: 1 }) },
+    7: { name: 'Comet', icon: '\u2604', speed: 33, reward: () => ({ currency: 'sd', amount: 50 }) },
+    8: { name: 'Wormhole Flash', icon: '\u{1F300}', speed: 50, reward: () => ({ currency: 'sd', amount: 500 }) },
+    9: { name: 'Reality Glitch', icon: '\u26A0', speed: 66, reward: () => ({ currency: 'it', amount: 1 }) }
+  };
+
+  const FlyingBonus = {
+    activeObject: null,
+
+    update(s, dt) {
+      if (this.activeObject) {
+        this.activeObject.x += this.activeObject.speed * dt;
+        if (this.activeObject.x > 105) {
+          this.activeObject = null;
+        }
+        return;
+      }
+      if (!s.flyingBonus) return;
+      s.flyingBonus.nextIn -= dt;
+      if (s.flyingBonus.nextIn <= 0) {
+        this.spawn(s);
+        s.flyingBonus.nextIn = 300 + Math.random() * 600;
+      }
+    },
+
+    spawn(s) {
+      const obj = FLYING_BONUS_OBJECTS[s.currentPhase];
+      if (!obj) return;
+      this.activeObject = {
+        phase: s.currentPhase,
+        name: obj.name,
+        icon: obj.icon,
+        x: -5,
+        y: 20 + Math.random() * 60,
+        speed: obj.speed,
+        reward: obj.reward
+      };
+    },
+
+    collect(s) {
+      if (!this.activeObject) return null;
+      const obj = this.activeObject;
+      this.activeObject = null;
+      const reward = obj.reward(s);
+      if (reward.currency === 'terraform') {
+        s.terraforming.marsPercent = Math.min(100, s.terraforming.marsPercent + reward.amount);
+      } else {
+        GameState.addCurrency(reward.currency, reward.amount);
+      }
+      return { name: obj.name, reward };
+    }
+  };
+
   // Enhanced tap function integration
   function onTap(s, isAuto) {
-    if (isAuto) return { type: 'normal', mult: 1, comboMult: 1 };
+    if (isAuto) return { type: 'normal', mult: 1, comboMult: 1, tierChanged: false };
 
-    Combo.onTap(s);
+    const comboResult = Combo.onTap(s);
     const critResult = CriticalTap.roll(s);
     const comboMult = Combo.getMultiplier(s);
 
@@ -1384,20 +1513,33 @@ const Expansion = (() => {
     if (critResult.type !== 'normal') {
       Contracts.addProgress(s, 'critical', 1);
     }
-    // Combo contract
-    if (s.combo.current >= 50) {
-      Contracts.addProgress(s, 'combo', 1);
+    // Combo contract — track max combo reached
+    Contracts.addProgress(s, 'combo', 0); // just a presence check
+    for (const c of s.contracts.active) {
+      if (c.type === 'combo') {
+        c.progress = Math.max(c.progress, s.combo.current);
+      }
     }
 
     // Log entries
     if (s.combo.current >= 50 && !s.captainsLog.includes('log33')) {
-      Engine.addLogEntry('log33');
+      if (typeof Engine !== 'undefined' && Engine.addLogEntry) Engine.addLogEntry('log33');
     }
     if (critResult.type === 'super' && !s.captainsLog.includes('log34')) {
-      Engine.addLogEntry('log34');
+      if (typeof Engine !== 'undefined' && Engine.addLogEntry) Engine.addLogEntry('log34');
     }
 
-    return { ...critResult, comboMult };
+    // Egg warm tap — tapping accelerates egg incubation slightly
+    if (s.eggs && s.eggs.slots) {
+      for (let i = 0; i < s.eggs.slots.length; i++) {
+        if (s.eggs.slots[i] && !Eggs.isReady(s.eggs.slots[i])) {
+          Eggs.tapToWarm(s, i);
+          break; // Only warm first incubating egg per tap
+        }
+      }
+    }
+
+    return { ...critResult, comboMult, tierChanged: comboResult.tierChanged, comboTier: comboResult.tier };
   }
 
   function onGeneratorBuy(s, genId, count) {
@@ -1518,13 +1660,80 @@ const Expansion = (() => {
       const challenge = this.getActiveChallenge(s);
       if (!challenge) return;
 
-      // Check completion
+      // Check completion based on goal type
       if (challenge.goal.phase && s.currentPhase >= challenge.goal.phase) {
         this.completeChallenge(s);
       }
       if (challenge.goal.prestige && s.totalPrestigeCount > (s.challenge.startPrestigeCount || 0)) {
         this.completeChallenge(s);
       }
+      if (challenge.goal.combo && s.combo.bestThisSession >= challenge.goal.combo) {
+        this.completeChallenge(s);
+      }
+      if (challenge.goal.eggsHatched && s.eggs.totalHatched >= (s.challenge._startEggs || 0) + challenge.goal.eggsHatched) {
+        this.completeChallenge(s);
+      }
+      if (challenge.goal.allGensMin) {
+        const phaseKey = String(s.currentPhase);
+        const gens = GameData.GENERATORS[phaseKey];
+        if (gens && gens.every(g => (s.generators[g.id] || 0) >= challenge.goal.allGensMin)) {
+          this.completeChallenge(s);
+        }
+      }
+      if (challenge.goal.doublePrestige) {
+        const prestigesSinceStart = s.totalPrestigeCount - (s.challenge.startPrestigeCount || 0);
+        if (prestigesSinceStart >= 2 && s.challenge.elapsed < (challenge.goal.timeLimit || 1800)) {
+          this.completeChallenge(s);
+        }
+      }
+
+      // Check challenge duration expiry
+      if (challenge.duration && s.challenge.elapsed > challenge.duration) {
+        this.abandonChallenge(s);
+      }
+    },
+
+    // Validate constraints — called from core systems to enforce challenge rules
+    isActionAllowed(s, action) {
+      if (!s.challenge || !s.challenge.active) return true;
+      const challenge = this.getActiveChallenge(s);
+      if (!challenge) return true;
+
+      switch (action) {
+        case 'manualTap':
+          return !challenge.noManualTap;
+        case 'buyGenerator':
+          if (challenge.noGenerators) return false;
+          if (challenge.goal.maxGens) {
+            const totalGens = GameData.getTotalGenerators ? GameData.getTotalGenerators(s) : 0;
+            return totalGens < challenge.goal.maxGens;
+          }
+          return true;
+        case 'buyUpgrade':
+          return !challenge.noUpgrades;
+        case 'hireCrew':
+          return !challenge.noCrew;
+        default:
+          return true;
+      }
+    },
+
+    getProgress(s) {
+      if (!s.challenge || !s.challenge.active) return null;
+      const challenge = this.getActiveChallenge(s);
+      if (!challenge) return null;
+
+      if (challenge.goal.phase) {
+        return { current: s.currentPhase, target: challenge.goal.phase, pct: Math.min(1, (s.currentPhase - 1) / (challenge.goal.phase - 1)) };
+      }
+      if (challenge.goal.combo) {
+        return { current: s.combo.bestThisSession, target: challenge.goal.combo, pct: Math.min(1, s.combo.bestThisSession / challenge.goal.combo) };
+      }
+      if (challenge.goal.prestige) {
+        const done = s.totalPrestigeCount > (s.challenge.startPrestigeCount || 0);
+        return { current: done ? 1 : 0, target: 1, pct: done ? 1 : 0 };
+      }
+      return null;
     },
 
     completeChallenge(s) {
@@ -1533,11 +1742,16 @@ const Expansion = (() => {
       s.challenge.active = false;
       s.stats.challengesCompleted = (s.stats.challengesCompleted || 0) + 1;
 
-      const challenge = this.getActiveChallenge(s);
+      const challenge = CHALLENGE_TYPES.find(c => c.id === s.challenge.typeId);
       let cdReward = 0;
       if (challenge && challenge.rewards) {
         cdReward = challenge.rewards.all || 0;
-        // Time-based rewards for sprint
+        // Time-based rewards for sprint challenges
+        if (challenge.rewards.top10 && s.challenge.elapsed < 43200) {
+          cdReward = challenge.rewards.top10;
+        } else if (challenge.rewards.top50 && s.challenge.elapsed < 86400) {
+          cdReward = challenge.rewards.top50;
+        }
         if (challenge.rewards.under24h && s.challenge.elapsed < 86400) {
           cdReward = challenge.rewards.under24h;
         } else if (challenge.rewards.under48h && s.challenge.elapsed < 172800) {
@@ -1551,7 +1765,16 @@ const Expansion = (() => {
         GameState.addCurrency('cosmicDust', cdReward);
       }
 
-      Engine.addLogEntry('log49');
+      // Track completed challenge type
+      if (!s.stats.completedChallengeTypes) s.stats.completedChallengeTypes = [];
+      if (!s.stats.completedChallengeTypes.includes(s.challenge.typeId)) {
+        s.stats.completedChallengeTypes.push(s.challenge.typeId);
+        s.stats.challengeTypesCompleted = s.stats.completedChallengeTypes.length;
+      }
+
+      if (typeof Engine !== 'undefined' && Engine.addLogEntry) {
+        Engine.addLogEntry('log49');
+      }
     },
 
     abandonChallenge(s) {
@@ -1560,18 +1783,40 @@ const Expansion = (() => {
     }
   };
 
+  // Aggregated SD booster multiplier
+  function getBoosterSDMult(s) {
+    return Boosters.getActiveMultiplier(s, 'sd');
+  }
+  // Aggregated fleet booster multiplier
+  function getBoosterFleetMult(s) {
+    return Boosters.getActiveMultiplier(s, 'fleet');
+  }
+  // Weather SD multiplier
+  function getWeatherSDMult(s) {
+    const effect = Weather.getCurrentEffect(s);
+    return effect && effect.sdMult ? effect.sdMult : 1;
+  }
+  // Weather crew multiplier
+  function getWeatherCrewMult(s) {
+    const effect = Weather.getCurrentEffect(s);
+    return effect && effect.crewMult ? effect.crewMult : 1;
+  }
+
   return {
-    Combo, CriticalTap, LuckyDrops, GoldenRush, Milestones, Synergies,
+    Combo, CriticalTap, LuckyDrops, GoldenRush, FlyingBonus,
+    Milestones, Synergies,
     Collections, Contracts, Boosters, Eggs, Weather, IdleStreak,
     PurchaseStreak, NextUnlock, TieredUpgrades, RocketSkins, Challenges,
     COLLECTIONS, SYNERGIES, BOOSTER_TYPES, EGG_TYPES, MILESTONES,
     EXPANSION_ACHIEVEMENTS, EXPANSION_CD_SHOP, EXPANSION_LOG,
     WEATHER_BY_PHASE, DROP_TYPES, UPGRADE_TIERS, ROCKET_SKINS,
-    CHALLENGE_TYPES,
+    CHALLENGE_TYPES, FLYING_BONUS_OBJECTS,
     update, onTap, onGeneratorBuy,
     getBoosterCreditMult, getBoosterRPMult, getBoosterOreMult,
     getBoosterTapMult, getBoosterTerraformMult,
+    getBoosterSDMult, getBoosterFleetMult,
     getWeatherCreditMult, getWeatherRPMult, getWeatherTerraformMult,
-    getWeatherTapMult, applyCritUpgrades
+    getWeatherTapMult, getWeatherSDMult, getWeatherCrewMult,
+    applyCritUpgrades
   };
 })();
