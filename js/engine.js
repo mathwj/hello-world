@@ -450,7 +450,6 @@ const Engine = (() => {
     if (effect.luckyTap) s.luckyTapEnabled = true;
     if (effect.terraformMultiplier) s.terraformMultiplier *= effect.terraformMultiplier;
     if (effect.asChanceMultiplier) {
-      // Stored as state flag
       s._asChanceMult = (s._asChanceMult || 1) * effect.asChanceMultiplier;
     }
 

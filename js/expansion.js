@@ -256,7 +256,11 @@ const Expansion = (() => {
     // Phase 5
     { id: 'syn_p5_1', name: 'Guided Mining', gens: ['p5g1', 'p5g2'], minCount: 10, bonus: 2, target: 'p5g2', phase: 5 },
     { id: 'syn_p5_2', name: 'Full Pipeline', gens: ['p5g3', 'p5g4'], minCount: 10, bonus: 2, phase: 5 },
-    { id: 'syn_p5_3', name: 'Battle Fleet', gens: ['p5g5', 'p5g7'], minCount: 10, bonus: 1.5, phase: 5 }
+    { id: 'syn_p5_3', name: 'Battle Fleet', gens: ['p5g5', 'p5g7'], minCount: 10, bonus: 1.5, phase: 5 },
+    // Cross-Phase Synergies
+    { id: 'syn_cross_1', name: 'From Junk to Jupiter', gens: ['p1g1', 'p6g1'], minCount: 100, bonus: 3, crossPhase: true, applyToPhases: [1, 6] },
+    { id: 'syn_cross_2', name: 'Full Spectrum Mining', gens: ['p3g1', 'p5g3'], minCount: 50, bonus: 5, crossPhase: true, target: 'ore_rm' },
+    { id: 'syn_cross_3', name: 'From Earth to Stars', gens: ['p1g1', 'p1g2', 'p1g3', 'p1g4', 'p1g5', 'p1g6', 'p1g7'], minCount: 25, bonusGens: ['p7g1', 'p7g2', 'p7g3'], bonusMinCount: 10, bonus: 2, crossPhase: true, target: 'global' }
   ];
 
   const Synergies = {
@@ -950,6 +954,149 @@ const Expansion = (() => {
     { id: 'ach_syn10', name: 'Synergy Master', desc: 'Unlock 10 synergies', reward: { credits: 1e9 }, check: s => s.synergies.unlocked.length >= 10, category: 'synergy' }
   ];
 
+  // ==================== TIERED UPGRADE SYSTEM ====================
+  const UPGRADE_TIERS = [
+    { level: 1, label: 'Bronze', costMult: 1, color: '#CD7F32' },
+    { level: 2, label: 'Silver', costMult: 5, color: '#C0C0C0' },
+    { level: 3, label: 'Gold', costMult: 25, color: '#FFD700' },
+    { level: 4, label: 'Platinum', costMult: 125, color: '#E5E4E2' },
+    { level: 5, label: 'Diamond', costMult: 625, color: '#B9F2FF' }
+  ];
+
+  const TieredUpgrades = {
+    // Check if an upgrade is tierable (generator-boosting or tap-boosting, not phase-unlock)
+    isTierable(upgrade) {
+      if (!upgrade.effect) return false;
+      if (upgrade.effect.unlockPhase) return false;
+      if (upgrade.effect.unlockCrew) return false;
+      if (upgrade.effect.unlockBonusGenerator) return false;
+      if (upgrade.effect.currencyExchange) return false;
+      if (upgrade.effect.allZonesFullRate) return false;
+      if (upgrade.effect.revealSystems) return false;
+      if (upgrade.effect.revealSystemTypes) return false;
+      if (upgrade.effect.revealMultiverse) return false;
+      if (upgrade.effect.autoTerraform) return false;
+      if (upgrade.effect.skipToPhase) return false;
+      // Must have a multiplier-type effect
+      return !!(upgrade.effect.tapMultiplier || upgrade.effect.generatorMultiplier ||
+        upgrade.effect.phaseMultiplier || upgrade.effect.globalCreditMultiplier ||
+        upgrade.effect.globalRPMultiplier || upgrade.effect.globalOreMultiplier);
+    },
+
+    getCurrentTier(s, upgradeId) {
+      return s.upgradeTiers[upgradeId] || 0; // 0 = not purchased, 1-5 = tier level
+    },
+
+    getNextTier(s, upgradeId) {
+      const current = this.getCurrentTier(s, upgradeId);
+      if (current >= 5) return null;
+      return UPGRADE_TIERS[current]; // next tier to buy (0-indexed by current)
+    },
+
+    getTierCost(upgrade, tierLevel) {
+      if (tierLevel <= 0 || tierLevel > 5) return Infinity;
+      const tier = UPGRADE_TIERS[tierLevel - 1];
+      return upgrade.cost * tier.costMult;
+    },
+
+    getTierEffectMultiplier(tierLevel) {
+      // Each tier multiplies the effect further
+      const mults = [1, 2, 3, 3, 5]; // Bronze=base, Silver=x2, Gold=x3, Plat=x3, Diamond=x5
+      if (tierLevel < 1 || tierLevel > 5) return 1;
+      return mults[tierLevel - 1];
+    },
+
+    getCumulativeMultiplier(s, upgradeId) {
+      const tier = this.getCurrentTier(s, upgradeId);
+      let mult = 1;
+      for (let i = 0; i < tier; i++) {
+        mult *= this.getTierEffectMultiplier(i + 1);
+      }
+      return mult;
+    },
+
+    buyTier(s, upgradeId) {
+      const upgrade = findUpgradeById(upgradeId);
+      if (!upgrade || !this.isTierable(upgrade)) return false;
+
+      const currentTier = this.getCurrentTier(s, upgradeId);
+      if (currentTier === 0 && !s.upgradesPurchased[upgradeId]) return false;
+      if (currentTier >= 5) return false;
+
+      const nextTierLevel = currentTier + 1;
+      const cost = this.getTierCost(upgrade, nextTierLevel);
+      if (!GameState.canAfford(upgrade.currency, cost)) return false;
+
+      GameState.spendCurrency(upgrade.currency, cost);
+      s.upgradeTiers[upgradeId] = nextTierLevel;
+
+      // Apply the tier-level multiplier directly to relevant state
+      const tierMult = this.getTierEffectMultiplier(nextTierLevel);
+      const eff = upgrade.effect;
+      if (eff.tapMultiplier) s.tapMultiplier *= tierMult;
+      if (eff.generatorMultiplier) {
+        const gm = eff.generatorMultiplier;
+        s.generatorMultipliers[gm.target] = (s.generatorMultipliers[gm.target] || 1) * tierMult;
+      }
+      if (eff.phaseMultiplier) {
+        const pm = eff.phaseMultiplier;
+        s.phaseMultipliers[pm.phase] = (s.phaseMultipliers[pm.phase] || 1) * tierMult;
+      }
+      if (eff.globalCreditMultiplier) s.globalCreditMultiplier *= tierMult;
+      if (eff.globalRPMultiplier) s.globalRPMultiplier *= tierMult;
+      if (eff.globalOreMultiplier) s.globalOreMultiplier *= tierMult;
+      if (eff.terraformMultiplier) s.terraformMultiplier *= tierMult;
+
+      Engine.calculateRates(s);
+      return nextTierLevel;
+    }
+  };
+
+  function findUpgradeById(upgradeId) {
+    for (const phase in GameData.UPGRADES) {
+      const found = GameData.UPGRADES[phase].find(u => u.id === upgradeId);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  // ==================== ROCKET SKINS ====================
+  const ROCKET_SKINS = [
+    { id: 'default', name: 'OG Classic', cost: 0, desc: 'Standard evolution per phase' },
+    { id: 'golden_voyager', name: 'Golden Voyager', cost: 10, desc: 'Polished gold with gold particle trail' },
+    { id: 'neon_racer', name: 'Neon Racer', cost: 15, desc: 'Black with neon blue/pink edge lighting' },
+    { id: 'steampunk', name: 'Steampunk', cost: 20, desc: 'Brass and copper with visible gears' },
+    { id: 'crystal_ship', name: 'Crystal Ship', cost: 25, desc: 'Translucent crystalline hull' },
+    { id: 'living_ship', name: 'Living Ship', cost: 30, desc: 'Organic pulsing veins' },
+    { id: 'pixel_cruiser', name: 'Pixel Cruiser', cost: 15, desc: '8-bit pixel art style rocket' },
+    { id: 'shadow_phantom', name: 'Shadow Phantom', cost: 20, desc: 'Matte black, visible only by starlight' },
+    { id: 'nebula_paint', name: 'Nebula Paint', cost: 25, desc: 'Swirling nebula texture (animated)' },
+    { id: 'void_walker', name: 'Void Walker', cost: 40, desc: 'A hole in reality' },
+    { id: 'planet_eater', name: 'Planet Eater', cost: 50, desc: 'Enormous, ominous mega-ship' }
+  ];
+
+  const RocketSkins = {
+    buySkin(s, skinId) {
+      if (s.rocket.unlockedSkins.includes(skinId)) return false;
+      const skin = ROCKET_SKINS.find(sk => sk.id === skinId);
+      if (!skin) return false;
+      if (!GameState.canAfford('it', skin.cost)) return false;
+      GameState.spendCurrency('it', skin.cost);
+      s.rocket.unlockedSkins.push(skinId);
+      return true;
+    },
+
+    equipSkin(s, skinId) {
+      if (!s.rocket.unlockedSkins.includes(skinId)) return false;
+      s.rocket.currentSkin = skinId;
+      return true;
+    },
+
+    getSkinData(skinId) {
+      return ROCKET_SKINS.find(sk => sk.id === skinId) || ROCKET_SKINS[0];
+    }
+  };
+
   // ==================== EXPANDED CD SHOP ITEMS ====================
   const EXPANSION_CD_SHOP = [
     { id: 'cd_luckystart', name: 'Lucky Start', cost: 20, effect: {}, desc: 'Start each run with 3 random boosters' },
@@ -996,12 +1143,21 @@ const Expansion = (() => {
     // Check collection triggers periodically (every 5 sec)
     if (!s._lastCollectionCheck || Date.now() - s._lastCollectionCheck > 5000) {
       s._lastCollectionCheck = Date.now();
-      Collections.checkTriggers(s);
-      Synergies.checkAll(s);
+      const newCollItems = Collections.checkTriggers(s);
+      for (const itemId of newCollItems) {
+        UI.showCollectionNotification(itemId);
+      }
+      const newSyns = Synergies.checkAll(s);
+      for (const syn of newSyns) {
+        UI.showSynergyNotification(syn);
+      }
     }
 
     // Check completed contracts
-    Contracts.checkCompleted(s);
+    const completedContracts = Contracts.checkCompleted(s);
+    for (const c of completedContracts) {
+      UI.showContractCompleteNotification(c);
+    }
 
     // Apply expansion achievements
     for (const ach of EXPANSION_ACHIEVEMENTS) {
@@ -1046,12 +1202,25 @@ const Expansion = (() => {
     const milestone = Milestones.check(s, genId);
     Contracts.addProgress(s, 'buy', count);
 
+    // Milestone notification
+    if (milestone) {
+      const gen = Engine.findGenerator(genId);
+      const genName = gen ? gen.name : genId;
+      UI.showMilestoneNotification(genName, milestone);
+    }
+
+    // Purchase streak notification
+    const streakInfo = PurchaseStreak.getDiscount(streak);
+    if (streakInfo.label) {
+      UI.showToast(streakInfo.label, '#27AE60');
+    }
+
     // Log entries
     if (GameData.getTotalGenerators(s) >= 100 && !s.captainsLog.includes('log31')) {
       Engine.addLogEntry('log31');
     }
 
-    return { streak, milestone, streakInfo: PurchaseStreak.getDiscount(streak) };
+    return { streak, milestone, streakInfo };
   }
 
   // Multiplier aggregation for engine
@@ -1100,10 +1269,10 @@ const Expansion = (() => {
   return {
     Combo, CriticalTap, LuckyDrops, GoldenRush, Milestones, Synergies,
     Collections, Contracts, Boosters, Eggs, Weather, IdleStreak,
-    PurchaseStreak, NextUnlock,
+    PurchaseStreak, NextUnlock, TieredUpgrades, RocketSkins,
     COLLECTIONS, SYNERGIES, BOOSTER_TYPES, EGG_TYPES, MILESTONES,
     EXPANSION_ACHIEVEMENTS, EXPANSION_CD_SHOP, EXPANSION_LOG,
-    WEATHER_BY_PHASE, DROP_TYPES,
+    WEATHER_BY_PHASE, DROP_TYPES, UPGRADE_TIERS, ROCKET_SKINS,
     update, onTap, onGeneratorBuy,
     getBoosterCreditMult, getBoosterRPMult, getBoosterOreMult,
     getBoosterTapMult, getBoosterTerraformMult,

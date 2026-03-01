@@ -59,6 +59,8 @@ const UI = (() => {
       case 'prestige': updatePrestigePanel(); break;
       case 'achievements': updateAchievements(); break;
       case 'settings': updateSettings(); break;
+      case 'synergies': updateSynergies(); break;
+      case 'skins': updateRocketSkins(); break;
     }
   }
 
@@ -177,6 +179,8 @@ const UI = (() => {
     updateLuckyDropDisplay();
     updateGoldenRushBanner();
     updateNextUnlockBar();
+    updateIdleStreakDisplay();
+    updateActiveBoosterHUD();
   }
 
   function updateTopBar() {
@@ -489,12 +493,38 @@ const UI = (() => {
 
     for (const upg of upgrades) {
       if (s.upgradesPurchased[upg.id]) {
-        html += `<div class="upgrade-row purchased">
-          <div class="upg-info">
-            <div class="upg-name">\u2714 ${upg.name}</div>
-            <div class="upg-desc">${upg.desc}</div>
-          </div>
-        </div>`;
+        // Check if this upgrade is tierable and show tier-up button
+        const isTierable = Expansion.TieredUpgrades.isTierable(upg);
+        const currentTier = isTierable ? Expansion.TieredUpgrades.getCurrentTier(s, upg.id) : 0;
+        const tierLabel = currentTier > 0 ? Expansion.UPGRADE_TIERS[currentTier - 1].label : '';
+        const tierColor = currentTier > 0 ? Expansion.UPGRADE_TIERS[currentTier - 1].color : '';
+        const maxed = currentTier >= 5;
+
+        if (isTierable && !maxed) {
+          const nextTier = currentTier + 1;
+          const nextTierData = Expansion.UPGRADE_TIERS[nextTier - 1];
+          const tierCost = Expansion.TieredUpgrades.getTierCost(upg, nextTier);
+          const canAffordTier = GameState.canAfford(upg.currency, tierCost);
+          const currSym = upg.currency === 'credits' ? '\u20A1' : upg.currency.toUpperCase() + ' ';
+
+          html += `<div class="upgrade-row purchased" style="border-left:3px solid ${tierColor || '#2a2a4a'}">
+            <div class="upg-info">
+              <div class="upg-name">\u2714 ${upg.name} ${tierLabel ? '<span class="tier-badge" style="color:' + tierColor + '">[' + tierLabel + ']</span>' : ''}</div>
+              <div class="upg-desc">${upg.desc} (x${Expansion.TieredUpgrades.getCumulativeMultiplier(s, upg.id)})</div>
+            </div>
+            <button class="upg-buy-btn tier-btn ${canAffordTier ? '' : 'disabled'}" data-tierid="${upg.id}" style="border-color:${nextTierData.color}">
+              <div class="upg-cost">${currSym}${NumberFormatter.format(tierCost)}</div>
+              <div>${nextTierData.label}</div>
+            </button>
+          </div>`;
+        } else {
+          html += `<div class="upgrade-row purchased" style="border-left:3px solid ${tierColor || '#2a2a4a'}">
+            <div class="upg-info">
+              <div class="upg-name">\u2714 ${upg.name} ${maxed ? '<span class="tier-badge" style="color:#B9F2FF">[MASTERED]</span>' : tierLabel ? '<span class="tier-badge" style="color:' + tierColor + '">[' + tierLabel + ']</span>' : ''}</div>
+              <div class="upg-desc">${upg.desc}${currentTier > 0 ? ' (x' + Expansion.TieredUpgrades.getCumulativeMultiplier(s, upg.id) + ')' : ''}</div>
+            </div>
+          </div>`;
+        }
         continue;
       }
 
@@ -537,9 +567,21 @@ const UI = (() => {
 
     panel.innerHTML = html;
 
-    panel.querySelectorAll('.upg-buy-btn').forEach(btn => {
+    panel.querySelectorAll('.upg-buy-btn:not(.tier-btn)').forEach(btn => {
       btn.addEventListener('click', () => {
         Engine.buyUpgrade(btn.dataset.upgid);
+      });
+    });
+    panel.querySelectorAll('.tier-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        const result = Expansion.TieredUpgrades.buyTier(s, btn.dataset.tierid);
+        if (result) {
+          const tier = Expansion.UPGRADE_TIERS[result - 1];
+          showToast(`Upgrade ${tier.label}! x${Expansion.TieredUpgrades.getTierEffectMultiplier(result)}`, tier.color);
+        }
+        updateUpgrades();
+        updateCurrencyBar();
       });
     });
   }
@@ -1310,6 +1352,131 @@ const UI = (() => {
     document.getElementById('modal-overlay').classList.add('hidden');
   }
 
+  // ===== TOAST NOTIFICATIONS =====
+
+  function showToast(msg, color) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast-item';
+    if (color) toast.style.borderColor = color;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
+  }
+
+  function showMilestoneNotification(genName, milestone) {
+    showToast(`${genName} reached ${milestone.count}! x${milestone.mult} ${milestone.badge}`, '#FFD700');
+  }
+
+  function showSynergyNotification(synergy) {
+    showToast(`SYNERGY: ${synergy.name}! x${synergy.bonus}`, '#9B59B6');
+  }
+
+  function showContractCompleteNotification(contract) {
+    showToast(`CONTRACT COMPLETE: ${contract.name}!`, '#27AE60');
+  }
+
+  function showCollectionNotification(itemId) {
+    let itemName = itemId;
+    for (const setKey in Expansion.COLLECTIONS) {
+      const item = Expansion.COLLECTIONS[setKey].items.find(i => i.id === itemId);
+      if (item) { itemName = item.name; break; }
+    }
+    showToast(`NEW COLLECTION: ${itemName}!`, '#4A90D9');
+  }
+
+  // ===== SYNERGY PANEL =====
+
+  function updateSynergies() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-synergies');
+    if (!panel) return;
+    let html = '<h3>\u{1F517} Synergies</h3>';
+
+    const allSynergies = Expansion.SYNERGIES;
+    const unlocked = s.synergies.unlocked;
+
+    let activeCount = 0;
+    for (const syn of allSynergies) {
+      const isUnlocked = unlocked.includes(syn.id);
+      if (isUnlocked) activeCount++;
+      const genNames = syn.gens.map(gid => {
+        const gen = Engine.findGenerator(gid);
+        return gen ? gen.name : gid;
+      });
+      const progress = syn.gens.map(gid => Math.min(syn.minCount, s.generators[gid] || 0));
+      const allMet = progress.every(p => p >= syn.minCount);
+
+      html += `<div class="synergy-row ${isUnlocked ? 'active' : ''}" ${!isUnlocked && !allMet ? 'style="opacity:0.5"' : ''}>
+        <div class="syn-name">${syn.name} ${isUnlocked ? '\u2705' : ''}</div>
+        <div class="syn-gens">${genNames.join(' + ')}</div>
+        <div class="syn-progress">${isUnlocked ? 'x' + syn.bonus + ' bonus active' : progress.map((p, i) => p + '/' + syn.minCount).join(', ')}</div>
+      </div>`;
+    }
+
+    if (activeCount === 0) {
+      html += '<p class="empty-msg">No synergies unlocked yet. Own pairs of generators to activate synergies!</p>';
+    }
+
+    panel.innerHTML = html;
+  }
+
+  // ===== ROCKET SKINS PANEL =====
+
+  function updateRocketSkins() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-skins');
+    if (!panel) return;
+    let html = '<h3>\u{1F680} Rocket Skins</h3>';
+    html += `<div class="current-skin">Current: ${s.rocket.currentSkin}</div>`;
+
+    for (const skin of Expansion.ROCKET_SKINS) {
+      const owned = s.rocket.unlockedSkins.includes(skin.id);
+      const equipped = s.rocket.currentSkin === skin.id;
+      const canBuy = !owned && GameState.canAfford('it', skin.cost);
+
+      html += `<div class="skin-row ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
+        <div class="skin-info">
+          <div class="skin-name">${skin.name} ${equipped ? '(EQUIPPED)' : ''}</div>
+          <div class="skin-desc">${skin.desc}</div>
+        </div>`;
+
+      if (!owned && skin.cost > 0) {
+        html += `<button class="skin-buy-btn ${canBuy ? '' : 'disabled'}" data-skinid="${skin.id}">
+          <div>${skin.cost} IT</div><div>BUY</div>
+        </button>`;
+      } else if (owned && !equipped) {
+        html += `<button class="skin-equip-btn" data-skinid="${skin.id}">EQUIP</button>`;
+      }
+      html += '</div>';
+    }
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.skin-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        if (Expansion.RocketSkins.buySkin(s, btn.dataset.skinid)) {
+          showToast('Skin unlocked: ' + btn.dataset.skinid, '#FFD700');
+          updateRocketSkins();
+          updateCurrencyBar();
+        }
+      });
+    });
+    panel.querySelectorAll('.skin-equip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = GameState.getState();
+        Expansion.RocketSkins.equipSkin(s, btn.dataset.skinid);
+        updateRocketSkins();
+      });
+    });
+  }
+
   // ===== BANNERS =====
 
   function showAchievementBanner(ach) {
@@ -1493,6 +1660,43 @@ const UI = (() => {
     } else {
       bar.classList.add('hidden');
     }
+  }
+
+  // ===== EXPANSION UI: IDLE STREAK DISPLAY =====
+  function updateIdleStreakDisplay() {
+    const el = document.getElementById('idle-streak-display');
+    if (!el) return;
+    const s = GameState.getState();
+    const bonus = s.streaks.idleStreakBonus;
+    if (bonus > 0) {
+      const elapsed = Math.floor((Date.now() - s.streaks.idleStreakStartTimestamp) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      el.classList.remove('hidden');
+      el.textContent = `Idle ${mins}m +${Math.round(bonus * 100)}%`;
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  // ===== EXPANSION UI: ACTIVE BOOSTER HUD =====
+  function updateActiveBoosterHUD() {
+    const el = document.getElementById('active-boosters-hud');
+    if (!el) return;
+    const s = GameState.getState();
+    if (s.boosters.active.length === 0) {
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    let html = '';
+    for (const b of s.boosters.active) {
+      const bt = Expansion.BOOSTER_TYPES.find(t => t.id === b.type);
+      const secs = Math.ceil(b.remainingMs / 1000);
+      const m = Math.floor(secs / 60);
+      const sec = secs % 60;
+      html += `<span class="booster-badge" style="border-color:${bt ? bt.color : '#fff'}">${bt ? bt.icon : ''} ${m}:${String(sec).padStart(2, '0')}</span>`;
+    }
+    el.innerHTML = html;
   }
 
   // ===== EXPANSION UI: COLLECTION PANEL =====
@@ -1726,7 +1930,10 @@ const UI = (() => {
     playPhaseTransition, showWelcomeBack, showDailyReward,
     showAlienSignalPopup, switchTab, showTab, getBuyAmount, updateSettings,
     updateCollection, updateContracts, updateBoosters, updateEggs,
+    updateSynergies, updateRocketSkins,
     showRareAsteroid, updateRareAsteroid, hideRareAsteroid,
-    showArtifactFragment, hideArtifactFragment
+    showArtifactFragment, hideArtifactFragment,
+    showToast, showMilestoneNotification, showSynergyNotification,
+    showContractCompleteNotification, showCollectionNotification
   };
 })();
