@@ -657,30 +657,80 @@ const UI = (() => {
     const crewBonus = Engine.getCrewBonus();
     const hireCost = 100 * Math.pow(1.2, s.crew.totalAstronauts);
     const canHire = s.crew.totalAstronauts < s.crew.maxCapacity && GameState.canAfford('ore', hireCost);
+    const fmt = NumberFormatter.format;
+
+    // Tier distribution counts
+    const tierCounts = [0, 0, 0, 0, 0];
+    for (const a of s.crew.astronauts) {
+      tierCounts[a.tier] = (tierCounts[a.tier] || 0) + 1;
+    }
 
     let html = `<h3>Crew</h3>
       <div class="crew-summary">
-        <div>Crew: ${s.crew.totalAstronauts} / ${s.crew.maxCapacity}</div>
-        <div>Total Bonus: +${(crewBonus * 100).toFixed(0)}% all generators</div>
+        <div class="crew-stat-row">
+          <span>Crew</span>
+          <span>${s.crew.totalAstronauts} / ${s.crew.maxCapacity}</span>
+        </div>
+        <div class="crew-stat-row">
+          <span>Total Bonus</span>
+          <span class="crew-bonus-value">+${(crewBonus * 100).toFixed(0)}% all generators</span>
+        </div>
+        <div class="crew-capacity-bar">
+          <div class="crew-capacity-fill" style="width: ${s.crew.maxCapacity > 0 ? Math.min(100, (s.crew.totalAstronauts / s.crew.maxCapacity) * 100) : 0}%"></div>
+        </div>
+        <div class="crew-tier-dist">`;
+
+    const tierNames = ['Rookie', 'Trained', 'Veteran', 'Elite', 'Legendary'];
+    const tierColors = ['#888', '#4A90D9', '#27AE60', '#9B59B6', '#FFD700'];
+    for (let t = 0; t < 5; t++) {
+      if (tierCounts[t] > 0) {
+        html += `<span class="crew-tier-badge" style="border-color: ${tierColors[t]}; color: ${tierColors[t]}">${tierNames[t]}: ${tierCounts[t]}</span>`;
+      }
+    }
+
+    html += `</div>
       </div>
       <div class="crew-actions">
         <button class="action-btn ${canHire ? '' : 'disabled'}" id="hire-crew-btn">
-          Hire Astronaut (${NumberFormatter.format(hireCost)} Ore)
-        </button>
-        <button class="action-btn" id="upgrade-all-crew-btn">Upgrade All</button>
+          Hire Astronaut (${fmt(hireCost)} Ore)
+        </button>`;
+
+    // Hire max button
+    if (s.crew.totalAstronauts < s.crew.maxCapacity) {
+      html += `<button class="action-btn" id="hire-max-btn">Hire Max</button>`;
+    }
+
+    html += `<button class="action-btn" id="upgrade-all-crew-btn">Upgrade All</button>
       </div>
       <div class="crew-list">`;
 
-    for (let i = 0; i < s.crew.astronauts.length; i++) {
-      const a = s.crew.astronauts[i];
-      const tierName = GameData.CREW_TIERS[a.tier].name;
-      const canUpgrade = a.tier < 4;
-      html += `<div class="crew-row">
-        <div class="crew-name">${a.name}</div>
-        <div class="crew-tier tier-${a.tier}">${tierName}</div>
-        <div class="crew-bonus">+${(a.bonus * 100).toFixed(0)}%</div>
-        ${canUpgrade ? `<button class="crew-upgrade-btn" data-idx="${i}">Upgrade</button>` : '<span class="max-tier">MAX</span>'}
+    // Show crew grouped by tier (newest first within each tier)
+    for (let t = 4; t >= 0; t--) {
+      const tierMembers = s.crew.astronauts.filter(a => a.tier === t);
+      if (tierMembers.length === 0) continue;
+
+      html += `<div class="crew-tier-header" style="border-left-color: ${tierColors[t]}">
+        ${tierNames[t]} (${tierMembers.length})
       </div>`;
+
+      for (let i = 0; i < s.crew.astronauts.length; i++) {
+        const a = s.crew.astronauts[i];
+        if (a.tier !== t) continue;
+        const canUpgrade = a.tier < 4;
+        const nextTier = canUpgrade ? GameData.CREW_TIERS[a.tier + 1] : null;
+        const upgCost = nextTier && nextTier.upgradeCost ? nextTier.upgradeCost : null;
+        const upgradeCostStr = upgCost ? `${fmt(upgCost.ore)} Ore + ${fmt(upgCost.rp)} RP` : '';
+
+        html += `<div class="crew-row">
+          <div class="crew-info">
+            <div class="crew-name">${a.name}</div>
+            <div class="crew-bonus">+${(a.bonus * 100).toFixed(0)}%</div>
+          </div>
+          ${canUpgrade ? `<button class="crew-upgrade-btn" data-idx="${i}" title="${upgradeCostStr}">
+            Upgrade
+          </button>` : '<span class="max-tier">MAX</span>'}
+        </div>`;
+      }
     }
 
     html += '</div>';
@@ -688,6 +738,17 @@ const UI = (() => {
 
     document.getElementById('hire-crew-btn')?.addEventListener('click', () => {
       Engine.hireCrew();
+    });
+    document.getElementById('hire-max-btn')?.addEventListener('click', () => {
+      let hired = 0;
+      while (hired < 100) { // Safety cap
+        const cost = 100 * Math.pow(1.2, GameState.getState().crew.totalAstronauts);
+        if (GameState.getState().crew.totalAstronauts >= GameState.getState().crew.maxCapacity) break;
+        if (!GameState.canAfford('ore', cost)) break;
+        Engine.hireCrew();
+        hired++;
+      }
+      if (hired > 0) updateCrew();
     });
     document.getElementById('upgrade-all-crew-btn')?.addEventListener('click', () => {
       Engine.upgradeAllCrew();
@@ -795,25 +856,51 @@ const UI = (() => {
     const s = GameState.getState();
     const panel = document.getElementById('panel-research');
 
-    let html = '<h3>Research Tree</h3>';
+    const totalResearch = GameData.RESEARCH.length;
+    const purchasedCount = GameData.RESEARCH.filter(r => s.researchPurchased[r.id]).length;
+    const pct = totalResearch > 0 ? Math.floor((purchasedCount / totalResearch) * 100) : 0;
+
+    let html = `<h3>Research Tree</h3>
+      <div class="research-progress-bar">
+        <div class="research-progress-fill" style="width: ${pct}%"></div>
+        <span class="research-progress-text">${purchasedCount}/${totalResearch} researched (${pct}%)</span>
+      </div>`;
+
+    const tierNames = ['', 'Phase 2: Basics', 'Phase 3: Deep Mining', 'Phase 4: Atmosphere', 'Phase 5: Fleet', 'Phase 6+: Alien Tech', 'Phase 7+: Interstellar'];
     let currentTier = 0;
 
     for (const res of GameData.RESEARCH) {
       if (res.tier !== currentTier) {
         if (currentTier > 0) html += '</div>';
         currentTier = res.tier;
-        html += `<div class="research-tier"><h4>Tier ${currentTier}</h4>`;
+        const tierPurchased = GameData.RESEARCH.filter(r => r.tier === currentTier && s.researchPurchased[r.id]).length;
+        const tierTotal = GameData.RESEARCH.filter(r => r.tier === currentTier).length;
+        html += `<div class="research-tier">
+          <h4 class="research-tier-header">
+            <span>Tier ${currentTier}: ${tierNames[currentTier] || ''}</span>
+            <span class="tier-count">${tierPurchased}/${tierTotal}</span>
+          </h4>`;
       }
 
       const purchased = s.researchPurchased[res.id];
       const reqMet = !res.req || s.researchPurchased[res.req];
       const canAfford = reqMet && !purchased && GameState.canAfford('rp', res.cost);
 
+      // Prerequisite name lookup
+      let reqName = '';
+      if (res.req && !reqMet) {
+        const reqNode = GameData.RESEARCH.find(r => r.id === res.req);
+        reqName = reqNode ? reqNode.name : res.req;
+      }
+
       html += `<div class="research-node ${purchased ? 'purchased' : ''} ${reqMet ? '' : 'locked'} ${canAfford ? 'affordable' : ''}">
-        <div class="res-name">${purchased ? '\u2714 ' : ''}${res.name}</div>
+        <div class="res-header">
+          <div class="res-name">${purchased ? '\u2714 ' : reqMet ? '\u25CB ' : '\u{1F512} '}${res.name}</div>
+          ${purchased ? '<span class="res-status-done">DONE</span>' : ''}
+        </div>
         <div class="res-desc">${res.desc}</div>
         ${!purchased ? `<button class="res-buy-btn ${canAfford ? '' : 'disabled'}" data-resid="${res.id}">
-          ${reqMet ? NumberFormatter.format(res.cost) + ' RP' : '\u{1F512} Requires: ' + (res.req || '')}
+          ${reqMet ? NumberFormatter.format(res.cost) + ' RP' : 'Requires: ' + reqName}
         </button>` : ''}
       </div>`;
     }
@@ -831,15 +918,32 @@ const UI = (() => {
   function updateLog() {
     const s = GameState.getState();
     const panel = document.getElementById('panel-log');
-    let html = '<h3>Captain\'s Log</h3><div class="log-entries">';
+    const totalLogs = GameData.CAPTAINS_LOG.length;
+    const unlockedLogs = s.captainsLog.length;
 
-    for (const logId of s.captainsLog) {
+    let html = `<h3>Captain's Log</h3>
+      <div class="log-counter">${unlockedLogs} / ${totalLogs} entries</div>
+      <div class="log-entries">`;
+
+    // Show entries in reverse order (newest first)
+    const reversed = [...s.captainsLog].reverse();
+    for (let i = 0; i < reversed.length; i++) {
+      const logId = reversed[i];
       const entry = GameData.CAPTAINS_LOG.find(l => l.id === logId);
       if (!entry) continue;
-      html += `<div class="log-entry">
-        <div class="log-title">${entry.title}</div>
-        <div class="log-text">${entry.text}</div>
+      const entryNum = s.captainsLog.indexOf(logId) + 1;
+      const isNew = i === 0 && unlockedLogs > 1;
+      html += `<div class="log-entry ${isNew ? 'log-new' : ''}">
+        <div class="log-header">
+          <span class="log-number">Entry #${entryNum}</span>
+          <span class="log-title">${entry.title}</span>
+        </div>
+        <div class="log-text">"${entry.text}"</div>
       </div>`;
+    }
+
+    if (unlockedLogs === 0) {
+      html += '<p class="empty-msg">Your journey begins...</p>';
     }
 
     html += '</div>';
@@ -863,10 +967,13 @@ const UI = (() => {
         <div class="stat-row"><span>Current Phase</span><span>${s.currentPhase}</span></div>
         <div class="stat-row"><span>Credits Earned</span><span>\u20A1${fmt(s.creditsThisRunEarned)}</span></div>
         <div class="stat-row"><span>Credits/sec</span><span>\u20A1${fmt(s.creditsPerSecond)}</span></div>
+        <div class="stat-row"><span>RP/sec</span><span>${fmt(s.rpPerSecond)} RP</span></div>
+        <div class="stat-row"><span>Ore/sec</span><span>${fmt(s.orePerSecond)} Ore</span></div>
         <div class="stat-row"><span>Generators Owned</span><span>${fmt(GameData.getTotalGenerators(s))}</span></div>
-        <div class="stat-row"><span>Crew</span><span>${s.crew.totalAstronauts}</span></div>
+        <div class="stat-row"><span>Crew</span><span>${s.crew.totalAstronauts} / ${s.crew.maxCapacity}</span></div>
         <div class="stat-row"><span>Ships</span><span>${s.fleet.totalShips || 0}</span></div>
         <div class="stat-row"><span>Mars Terraform</span><span>${s.terraforming.marsPercent.toFixed(1)}%</span></div>
+        <div class="stat-row"><span>Star Systems</span><span>${s.starSystems.totalSystems || 0} / 50</span></div>
       </div>
       <div class="stats-section">
         <h4>All-Time</h4>
@@ -874,14 +981,47 @@ const UI = (() => {
         <div class="stat-row"><span>Total Taps</span><span>${fmt(s.totalTaps)}</span></div>
         <div class="stat-row"><span>Total Credits Earned</span><span>\u20A1${fmt(s.creditsAllTimeEarned)}</span></div>
         <div class="stat-row"><span>Prestige Resets</span><span>${s.totalPrestigeCount}</span></div>
-        <div class="stat-row"><span>Cosmic Dust (Lifetime)</span><span>${fmt(s.cosmicDustLifetime)}</span></div>
+        <div class="stat-row"><span>Cosmic Dust (Lifetime)</span><span>${fmt(s.cosmicDustLifetime)} CD</span></div>
         <div class="stat-row"><span>Highest Phase</span><span>${s.highestPhaseReached}</span></div>
         <div class="stat-row"><span>Generators Purchased</span><span>${fmt(s.stats.totalGeneratorsEverPurchased)}</span></div>
         <div class="stat-row"><span>Crew Hired</span><span>${fmt(s.stats.totalCrewEverHired)}</span></div>
         <div class="stat-row"><span>Alien Signals</span><span>${s.stats.totalAlienSignalsDecoded}</span></div>
-        <div class="stat-row"><span>Star Systems</span><span>${s.stats.totalStarSystemsColonized}</span></div>
+        <div class="stat-row"><span>Star Systems Colonized</span><span>${s.stats.totalStarSystemsColonized}</span></div>
         <div class="stat-row"><span>Achievements</span><span>${Object.keys(s.achievements).length} / ${GameData.ACHIEVEMENTS.length}</span></div>
         <div class="stat-row"><span>Log Entries</span><span>${s.captainsLog.length} / ${GameData.CAPTAINS_LOG.length}</span></div>
+      </div>
+      <div class="stats-section">
+        <h4>Tapping</h4>
+        <div class="stat-row"><span>Critical Taps</span><span>${fmt(s.stats.totalCritTaps || 0)}</span></div>
+        <div class="stat-row"><span>Super Critical Taps</span><span>${fmt(s.stats.totalSuperCritTaps || 0)}</span></div>
+        <div class="stat-row"><span>Best Combo</span><span>x${s.combo.bestAllTime}</span></div>
+        <div class="stat-row"><span>Lucky Drops Caught</span><span>${fmt(s.stats.luckyDropsCaught || 0)}</span></div>
+        <div class="stat-row"><span>Cosmic Fragments</span><span>${fmt(s.stats.cosmicFragmentsCaught || 0)}</span></div>
+      </div>
+      <div class="stats-section">
+        <h4>Expansion</h4>
+        <div class="stat-row"><span>Mini-Games Played</span><span>${s.stats.miniGamesPlayed || 0}</span></div>
+        <div class="stat-row"><span>Contracts Completed</span><span>${s.stats.contractsCompleted || 0}</span></div>
+        <div class="stat-row"><span>Eggs Hatched</span><span>${s.stats.eggsHatched || 0}</span></div>
+        <div class="stat-row"><span>Boosters Activated</span><span>${s.stats.boostersActivated || 0}</span></div>
+        <div class="stat-row"><span>Synergies Unlocked</span><span>${s.synergies.unlocked ? s.synergies.unlocked.length : 0}</span></div>
+        <div class="stat-row"><span>Golden Rushes</span><span>${s.stats.goldenRushCount || 0}</span></div>
+        <div class="stat-row"><span>Challenges Completed</span><span>${s.stats.challengesCompleted || 0}</span></div>
+      </div>
+      <div class="stats-section">
+        <h4>Multipliers</h4>
+        <div class="stat-row"><span>CD Multiplier</span><span>x${(1 + s.cosmicDust * 0.01).toFixed(2)}</span></div>
+        <div class="stat-row"><span>Tap Multiplier</span><span>x${fmt(s.tapMultiplier)}</span></div>
+        <div class="stat-row"><span>Offline Earnings</span><span>${(s.offlineEarningsMultiplier * 100).toFixed(0)}%</span></div>
+        <div class="stat-row"><span>Crew Bonus</span><span>+${(Engine.getCrewBonus() * 100).toFixed(0)}%</span></div>
+        <div class="stat-row"><span>Callisto Boost</span><span>+${(s.callistoBoost * 100).toFixed(1)}%</span></div>
+      </div>
+      <div class="stats-section">
+        <h4>Streaks & Records</h4>
+        <div class="stat-row"><span>Daily Streak</span><span>${s.dailyReward.currentStreak} days</span></div>
+        <div class="stat-row"><span>Longest Streak</span><span>${s.dailyReward.longestStreak} days</span></div>
+        <div class="stat-row"><span>Io Repairs</span><span>${s.stats.ioRepairs || 0}</span></div>
+        <div class="stat-row"><span>Europa AS Found</span><span>${s.stats.europaASFound || 0}</span></div>
       </div>`;
 
     panel.innerHTML = html;
@@ -1173,28 +1313,69 @@ const UI = (() => {
     const s = GameState.getState();
     const panel = document.getElementById('panel-achievements');
 
-    let html = '<h3>Achievements</h3>';
+    const totalAchs = GameData.ACHIEVEMENTS.length;
+    const unlockedCount = Object.keys(s.achievements).length;
+    const achPct = totalAchs > 0 ? Math.floor((unlockedCount / totalAchs) * 100) : 0;
+
+    let html = `<h3>Achievements</h3>
+      <div class="ach-progress-summary">
+        <div class="ach-progress-bar">
+          <div class="ach-progress-fill" style="width: ${achPct}%"></div>
+          <span class="ach-progress-text">${unlockedCount}/${totalAchs} (${achPct}%)</span>
+        </div>
+      </div>`;
+
     const categories = ['progression', 'earning', 'tapping', 'generator', 'crew', 'terraform', 'prestige',
       'speed', 'combo', 'critical', 'collection', 'luckyDrop', 'egg', 'contract', 'synergy', 'weather',
-      'milestone', 'booster', 'secret'];
+      'milestone', 'booster', 'minigame', 'challenge', 'goldenRush', 'phase', 'secret'];
     const catNames = ['Progression', 'Earning', 'Tapping', 'Generators', 'Crew', 'Terraforming', 'Prestige',
       'Speed', 'Combo', 'Critical', 'Collection', 'Lucky Drop', 'Egg', 'Contract', 'Synergy', 'Weather',
-      'Milestone', 'Booster', 'Secret'];
+      'Milestone', 'Booster', 'Mini-Game', 'Challenge', 'Golden Rush', 'Phase-Specific', 'Secret'];
 
     categories.forEach((cat, i) => {
       const achs = GameData.ACHIEVEMENTS.filter(a => a.category === cat);
-      html += `<h4>${catNames[i]}</h4>`;
+      if (achs.length === 0) return;
+      const catUnlocked = achs.filter(a => s.achievements[a.id]).length;
+      const catComplete = catUnlocked === achs.length;
+
+      html += `<div class="ach-category ${catComplete ? 'complete' : ''}">
+        <h4 class="ach-category-header">
+          <span>${catNames[i]}</span>
+          <span class="ach-cat-count">${catUnlocked}/${achs.length}</span>
+        </h4>`;
+
       for (const ach of achs) {
         const unlocked = s.achievements[ach.id];
         if (ach.secret && !unlocked) {
-          html += `<div class="ach-row locked"><div class="ach-name">???</div><div class="ach-desc">Secret achievement</div></div>`;
+          html += `<div class="ach-row locked">
+            <div class="ach-icon">?</div>
+            <div class="ach-info">
+              <div class="ach-name">???</div>
+              <div class="ach-desc">Secret achievement</div>
+            </div>
+          </div>`;
         } else {
+          // Reward description
+          let rewardStr = '';
+          if (ach.reward) {
+            if (ach.reward.credits) rewardStr = '\u20A1' + NumberFormatter.formatSmart(ach.reward.credits);
+            else if (ach.reward.ore) rewardStr = NumberFormatter.formatSmart(ach.reward.ore) + ' Ore';
+            else if (ach.reward.rp) rewardStr = NumberFormatter.formatSmart(ach.reward.rp) + ' RP';
+            else if (ach.reward.sd) rewardStr = NumberFormatter.formatSmart(ach.reward.sd) + ' SD';
+            else if (ach.reward.rm) rewardStr = NumberFormatter.formatSmart(ach.reward.rm) + ' RM';
+            else if (ach.reward.cosmicDust) rewardStr = ach.reward.cosmicDust + ' CD';
+          }
           html += `<div class="ach-row ${unlocked ? 'unlocked' : ''}">
-            <div class="ach-name">${unlocked ? '\u2714 ' : '\u25CB '}${ach.name}</div>
-            <div class="ach-desc">${ach.desc}</div>
+            <div class="ach-icon">${unlocked ? '\u{1F3C6}' : '\u25CB'}</div>
+            <div class="ach-info">
+              <div class="ach-name">${ach.name}</div>
+              <div class="ach-desc">${ach.desc}</div>
+            </div>
+            ${rewardStr ? `<div class="ach-reward">${rewardStr}</div>` : ''}
           </div>`;
         }
       }
+      html += '</div>';
     });
 
     panel.innerHTML = html;
@@ -1208,51 +1389,101 @@ const UI = (() => {
 
     panel.innerHTML = `<h3>Settings</h3>
       <div class="settings-list">
-        <div class="setting-row">
-          <label>Music Volume</label>
-          <input type="range" min="0" max="100" value="${s.settings.musicVolume * 100}" id="set-music">
+        <div class="settings-group">
+          <div class="settings-group-title">Audio</div>
+          <div class="setting-row">
+            <label>Music Volume</label>
+            <input type="range" min="0" max="100" value="${s.settings.musicVolume * 100}" id="set-music">
+            <span class="setting-value" id="music-val">${Math.round(s.settings.musicVolume * 100)}%</span>
+          </div>
+          <div class="setting-row">
+            <label>SFX Volume</label>
+            <input type="range" min="0" max="100" value="${s.settings.sfxVolume * 100}" id="set-sfx">
+            <span class="setting-value" id="sfx-val">${Math.round(s.settings.sfxVolume * 100)}%</span>
+          </div>
         </div>
-        <div class="setting-row">
-          <label>SFX Volume</label>
-          <input type="range" min="0" max="100" value="${s.settings.sfxVolume * 100}" id="set-sfx">
+        <div class="settings-group">
+          <div class="settings-group-title">Display</div>
+          <div class="setting-row">
+            <label>Number Format</label>
+            <select id="set-numformat">
+              <option value="abbreviated" ${s.settings.numberFormat === 'abbreviated' ? 'selected' : ''}>Abbreviated</option>
+              <option value="scientific" ${s.settings.numberFormat === 'scientific' ? 'selected' : ''}>Scientific</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Particle Effects</label>
+            <select id="set-particles">
+              <option value="on" ${s.settings.particleEffects === true || s.settings.particleEffects === 'on' ? 'selected' : ''}>On</option>
+              <option value="reduced" ${s.settings.particleEffects === 'reduced' ? 'selected' : ''}>Reduced</option>
+              <option value="off" ${s.settings.particleEffects === false || s.settings.particleEffects === 'off' ? 'selected' : ''}>Off</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Screen Shake</label>
+            <input type="checkbox" id="set-shake" ${s.settings.screenShake ? 'checked' : ''}>
+          </div>
+          <div class="setting-row">
+            <label>Notifications</label>
+            <input type="checkbox" id="set-notifications" ${s.settings.notificationsEnabled ? 'checked' : ''}>
+          </div>
         </div>
-        <div class="setting-row">
-          <label>Number Format</label>
-          <select id="set-numformat">
-            <option value="abbreviated" ${s.settings.numberFormat === 'abbreviated' ? 'selected' : ''}>Abbreviated</option>
-            <option value="scientific" ${s.settings.numberFormat === 'scientific' ? 'selected' : ''}>Scientific</option>
-          </select>
+        <div class="settings-group">
+          <div class="settings-group-title">Accessibility</div>
+          <div class="setting-row">
+            <label>Reduced Motion</label>
+            <input type="checkbox" id="set-reducedmotion" ${s.settings.reducedMotion ? 'checked' : ''}>
+          </div>
+          <div class="setting-row">
+            <label>High Contrast</label>
+            <input type="checkbox" id="set-highcontrast" ${s.settings.highContrast ? 'checked' : ''}>
+          </div>
+          <div class="setting-row">
+            <label>Large Text</label>
+            <input type="checkbox" id="set-largetext" ${s.settings.largeText ? 'checked' : ''}>
+          </div>
+          <div class="setting-row">
+            <label>Haptic Feedback</label>
+            <input type="checkbox" id="set-haptic" ${s.settings.hapticFeedback ? 'checked' : ''}>
+          </div>
+          <div class="setting-row">
+            <label>Colorblind Mode</label>
+            <select id="set-colorblind">
+              <option value="none" ${s.settings.colorblindMode === 'none' ? 'selected' : ''}>None</option>
+              <option value="protanopia" ${s.settings.colorblindMode === 'protanopia' ? 'selected' : ''}>Protanopia</option>
+              <option value="deuteranopia" ${s.settings.colorblindMode === 'deuteranopia' ? 'selected' : ''}>Deuteranopia</option>
+              <option value="tritanopia" ${s.settings.colorblindMode === 'tritanopia' ? 'selected' : ''}>Tritanopia</option>
+            </select>
+          </div>
         </div>
-        <div class="setting-row">
-          <label>Particle Effects</label>
-          <input type="checkbox" id="set-particles" ${s.settings.particleEffects ? 'checked' : ''}>
+        <div class="settings-group">
+          <div class="settings-group-title">Gameplay</div>
+          <div class="setting-row">
+            <label>Confirm Prestige</label>
+            <input type="checkbox" id="set-confirm" ${s.settings.confirmPrestige ? 'checked' : ''}>
+          </div>
+          <div class="setting-row">
+            <label>Auto-Save Interval</label>
+            <select id="set-autosave">
+              <option value="15" ${s.settings.autoSaveInterval === 15 ? 'selected' : ''}>15s</option>
+              <option value="30" ${s.settings.autoSaveInterval === 30 ? 'selected' : ''}>30s</option>
+              <option value="60" ${s.settings.autoSaveInterval === 60 ? 'selected' : ''}>60s</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label>Low Power Mode</label>
+            <input type="checkbox" id="set-lowpower" ${s.settings.lowPowerMode ? 'checked' : ''}>
+          </div>
         </div>
-        <div class="setting-row">
-          <label>Screen Shake</label>
-          <input type="checkbox" id="set-shake" ${s.settings.screenShake ? 'checked' : ''}>
-        </div>
-        <div class="setting-row">
-          <label>Confirm Prestige</label>
-          <input type="checkbox" id="set-confirm" ${s.settings.confirmPrestige ? 'checked' : ''}>
-        </div>
-        <div class="setting-row">
-          <label>Notifications</label>
-          <input type="checkbox" id="set-notifications" ${s.settings.notificationsEnabled ? 'checked' : ''}>
-        </div>
-        <div class="setting-row">
-          <label>Auto-Save Interval</label>
-          <select id="set-autosave">
-            <option value="15" ${s.settings.autoSaveInterval === 15 ? 'selected' : ''}>15s</option>
-            <option value="30" ${s.settings.autoSaveInterval === 30 ? 'selected' : ''}>30s</option>
-            <option value="60" ${s.settings.autoSaveInterval === 60 ? 'selected' : ''}>60s</option>
-          </select>
-        </div>
-        <div class="setting-row">
-          <button class="action-btn" id="export-btn">Export Save</button>
-          <button class="action-btn" id="import-btn">Import Save</button>
-        </div>
-        <div class="setting-row">
-          <button class="action-btn danger" id="reset-btn">Hard Reset</button>
+        <div class="settings-group">
+          <div class="settings-group-title">Data</div>
+          <div class="setting-row setting-actions">
+            <button class="action-btn" id="export-btn">Export Save</button>
+            <button class="action-btn" id="import-btn">Import Save</button>
+          </div>
+          <div class="setting-row">
+            <button class="action-btn danger" id="reset-btn">Hard Reset</button>
+          </div>
         </div>
         <div class="setting-row credits-info">
           <p>Deep Space Inc. v${s.version}</p>
@@ -1260,33 +1491,62 @@ const UI = (() => {
         </div>
       </div>`;
 
-    // Event listeners
+    // Event listeners — Audio
     document.getElementById('set-music')?.addEventListener('input', e => {
       s.settings.musicVolume = e.target.value / 100;
+      const valEl = document.getElementById('music-val');
+      if (valEl) valEl.textContent = Math.round(s.settings.musicVolume * 100) + '%';
       if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setVolumes(s.settings.musicVolume, s.settings.sfxVolume);
     });
     document.getElementById('set-sfx')?.addEventListener('input', e => {
       s.settings.sfxVolume = e.target.value / 100;
+      const valEl = document.getElementById('sfx-val');
+      if (valEl) valEl.textContent = Math.round(s.settings.sfxVolume * 100) + '%';
       if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setVolumes(s.settings.musicVolume, s.settings.sfxVolume);
     });
+    // Display
     document.getElementById('set-numformat')?.addEventListener('change', e => {
       s.settings.numberFormat = e.target.value;
     });
     document.getElementById('set-particles')?.addEventListener('change', e => {
-      s.settings.particleEffects = e.target.checked;
+      s.settings.particleEffects = e.target.value === 'on' ? true : e.target.value === 'reduced' ? 'reduced' : false;
     });
     document.getElementById('set-shake')?.addEventListener('change', e => {
       s.settings.screenShake = e.target.checked;
     });
-    document.getElementById('set-confirm')?.addEventListener('change', e => {
-      s.settings.confirmPrestige = e.target.checked;
-    });
     document.getElementById('set-notifications')?.addEventListener('change', e => {
       s.settings.notificationsEnabled = e.target.checked;
+    });
+    // Accessibility
+    document.getElementById('set-reducedmotion')?.addEventListener('change', e => {
+      s.settings.reducedMotion = e.target.checked;
+      document.body.classList.toggle('reduced-motion', e.target.checked);
+    });
+    document.getElementById('set-highcontrast')?.addEventListener('change', e => {
+      s.settings.highContrast = e.target.checked;
+      document.body.classList.toggle('high-contrast', e.target.checked);
+    });
+    document.getElementById('set-largetext')?.addEventListener('change', e => {
+      s.settings.largeText = e.target.checked;
+      document.body.classList.toggle('large-text', e.target.checked);
+    });
+    document.getElementById('set-haptic')?.addEventListener('change', e => {
+      s.settings.hapticFeedback = e.target.checked;
+    });
+    document.getElementById('set-colorblind')?.addEventListener('change', e => {
+      s.settings.colorblindMode = e.target.value;
+      document.body.dataset.colorblindMode = e.target.value;
+    });
+    // Gameplay
+    document.getElementById('set-confirm')?.addEventListener('change', e => {
+      s.settings.confirmPrestige = e.target.checked;
     });
     document.getElementById('set-autosave')?.addEventListener('change', e => {
       s.settings.autoSaveInterval = parseInt(e.target.value);
       Engine.resetSaveInterval();
+    });
+    document.getElementById('set-lowpower')?.addEventListener('change', e => {
+      s.settings.lowPowerMode = e.target.checked;
     });
 
     document.getElementById('export-btn')?.addEventListener('click', () => {
@@ -1773,20 +2033,24 @@ const UI = (() => {
   function showWelcomeBack(earnings) {
     const fmt = NumberFormatter.format;
     const ft = NumberFormatter.formatTime;
+    const s = GameState.getState();
+    const offlinePct = Math.round(s.offlineEarningsMultiplier * 100);
+
     let rewardList = '';
-    if (earnings.credits > 0) rewardList += `<div>\u20A1${fmt(earnings.credits)}</div>`;
-    if (earnings.rp > 0) rewardList += `<div>${fmt(earnings.rp)} RP</div>`;
-    if (earnings.ore > 0) rewardList += `<div>${fmt(earnings.ore)} Ore</div>`;
-    if (earnings.rm > 0) rewardList += `<div>${fmt(earnings.rm)} RM</div>`;
-    if (earnings.sd > 0) rewardList += `<div>${fmt(earnings.sd)} SD</div>`;
+    if (earnings.credits > 0) rewardList += `<div class="wb-reward-row"><span>\u20A1 Credits</span><span>+${fmt(earnings.credits)}</span></div>`;
+    if (earnings.rp > 0) rewardList += `<div class="wb-reward-row"><span>Research Points</span><span>+${fmt(earnings.rp)}</span></div>`;
+    if (earnings.ore > 0) rewardList += `<div class="wb-reward-row"><span>Lunar Ore</span><span>+${fmt(earnings.ore)}</span></div>`;
+    if (earnings.rm > 0) rewardList += `<div class="wb-reward-row"><span>Rare Minerals</span><span>+${fmt(earnings.rm)}</span></div>`;
+    if (earnings.sd > 0) rewardList += `<div class="wb-reward-row"><span>Stardust</span><span>+${fmt(earnings.sd)}</span></div>`;
+    if (earnings.terraforming > 0) rewardList += `<div class="wb-reward-row"><span>Terraforming</span><span>+${earnings.terraforming.toFixed(2)}%</span></div>`;
 
     showModal('Welcome Back, Captain!',
-      `<p>You were away for ${ft(earnings.time)}</p>
-       <p>Your operations earned:</p>
+      `<p class="wb-away-time">You were away for <strong>${ft(earnings.time)}</strong></p>
+       <p class="wb-rate">Offline rate: ${offlinePct}% of online production</p>
        <div class="welcome-rewards">${rewardList}</div>`,
       [
         { label: 'COLLECT', action: () => { GameState.applyOfflineEarnings(earnings); hideModal(); } },
-        { label: 'DOUBLE IT', action: () => {
+        { label: 'DOUBLE IT (Ad)', action: () => {
           const doubled = { ...earnings };
           doubled.credits *= 2;
           doubled.rp *= 2;
@@ -1804,12 +2068,30 @@ const UI = (() => {
 
   function showDailyReward(reward) {
     const fmt = NumberFormatter.format;
+    const s = GameState.getState();
+
+    // Build 7-day streak calendar visual
+    let calendarHtml = '<div class="daily-calendar">';
+    for (let d = 1; d <= 7; d++) {
+      const isCurrent = d === reward.day;
+      const isPast = d < reward.day;
+      const dayRewardData = GameData.DAILY_REWARDS.find(r => r.day === d);
+      const dayLabel = d === 7 ? 'CD' : dayRewardData ? dayRewardData.type.toUpperCase().slice(0, 3) : '?';
+      calendarHtml += `<div class="daily-day ${isCurrent ? 'current' : ''} ${isPast ? 'past' : ''}">
+        <div class="daily-day-num">${d}</div>
+        <div class="daily-day-type">${isPast ? '\u2714' : dayLabel}</div>
+      </div>`;
+    }
+    calendarHtml += '</div>';
+
     showModal(`Day ${reward.day} Streak!`,
-      `<p>${reward.reward.desc}</p>
+      `${calendarHtml}
+       <p class="daily-reward-desc">${reward.reward.desc}</p>
        ${reward.amount > 0 ? `<p class="daily-amount">${fmt(reward.amount)}</p>` :
-        '<p>Bonus activated!</p>'}
-       <p>Streak multiplier: x${reward.multiplier.toFixed(1)}</p>`,
-      [{ label: 'Claim', action: hideModal }]);
+        '<p class="daily-bonus-active">Bonus activated!</p>'}
+       <p class="daily-multiplier">Streak multiplier: x${reward.multiplier.toFixed(1)}</p>
+       <p class="daily-streak-info">Current streak: ${s.dailyReward.currentStreak} days | Best: ${s.dailyReward.longestStreak} days</p>`,
+      [{ label: 'Claim!', action: hideModal }]);
   }
 
   // ===== EXPANSION UI: COMBO DISPLAY =====

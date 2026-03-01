@@ -945,6 +945,7 @@ const GameData = (() => {
 
   // ========== ASTRONAUT NAMES ==========
   const ASTRONAUT_NAMES = [
+    // Historical & famous astronauts/cosmonauts
     'Yuri K.', 'Sally R.', 'Buzz A.', 'Valentina T.', 'Mae J.', 'Neil A.',
     'John G.', 'Alan S.', 'Christa M.', 'Peggy W.', 'Scott K.', 'Chris H.',
     'Tim P.', 'Sunita W.', 'Yang L.', 'Takao D.', 'Samantha C.', 'Luca P.',
@@ -952,7 +953,37 @@ const GameData = (() => {
     'Frank B.', 'Alexei L.', 'Koichi W.', 'Thomas P.', 'Aki H.', 'Oleg K.',
     'Sergei K.', 'Roberta B.', 'Judith R.', 'Ellen O.', 'Shannon L.', 'Bonnie D.',
     'Kalpana C.', 'Liu Y.', 'Jing H.', 'Viktor A.', 'Gennady P.', 'Paolo N.',
-    'Alexander G.', 'Andreas M.', 'Soichi N.', 'Naoko Y.', 'Chiaki M.', 'Mamoru M.'
+    'Alexander G.', 'Andreas M.', 'Soichi N.', 'Naoko Y.', 'Chiaki M.', 'Mamoru M.',
+    // More international astronauts
+    'Anousheh A.', 'Rakesh S.', 'Sultan N.', 'Marcos P.', 'Helen S.', 'Michael C.',
+    'Story M.', 'Bruce M.', 'Jerry L.', 'Robert C.', 'James V.', 'William S.',
+    'Guion B.', 'Charles B.', 'Frederick G.', 'Daniel B.', 'Kenneth B.', 'Janet K.',
+    'Leroy C.', 'Michael F.', 'Stephanie W.', 'Megan M.', 'Tracy C.', 'Nicole S.',
+    'Christina K.', 'Jessica W.', 'Anne M.', 'Cady C.', 'Kathleen R.', 'Wendy L.',
+    // Fictional crew members
+    'Zara V.', 'Orion D.', 'Nova S.', 'Cosmo R.', 'Stella M.', 'Atlas K.',
+    'Luna W.', 'Vega T.', 'Rigel P.', 'Sirius B.', 'Lyra H.', 'Altair J.',
+    'Celeste N.', 'Phoenix R.', 'Andromeda L.', 'Cassandra S.', 'Apollo K.', 'Titan M.',
+    'Nebula F.', 'Quasar Z.', 'Pulsar D.', 'Comet W.', 'Aurora B.', 'Eclipse V.',
+    'Solaris G.', 'Zenith T.', 'Astrid H.', 'Kepler J.', 'Galileo P.', 'Hubble C.',
+    'Artemis L.', 'Sagan R.', 'Hawking S.', 'Curie M.', 'Tyson N.', 'Ride S.',
+    'Jemison M.', 'Gagarin Y.', 'Tereshkova V.', 'Leonov A.', 'Lovell J.', 'Shepard A.',
+    'Cooper G.', 'Grissom V.', 'Aldrin B.', 'Collins M.', 'Bean A.', 'Conrad P.',
+    'Cernan E.', 'Schmitt H.', 'Irwin J.', 'Duke C.', 'Worden A.', 'Mattingly K.',
+    // Deep Space Inc. originals
+    'Rex T.', 'Jade L.', 'Flynn O.', 'Harper S.', 'Blake R.', 'Quinn M.',
+    'Kai Z.', 'Sage W.', 'River D.', 'Storm B.', 'Ember K.', 'Frost J.',
+    'Blaze P.', 'Ivy C.', 'Ash N.', 'Cedar H.', 'Flint G.', 'Coral A.',
+    'Drake V.', 'Wren T.', 'Raven S.', 'Fox M.', 'Wolf D.', 'Hawk B.',
+    'Cruz L.', 'Nash R.', 'Reid K.', 'Shay P.', 'Tatum W.', 'Jules F.',
+    'Rowan G.', 'Blair H.', 'Lane J.', 'Drew C.', 'Mica T.', 'Skye V.',
+    'Ace N.', 'Jet S.', 'Max R.', 'Zion K.', 'Onyx P.', 'Cyan M.',
+    'Neon L.', 'Pixel D.', 'Flux W.', 'Helix B.', 'Prism J.', 'Axel G.',
+    // More fictional variety
+    'Yael K.', 'Ren H.', 'Kira T.', 'Mira S.', 'Zane L.', 'Dax R.',
+    'Lex P.', 'Cleo M.', 'Neve W.', 'Seren D.', 'Io V.', 'Pax B.',
+    'Juno C.', 'Mars J.', 'Sol A.', 'Astra F.', 'Cosma N.', 'Meteor K.',
+    'Orbit L.', 'Zenon T.', 'Pluto H.', 'Saturn G.', 'Neptune R.', 'Mercury W.'
   ];
 
   const CREW_TIERS = [

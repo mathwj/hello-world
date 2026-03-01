@@ -94,11 +94,6 @@ const Engine = (() => {
       GameState.addCurrency('sd', s._passiveSD * dt);
     }
 
-    // Auto-crew generation from Phase 7 Haven generators
-    if (s.currentPhase >= 7 && s.crew.unlocked) {
-      processAutoCrewGeneration(s, deltaTime);
-    }
-
     // Alien signal check (Phase 6 Europa)
     if (s.currentPhase >= 6) {
       checkAlienSignals(s, deltaTime);
@@ -178,6 +173,7 @@ const Engine = (() => {
 
     // Process all generators across all unlocked phases
     const allPhaseKeys = getAllActiveGeneratorKeys(s);
+    const cachedCrewBonus = getCrewBonus();
 
     for (const phaseKey of allPhaseKeys) {
       const gens = GameData.GENERATORS[phaseKey];
@@ -200,7 +196,7 @@ const Engine = (() => {
         const milestoneMult = Expansion.Milestones.getCumulativeMultiplier(s, gen.id);
         const goldenRushMult = Expansion.GoldenRush.getMultiplier(s, gen.id);
 
-        const crewMult = 1 + getCrewBonus();
+        const crewMult = 1 + cachedCrewBonus;
         const totalMult = genMult * phaseMult * cdMult * callistoMult * ioEff * crewMult * milestoneMult * goldenRushMult * idleStreakMult;
 
         if (gen.output.credits) totalCredits += count * gen.output.credits * totalMult * s.globalCreditMultiplier * s.eventCreditMultiplier * boosterCreditMult * weatherCreditMult;

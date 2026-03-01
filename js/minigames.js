@@ -82,6 +82,13 @@ const MiniGames = (() => {
     result.innerHTML = rewardHTML;
     result.classList.remove('hidden');
 
+    // Track mini-game result for stats
+    const score = (reward.credits || 0) + (reward.rp || 0) + (reward.sd || 0);
+    const won = score > 0 || reward.as || reward.egg || reward.collection;
+    if (typeof Engine !== 'undefined' && Engine.trackMiniGameResult) {
+      Engine.trackMiniGameResult(activeGame, score, !!won);
+    }
+
     document.getElementById('mg-close').addEventListener('click', () => {
       closeGame();
     });
