@@ -794,6 +794,56 @@ const GameState = (() => {
       state.terraforming.marsPercent = 50;
     }
 
+    // ===== Section 59.2: Prestige also awards eggs + boosters =====
+    // Award 1-3 random eggs based on lifetime earnings tier
+    const earningsTier = state.cosmicDustLifetime >= 10000 ? 3 :
+                         state.cosmicDustLifetime >= 1000 ? 2 : 1;
+    const eggTiers = ['bronze', 'silver', 'gold', 'cosmic'];
+    const eggCount = Math.min(earningsTier, 3);
+    for (let i = 0; i < eggCount; i++) {
+      const tierIdx = Math.min(earningsTier - 1 + (Math.random() < 0.3 ? 1 : 0), eggTiers.length - 1);
+      const eggType = 'egg_' + eggTiers[tierIdx];
+      if (state.eggs.slots.length < state.eggs.maxSlots) {
+        state.eggs.slots.push({ type: eggType, startTime: Date.now(), duration: (tierIdx + 1) * 3600000 });
+      } else {
+        // Try to fill an empty slot
+        const emptyIdx = state.eggs.slots.findIndex(e => e === null);
+        if (emptyIdx >= 0) {
+          state.eggs.slots[emptyIdx] = { type: eggType, startTime: Date.now(), duration: (tierIdx + 1) * 3600000 };
+        }
+      }
+    }
+    // Award 1 random booster (rarity based on earnings tier)
+    const boosterRarities = ['common', 'uncommon', 'rare', 'legendary'];
+    const boosterRarity = boosterRarities[Math.min(earningsTier - 1, boosterRarities.length - 1)];
+    const boosterTypes = ['boost_credits', 'boost_tap', 'boost_rp', 'boost_all', 'boost_lucky', 'boost_xp'];
+    const boosterType = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
+    if (!state.boosters.inventory) state.boosters.inventory = [];
+    if (state.boosters.inventory.length < 5) {
+      state.boosters.inventory.push({ type: boosterType, rarity: boosterRarity });
+    }
+    // CD shop: cosmic egg on prestige
+    if (state.cdShopPurchased['cd_cosmicegg']) {
+      const emptyIdx = state.eggs.slots.findIndex(e => e === null);
+      if (emptyIdx >= 0) {
+        state.eggs.slots[emptyIdx] = { type: 'egg_cosmic', startTime: Date.now(), duration: 86400000 };
+      }
+    }
+    // CD shop: lucky start — 3 random boosters
+    if (state.cdShopPurchased['cd_luckystart']) {
+      for (let i = 0; i < 3 && state.boosters.inventory.length < 5; i++) {
+        const bt = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
+        state.boosters.inventory.push({ type: bt, rarity: 'uncommon' });
+      }
+    }
+    // CD shop: egg magnet — 1 Gold Egg
+    if (state.cdShopPurchased['cd_eggmagnet']) {
+      const emptyIdx = state.eggs.slots.findIndex(e => e === null);
+      if (emptyIdx >= 0) {
+        state.eggs.slots[emptyIdx] = { type: 'egg_gold', startTime: Date.now(), duration: 7200000 };
+      }
+    }
+
     save();
     return cdEarned;
   }

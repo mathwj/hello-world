@@ -3007,14 +3007,19 @@ html, body {
   100% { transform: scale(1); }
 }
 
-/* Milestone ripple on generator row */
+/* Milestone ripple on generator row — glow + subtle scale */
 .milestone-ripple {
-  animation: milestoneRipple 600ms ease-out;
+  animation: milestoneRipple 600ms ease-out, milestoneScale 600ms ease-out;
 }
 @keyframes milestoneRipple {
   0% { box-shadow: inset 0 0 0 0 rgba(255, 215, 0, 0.4); }
-  50% { box-shadow: inset 0 0 20px 5px rgba(255, 215, 0, 0.2); }
+  30% { box-shadow: inset 0 0 20px 5px rgba(255, 215, 0, 0.25); }
   100% { box-shadow: inset 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+@keyframes milestoneScale {
+  0% { transform: scale(1); }
+  20% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
 /* Button pulse when first affordable */
@@ -6628,6 +6633,16 @@ html, body {
 .gen-anim-blink { animation: genAnimBlink 3s ease infinite; }
 .gen-anim-pulse { animation: genAnimPulse 2s ease-in-out infinite; }
 
+/* Stagger gen icon animations so they don't all sync */
+.generator-row:nth-child(2n) .gen-anim-sway { animation-delay: -0.5s; }
+.generator-row:nth-child(3n) .gen-anim-sway { animation-delay: -1.1s; }
+.generator-row:nth-child(2n) .gen-anim-bob { animation-delay: -0.8s; }
+.generator-row:nth-child(3n) .gen-anim-bob { animation-delay: -1.6s; }
+.generator-row:nth-child(2n) .gen-anim-blink { animation-delay: -1s; }
+.generator-row:nth-child(3n) .gen-anim-blink { animation-delay: -2s; }
+.generator-row:nth-child(2n) .gen-anim-pulse { animation-delay: -0.7s; }
+.generator-row:nth-child(3n) .gen-anim-pulse { animation-delay: -1.3s; }
+
 /* Tooltip micro-animation */
 .tooltip-appear {
   animation: tooltipMicroAppear 0.15s var(--ds-ease-bounce);
@@ -6906,9 +6921,12 @@ html, body {
   to { box-shadow: 0 0 24px rgba(255, 107, 180, 0.6); }
 }
 
-/* Synergy active indicator */
+/* Synergy active indicator — dot + border glow for visible connection */
 .synergy-active {
   position: relative;
+  border-color: rgba(255, 215, 0, 0.35) !important;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.12), inset 0 0 4px rgba(255, 215, 0, 0.06);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 .synergy-active::before {
@@ -6921,6 +6939,18 @@ html, body {
   border-radius: var(--ds-radius-circle);
   background: var(--accent-gold);
   animation: synPulse 1.5s ease infinite;
+  z-index: 2;
+}
+
+.synergy-active::after {
+  content: '\26A1';
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 10px;
+  opacity: 0.6;
+  animation: synPulse 1.5s ease infinite 0.75s;
 }
 
 @keyframes synPulse {
@@ -8531,6 +8561,14 @@ body.reduced-motion .egg-crack-ready .egg-icon,
 body.reduced-motion .egg-hatch-btn,
 body.reduced-motion .egg-slot.egg-ready,
 body.reduced-motion #lucky-drop,
-body.reduced-motion .flying-bonus-obj {
+body.reduced-motion .flying-bonus-obj,
+body.reduced-motion .synergy-active::before,
+body.reduced-motion .synergy-active::after,
+body.reduced-motion .milestone-ripple,
+body.reduced-motion .gen-anim-sway,
+body.reduced-motion .gen-anim-vibrate,
+body.reduced-motion .gen-anim-bob,
+body.reduced-motion .gen-anim-blink,
+body.reduced-motion .gen-anim-pulse {
   animation: none !important;
 }

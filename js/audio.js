@@ -335,11 +335,47 @@ const AdaptiveAudio = (() => {
     osc.stop(now + 0.15);
   }
 
-  function playPurchaseSound(genType) {
+  // Auto-detect generator sound type from name/description
+  function getGenSoundType(genId) {
+    if (!genId) return 'machine';
+    // Try to find generator data
+    let gen = null;
+    if (typeof Engine !== 'undefined' && Engine.findGenerator) {
+      gen = Engine.findGenerator(genId);
+    }
+    if (!gen) return 'machine';
+    const n = (gen.name + ' ' + gen.desc).toLowerCase();
+    if (n.includes('kid') || n.includes('scavenger') || n.includes('team') || n.includes('negotiator') ||
+        n.includes('crew') || n.includes('academy') || n.includes('astronaut') || n.includes('tourist'))
+      return 'worker';
+    if (n.includes('ship') || n.includes('shuttle') || n.includes('probe') || n.includes('tug') ||
+        n.includes('freighter') || n.includes('destroyer') || n.includes('capital') || n.includes('harvester') ||
+        n.includes('barge') || n.includes('frigate') || n.includes('sail'))
+      return 'ship';
+    if (n.includes('base') || n.includes('station') || n.includes('hub') || n.includes('dome') ||
+        n.includes('habitat') || n.includes('outpost') || n.includes('city') || n.includes('hotel') ||
+        n.includes('colony') || n.includes('complex') || n.includes('citadel') || n.includes('ring'))
+      return 'building';
+    if (n.includes('ai') || n.includes('quantum') || n.includes('singularity') || n.includes('dyson') ||
+        n.includes('warp') || n.includes('fusion') || n.includes('antimatter') || n.includes('nano') ||
+        n.includes('world mind') || n.includes('dimensional'))
+      return 'hightech';
+    if (n.includes('alien') || n.includes('signal') || n.includes('decoder') || n.includes('ansible') ||
+        n.includes('reality') || n.includes('anomaly'))
+      return 'alien';
+    return 'machine'; // drills, factories, refineries, etc.
+  }
+
+  function playPurchaseSound(genTypeOrId) {
     if (!audioCtx || !sfxGain) return;
     resume();
 
-    const config = GEN_SOUND_TYPES[genType] || GEN_SOUND_TYPES.machine;
+    // Accept either a direct type key or a generator ID for auto-detection
+    let soundType = genTypeOrId;
+    if (!GEN_SOUND_TYPES[genTypeOrId]) {
+      soundType = getGenSoundType(genTypeOrId);
+    }
+    const config = GEN_SOUND_TYPES[soundType] || GEN_SOUND_TYPES.machine;
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -761,18 +797,78 @@ const AdaptiveAudio = (() => {
     if (!audioCtx || !sfxGain) return;
     resume();
     const now = audioCtx.currentTime;
-    // Higher pitch for higher combos
+
+    // Combo sound escalation: sound changes every 10 levels
+    // Pitch rises, reverb decreases, attack gets snappier
+    const tier = Math.floor(Math.min(level, 100) / 10); // 0-10
     const baseFreq = 300 + Math.min(level, 100) * 5;
+    const reverbTime = Math.max(0.02, 0.12 - tier * 0.01);
+    const attackTime = Math.max(0.005, 0.03 - tier * 0.002);
+    const volume = 0.03 + Math.min(level, 80) * 0.001;
+
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'sine';
+
+    // At x100, tap sounds like a thunderclap
+    if (level >= 100) {
+      osc.type = 'sawtooth';
+      // Layer a second oscillator for depth
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'square';
+      osc2.frequency.value = baseFreq * 0.5;
+      gain2.gain.setValueAtTime(volume * 0.6, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc2.connect(gain2);
+      gain2.connect(sfxGain);
+      osc2.start(now);
+      osc2.stop(now + 0.18);
+    } else if (tier >= 5) {
+      osc.type = 'triangle';
+    } else {
+      osc.type = 'sine';
+    }
+
     osc.frequency.value = baseFreq;
-    gain.gain.setValueAtTime(0.03 + Math.min(level, 50) * 0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(volume, now + attackTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + attackTime + reverbTime);
     osc.connect(gain);
     gain.connect(sfxGain);
     osc.start(now);
-    osc.stop(now + 0.1);
+    osc.stop(now + attackTime + reverbTime + 0.02);
+  }
+
+  // Suffix milestone chime: plays when currency crosses K, M, B, T etc.
+  function playSuffixChime(suffixIndex) {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Higher suffix = higher pitched and more harmonic
+    const baseNote = 523.25 + suffixIndex * 80; // C5 + escalating
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = baseNote;
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.3);
+    // Add harmonic overtone
+    if (suffixIndex >= 3) {
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.value = baseNote * 1.5;
+      gain2.gain.setValueAtTime(0.02, now + 0.02);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc2.connect(gain2);
+      gain2.connect(sfxGain);
+      osc2.start(now + 0.02);
+      osc2.stop(now + 0.25);
+    }
   }
 
   function playEggWarmSound() {
@@ -801,11 +897,11 @@ const AdaptiveAudio = (() => {
     playContractCompleteSound, playCollectionUnlockSound,
     playChallengeStartSound, playChallengeCompleteSound,
     playMiniGameStartSound, playBoosterActivateSound,
-    playComboSound, playEggWarmSound,
+    playComboSound, playEggWarmSound, playSuffixChime,
     playPhaseTransitionStinger, playPrestigeBigBang,
     startAmbientLoop, stopAmbientLoop,
     startEventMusic, stopEventMusic,
-    getActivityState, getTapRate,
+    getActivityState, getTapRate, getGenSoundType,
     PHASE_MUSIC, AMBIENT_SOUNDS, GEN_SOUND_TYPES
   };
 })();

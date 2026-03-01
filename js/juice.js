@@ -221,6 +221,12 @@ const Juice = (() => {
       const suffix = NumberFormatter.getSuffix(value);
       if (this._lastSuffixes[elementId] && suffix !== this._lastSuffixes[elementId]) {
         this.stampSuffix(elementId);
+        // Play suffix chime on milestone transition
+        const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+        const idx = suffixes.indexOf(suffix);
+        if (idx > 0 && typeof AdaptiveAudio !== 'undefined') {
+          AdaptiveAudio.playSuffixChime(idx);
+        }
       }
       this._lastSuffixes[elementId] = suffix;
     },
@@ -331,6 +337,19 @@ const Juice = (() => {
       if (!row) return;
       row.classList.add('milestone-ripple');
       setTimeout(() => row.classList.remove('milestone-ripple'), 600);
+    },
+
+    // Show synergy connection pulse between two generator rows
+    synergyPulse(genId1, genId2) {
+      const row1 = document.querySelector(`[data-genid="${genId1}"]`);
+      const row2 = document.querySelector(`[data-genid="${genId2}"]`);
+      if (row1) row1.classList.add('synergy-active');
+      if (row2) row2.classList.add('synergy-active');
+    },
+
+    clearSynergyPulse(genId) {
+      const row = document.querySelector(`[data-genid="${genId}"]`);
+      if (row) row.classList.remove('synergy-active');
     }
   };
 
@@ -458,8 +477,35 @@ const Juice = (() => {
     },
 
     _getAchievementTeaser(s) {
-      // Not easily determinable without running check functions
-      // Return null — achievements are surprise unlocks
+      // Check a few trackable achievement categories for teaser potential
+      if (typeof GameData === 'undefined' || !GameData.ACHIEVEMENTS) return null;
+      const achs = GameData.ACHIEVEMENTS;
+      for (const a of achs) {
+        if (s.achievements && s.achievements[a.id]) continue; // already earned
+        if (a.secret) continue; // don't tease secrets
+        // Only tease countable achievements with check functions
+        if (!a.check) continue;
+        // Try to estimate progress for common categories
+        let progress = null;
+        if (a.category === 'tapping' && a.desc.includes('Tap')) {
+          const match = a.desc.match(/([\d,]+)/);
+          if (match) {
+            const target = parseInt(match[1].replace(/,/g, ''));
+            if (target > 0) progress = Math.min(0.99, s.totalTaps / target);
+          }
+        } else if (a.category === 'earning' && a.desc.includes('Earn')) {
+          const suffixMap = { K: 1e3, M: 1e6, B: 1e9, T: 1e12, Qa: 1e15, Qi: 1e18, Sx: 1e21 };
+          const match = a.desc.match(/(\d+)(\w+)/);
+          if (match) {
+            const target = parseInt(match[1]) * (suffixMap[match[2]] || 1);
+            if (target > 0) progress = Math.min(0.99, s.creditsAllTimeEarned / target);
+          }
+        }
+        // Only return if close (>50%)
+        if (progress !== null && progress > 0.5 && progress < 1) {
+          return { name: a.name + ': ' + a.desc, progress, type: 'achievement', almostThere: progress >= 0.9 };
+        }
+      }
       return null;
     },
 
