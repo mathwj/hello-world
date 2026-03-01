@@ -20,41 +20,14 @@
 
     <!-- Scene Area -->
     <div id="scene-area">
-      <canvas id="scene-canvas"></canvas>
       <div id="rocket-assembly"></div>
       <div id="floating-numbers"></div>
-      <!-- Combo Counter -->
-      <div id="combo-display" class="hidden">
-        <div id="combo-count"></div>
-        <div id="combo-label"></div>
-        <div id="combo-mult"></div>
-      </div>
-      <!-- Weather Indicator -->
-      <div id="weather-indicator" class="hidden">
-        <span id="weather-name"></span>
-      </div>
-      <!-- Lucky Drop -->
-      <div id="lucky-drop" class="hidden"></div>
-      <!-- Golden Rush Banner -->
-      <div id="golden-rush-banner" class="hidden">
-        <span id="golden-rush-text">GOLDEN RUSH!</span>
-      </div>
-      <!-- Idle Streak Display -->
-      <div id="idle-streak-display" class="hidden"></div>
-      <!-- Active Boosters HUD -->
-      <div id="active-boosters-hud" class="hidden"></div>
       <!-- Tap Button -->
       <button id="tap-btn">
         <span id="tap-icon">&#128295;</span>
         <span id="tap-label">SCAVENGE</span>
         <span id="auto-tap-badge" class="hidden">AUTO</span>
       </button>
-    </div>
-
-    <!-- Next Unlock Teaser -->
-    <div id="next-unlock-bar" class="hidden">
-      <div id="next-unlock-info"></div>
-      <div id="next-unlock-progress-outer"><div id="next-unlock-progress-inner"></div></div>
     </div>
 
     <!-- Main Content Area -->
@@ -71,20 +44,8 @@
       <div id="tab-content">
         <div id="panel-generators" class="tab-panel active"></div>
         <div id="panel-upgrades" class="tab-panel"></div>
-        <div id="panel-zones" class="tab-panel"></div>
-        <div id="panel-crew" class="tab-panel"></div>
-        <div id="panel-fleet" class="tab-panel"></div>
-        <div id="panel-research" class="tab-panel"></div>
-        <div id="panel-collection" class="tab-panel"></div>
-        <div id="panel-contracts" class="tab-panel"></div>
-        <div id="panel-boosters" class="tab-panel"></div>
-        <div id="panel-synergies" class="tab-panel"></div>
-        <div id="panel-skins" class="tab-panel"></div>
-        <div id="panel-eggs" class="tab-panel"></div>
-        <div id="panel-log" class="tab-panel"></div>
-        <div id="panel-stats" class="tab-panel"></div>
-        <div id="panel-prestige" class="tab-panel"></div>
         <div id="panel-achievements" class="tab-panel"></div>
+        <div id="panel-stats" class="tab-panel"></div>
         <div id="panel-settings" class="tab-panel"></div>
       </div>
     </div>
@@ -92,19 +53,9 @@
     <!-- Bottom Tab Bar -->
     <div id="bottom-tabs">
       <button class="tab-btn active" data-tab="generators" data-label="Generators">&#9881;</button>
-      <button class="tab-btn" data-tab="upgrades" data-label="Upgrades">&#11014;</button>
-      <button class="tab-btn" data-tab="zones" data-label="Zones">&#127757;</button>
+      <button class="tab-btn" data-tab="upgrades" data-label="Upgrades">&#11014;&#65039;</button>
       <button class="tab-btn" data-tab="achievements" data-label="Achievements">&#127942;</button>
       <button class="tab-btn" data-tab="stats" data-label="Stats">&#128202;</button>
-      <button class="tab-btn hidden" data-tab="crew" data-label="Crew">&#128100;</button>
-      <button class="tab-btn hidden" data-tab="fleet" data-label="Fleet">&#128640;</button>
-      <button class="tab-btn hidden" data-tab="research" data-label="Research">&#128300;</button>
-      <button class="tab-btn hidden" data-tab="log" data-label="Log">&#128214;</button>
-      <button class="tab-btn hidden" data-tab="prestige" data-label="Prestige">&#9733;</button>
-      <button class="tab-btn hidden" data-tab="collection" data-label="Album">&#128218;</button>
-      <button class="tab-btn hidden" data-tab="contracts" data-label="Contracts">&#128203;</button>
-      <button class="tab-btn hidden" data-tab="boosters" data-label="Boosters">&#9889;</button>
-      <button class="tab-btn hidden" data-tab="eggs" data-label="Eggs">&#129370;</button>
       <button class="tab-btn" data-tab="settings" data-label="Settings">&#9881;&#65039;</button>
     </div>
 
@@ -113,54 +64,19 @@
       <div id="modal-content"></div>
     </div>
 
-    <!-- Event Banner -->
-    <div id="event-banner" class="hidden"></div>
-
     <!-- Achievement Banner -->
     <div id="achievement-banner" class="hidden"></div>
 
     <!-- Toast Notifications -->
     <div id="toast-container"></div>
-
-    <!-- Tutorial Overlay -->
-    <div id="tutorial-overlay" class="hidden">
-      <div id="tutorial-spotlight"></div>
-      <div id="tutorial-tooltip"></div>
-    </div>
-
-    <!-- Transition Overlay -->
-    <div id="transition-overlay" class="hidden"></div>
-
-    <!-- Big Bang Prestige Animation -->
-    <div id="big-bang-overlay" class="hidden">
-      <canvas id="big-bang-canvas"></canvas>
-      <div id="big-bang-text" class="hidden"></div>
-    </div>
-
-    <!-- Mini-Game Overlay -->
-    <div id="mini-game-overlay" class="hidden">
-      <div id="mini-game-header">
-        <span id="mini-game-title"></span>
-        <span id="mini-game-timer"></span>
-      </div>
-      <canvas id="mini-game-canvas"></canvas>
-      <div id="mini-game-hud"></div>
-      <div id="mini-game-result" class="hidden"></div>
-    </div>
   </div>
 
+  <!-- Scripts: load order matters -->
   <script src="js/numbers.js"></script>
   <script src="js/data.js"></script>
   <script src="js/state.js"></script>
-  <script src="js/expansion.js"></script>
   <script src="js/engine.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/juice.js"></script>
   <script src="js/ui.js"></script>
-  <script src="js/scene.js"></script>
-  <script src="js/events.js"></script>
-  <script src="js/minigames.js"></script>
-  <script src="js/tutorial.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
