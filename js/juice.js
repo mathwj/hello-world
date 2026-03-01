@@ -264,6 +264,40 @@ const Juice = (() => {
         el.style.opacity = '0';
       });
       setTimeout(() => el.remove(), 800);
+    },
+
+    // Color wave effect when CPS jumps dramatically (>5x)
+    colorWave(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.classList.add('cps-color-wave');
+      setTimeout(() => el.classList.remove('cps-color-wave'), 600);
+    },
+
+    // Digit-roll tracking for odometer: returns which digits changed
+    getChangedDigits(oldVal, newVal) {
+      const oldStr = Math.floor(oldVal).toString();
+      const newStr = Math.floor(newVal).toString();
+      const changed = [];
+      // Compare from right, tracking which positions flipped
+      const maxLen = Math.max(oldStr.length, newStr.length);
+      for (let i = 0; i < maxLen; i++) {
+        const oldD = oldStr[oldStr.length - 1 - i] || '0';
+        const newD = newStr[newStr.length - 1 - i] || '0';
+        if (oldD !== newD) changed.push(i);
+      }
+      return changed;
+    },
+
+    // Enhanced CPS change detection with color wave trigger
+    checkCPSJump(newCPS) {
+      if (this._lastCPS > 0 && newCPS > 0) {
+        const ratio = newCPS / this._lastCPS;
+        if (ratio >= 5) {
+          this.colorWave('cps-display');
+          this.showMultiplierFloater(Math.floor(ratio));
+        }
+      }
     }
   };
 
@@ -339,6 +373,43 @@ const Juice = (() => {
       setTimeout(() => row.classList.remove('milestone-ripple'), 600);
     },
 
+    // Production shimmer — intensity reflects how much this gen is producing relative to total
+    updateProductionShimmer(genId, productionRatio) {
+      const row = document.querySelector(`[data-genid="${genId}"]`);
+      if (!row) return;
+      // productionRatio: 0-1 representing this gen's share of total production
+      const intensity = Math.min(1, productionRatio * 5); // amplify so even 20% share is visible
+      if (intensity > 0.05) {
+        row.classList.add('producing');
+        row.style.setProperty('--prod-intensity', intensity.toFixed(3));
+      } else {
+        row.classList.remove('producing');
+      }
+    },
+
+    // Clear all production shimmers
+    clearAllShimmers() {
+      document.querySelectorAll('.producing').forEach(el => {
+        el.classList.remove('producing');
+        el.style.removeProperty('--prod-intensity');
+      });
+    },
+
+    // Generator purchase celebration — scale with how many you own
+    purchaseCelebration(genId, count) {
+      const row = document.querySelector(`[data-genid="${genId}"]`);
+      if (!row) return;
+      this.popCount(genId);
+
+      // At milestone counts, trigger bigger effects
+      if (count === 10 || count === 25 || count === 50 || count === 100 || count === 200) {
+        this.milestoneRipple(genId);
+        if (count >= 50) {
+          Haptics.milestone();
+        }
+      }
+    },
+
     // Show synergy connection pulse between two generator rows
     synergyPulse(genId1, genId2) {
       const row1 = document.querySelector(`[data-genid="${genId1}"]`);
@@ -371,24 +442,82 @@ const Juice = (() => {
 
   // ==================== TEASER SYSTEM (Section 57) ====================
   const TeaserSystem = {
+    _smoothProgress: {},
+    _lastTeaserId: null,
+
     getNextUnlock(s) {
       // Priority 1: Phase unlock
       const phaseTeaser = this._getPhaseTeaser(s);
-      if (phaseTeaser && phaseTeaser.progress < 1) return phaseTeaser;
+      if (phaseTeaser && phaseTeaser.progress < 1) return this._smoothAndDecorate(phaseTeaser);
 
       // Priority 2: Next unaffordable upgrade
       const upgTeaser = this._getUpgradeTeaser(s);
-      if (upgTeaser) return upgTeaser;
+      if (upgTeaser) return this._smoothAndDecorate(upgTeaser);
 
       // Priority 3: Next generator milestone
       const mileTeaser = this._getMilestoneTeaser(s);
-      if (mileTeaser) return mileTeaser;
+      if (mileTeaser) return this._smoothAndDecorate(mileTeaser);
 
       // Priority 4: Next achievement (closest)
       const achTeaser = this._getAchievementTeaser(s);
-      if (achTeaser) return achTeaser;
+      if (achTeaser) return this._smoothAndDecorate(achTeaser);
 
       return null;
+    },
+
+    // Smooth progress bar transitions and add "almost there" visual state
+    _smoothAndDecorate(teaser) {
+      const id = teaser.type + '_' + teaser.name;
+      const prev = this._smoothProgress[id] || 0;
+
+      // Smooth progress so bar doesn't jump
+      const smoothed = prev + (teaser.progress - prev) * 0.15;
+      this._smoothProgress[id] = smoothed;
+      teaser.smoothProgress = smoothed;
+
+      // Clean old entries if teaser changed
+      if (this._lastTeaserId && this._lastTeaserId !== id) {
+        delete this._smoothProgress[this._lastTeaserId];
+      }
+      this._lastTeaserId = id;
+
+      // Almost-there state: when >90%, add pulsing class to the teaser bar
+      teaser.almostThere = smoothed >= 0.9;
+      teaser.veryClose = smoothed >= 0.98;
+
+      // Urgency: compute how fast progress is moving
+      if (this._prevProgress !== undefined && this._prevProgress > 0) {
+        const delta = smoothed - this._prevProgress;
+        teaser.momentum = delta > 0 ? Math.min(1, delta * 100) : 0;
+      } else {
+        teaser.momentum = 0;
+      }
+      this._prevProgress = smoothed;
+
+      return teaser;
+    },
+
+    // Apply visual state to the teaser bar DOM element
+    applyVisualState(barElement, teaser) {
+      if (!barElement) return;
+      if (teaser.almostThere) {
+        barElement.classList.add('teaser-almost');
+      } else {
+        barElement.classList.remove('teaser-almost');
+      }
+      if (teaser.veryClose) {
+        barElement.classList.add('teaser-imminent');
+      } else {
+        barElement.classList.remove('teaser-imminent');
+      }
+      // Momentum glow — brighter when progress is actively increasing
+      if (teaser.momentum > 0.01) {
+        barElement.style.setProperty('--teaser-momentum', teaser.momentum.toFixed(3));
+        barElement.classList.add('teaser-gaining');
+      } else {
+        barElement.classList.remove('teaser-gaining');
+        barElement.style.removeProperty('--teaser-momentum');
+      }
     },
 
     _getPhaseTeaser(s) {
@@ -541,6 +670,179 @@ const Juice = (() => {
     }
   };
 
+  // ==================== SCENE TRANSITION (Section 56) ====================
+  const SceneTransition = {
+    _currentPhase: 1,
+
+    // Smooth crossfade when phase changes — overlay fades old scene out, new one in
+    transitionTo(newPhase) {
+      if (newPhase === this._currentPhase) return;
+      const prevPhase = this._currentPhase;
+      this._currentPhase = newPhase;
+
+      const sceneArea = document.getElementById('scene-area');
+      if (!sceneArea) return;
+
+      // Create transition overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'scene-transition-overlay';
+      overlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:60;pointer-events:none;';
+
+      // Phase-specific transition color
+      const phaseColors = {
+        1: 'rgba(70,50,20,0.8)', 2: 'rgba(10,10,40,0.9)', 3: 'rgba(30,30,50,0.8)',
+        4: 'rgba(80,30,10,0.8)', 5: 'rgba(20,20,30,0.85)', 6: 'rgba(40,20,10,0.8)',
+        7: 'rgba(10,40,30,0.8)', 8: 'rgba(10,10,50,0.9)', 9: 'rgba(30,0,50,0.9)'
+      };
+      const color = phaseColors[newPhase] || 'rgba(0,0,0,0.8)';
+
+      // Animate: fade to color, hold, fade back
+      overlay.style.background = color;
+      overlay.style.opacity = '0';
+      overlay.style.transition = 'opacity 0.4s ease-in';
+      sceneArea.appendChild(overlay);
+
+      // Force reflow then start fade in
+      overlay.offsetWidth;
+      overlay.style.opacity = '1';
+
+      // At peak, show phase name briefly
+      setTimeout(() => {
+        const phaseData = (typeof GameData !== 'undefined' && GameData.PHASES) ? GameData.PHASES[newPhase] : null;
+        if (phaseData) {
+          const label = document.createElement('div');
+          label.className = 'scene-phase-label';
+          label.textContent = phaseData.name || ('Phase ' + newPhase);
+          label.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);
+            font-size:20px;font-weight:bold;color:white;text-shadow:0 0 20px rgba(255,255,255,0.5);
+            opacity:0;transition:all 0.3s ease-out;pointer-events:none;z-index:61;white-space:nowrap;`;
+          overlay.appendChild(label);
+          requestAnimationFrame(() => {
+            label.style.opacity = '1';
+            label.style.transform = 'translate(-50%,-50%) scale(1)';
+          });
+        }
+
+        // Start fade back out
+        setTimeout(() => {
+          overlay.style.transition = 'opacity 0.6s ease-out';
+          overlay.style.opacity = '0';
+          setTimeout(() => overlay.remove(), 700);
+        }, 600);
+      }, 400);
+    }
+  };
+
+  // ==================== NUMBER SATISFACTION (Section 56) ====================
+  const NumberSatisfaction = {
+    _lastValues: {},
+
+    // Check if a number crossed a "round" threshold — e.g. 999->1000, 9999->10000
+    checkRoundNumber(value, label) {
+      const prev = this._lastValues[label] || 0;
+      this._lastValues[label] = value;
+      if (prev <= 0) return;
+
+      // Detect crossing powers of 10
+      const prevLog = Math.floor(Math.log10(Math.max(1, prev)));
+      const curLog = Math.floor(Math.log10(Math.max(1, value)));
+      if (curLog > prevLog && curLog >= 3) {
+        // Crossed a power of 10 boundary!
+        this._triggerRoundNumberEffect(label, curLog);
+      }
+
+      // Detect reaching round numbers like x000
+      const roundThresholds = [1000, 10000, 100000, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12];
+      for (const threshold of roundThresholds) {
+        if (prev < threshold && value >= threshold) {
+          this._triggerRoundNumberEffect(label, Math.log10(threshold));
+          break;
+        }
+      }
+    },
+
+    _triggerRoundNumberEffect(label, magnitude) {
+      // Visual pulse on the currency display
+      const el = document.getElementById(label);
+      if (!el) return;
+      el.classList.add('round-number-hit');
+      setTimeout(() => el.classList.remove('round-number-hit'), 500);
+
+      // Haptic tap for satisfying round number
+      if (magnitude >= 6) Haptics.light();
+      if (magnitude >= 9) Haptics.medium();
+      if (magnitude >= 12) Haptics.success();
+    }
+  };
+
+  // ==================== PRESTIGE SUMMARY PANEL (Section 59) ====================
+  const PrestigeSummary = {
+    // Show animated summary of prestige rewards before the reset
+    show(rewards) {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      const panel = document.createElement('div');
+      panel.className = 'prestige-summary-panel';
+      panel.innerHTML = `
+        <div class="prestige-summary-header">PRESTIGE COMPLETE</div>
+        <div class="prestige-summary-items"></div>
+        <div class="prestige-summary-close">Tap to continue</div>
+      `;
+      container.appendChild(panel);
+
+      const itemsContainer = panel.querySelector('.prestige-summary-items');
+
+      // Animate each reward appearing one by one
+      const items = [];
+      if (rewards.cosmicDust > 0) {
+        items.push({ icon: '\uD83E\uDE90', label: 'Cosmic Dust', value: '+' + NumberFormatter.format(rewards.cosmicDust) });
+      }
+      if (rewards.eggs && rewards.eggs.length > 0) {
+        const eggNames = rewards.eggs.map(e => e.type.replace('egg_', '')).join(', ');
+        items.push({ icon: '\uD83E\uDD5A', label: 'Eggs', value: rewards.eggs.length + 'x (' + eggNames + ')' });
+      }
+      if (rewards.booster) {
+        items.push({ icon: '\u26A1', label: 'Booster', value: rewards.booster.rarity + ' ' + rewards.booster.type.replace('boost_', '') });
+      }
+      if (rewards.milestoneRewards && rewards.milestoneRewards.length > 0) {
+        for (const mr of rewards.milestoneRewards) {
+          items.push({ icon: '\uD83C\uDFC6', label: 'Milestone', value: mr });
+        }
+      }
+      if (rewards.prestigeCount) {
+        items.push({ icon: '\uD83D\uDD04', label: 'Prestige #', value: rewards.prestigeCount.toString() });
+      }
+
+      items.forEach((item, i) => {
+        setTimeout(() => {
+          const row = document.createElement('div');
+          row.className = 'prestige-summary-item';
+          row.innerHTML = `<span class="ps-icon">${item.icon}</span>
+            <span class="ps-label">${item.label}</span>
+            <span class="ps-value">${item.value}</span>`;
+          itemsContainer.appendChild(row);
+          // Animate in
+          requestAnimationFrame(() => row.classList.add('ps-visible'));
+        }, 300 + i * 200);
+      });
+
+      // Tap to dismiss
+      panel.addEventListener('click', () => {
+        panel.classList.add('prestige-summary-exit');
+        setTimeout(() => panel.remove(), 400);
+      });
+
+      // Auto-dismiss after 5s
+      setTimeout(() => {
+        if (panel.parentNode) {
+          panel.classList.add('prestige-summary-exit');
+          setTimeout(() => { if (panel.parentNode) panel.remove(); }, 400);
+        }
+      }, 5000);
+    }
+  };
+
   // ==================== TOAST ANIMATIONS ====================
   const ToastAnims = {
     // CSS-driven slide in/out — this module triggers special toasts
@@ -563,6 +865,13 @@ const Juice = (() => {
   // ==================== MAIN UPDATE ====================
   function update(dt) {
     ScreenShake.update(dt);
+
+    // Apply improved confetti physics to all active particles
+    if (Confetti.particles.length > 0) {
+      for (const p of Confetti.particles) {
+        ConfettiPhysics.applyPhysics(p);
+      }
+    }
   }
 
   // ==================== EXPANSION B: Egg Hatch Animation ====================
@@ -884,12 +1193,46 @@ const Juice = (() => {
       5: { confettiCount: 100, shakeIntensity: 6, shakeDuration: 600, flashOpacity: 0.15, soundLevel: 'prestige', showOverlay: true, duration: 4000 }
     },
 
+    // Event-specific celebration presets
+    PRESETS: {
+      generatorPurchase:   { tier: 1 },
+      upgradePurchase:     { tier: 2, colors: ['#4A90D9', '#27AE60'] },
+      achievement:         { tier: 3, colors: ['#FFD700', '#FFA500', '#FFFF00'], flashColor: '#FFD700' },
+      milestoneGold:       { tier: 3, colors: ['#FFD700', '#DAA520', '#FFDF00'] },
+      milestoneDiamond:    { tier: 3, colors: ['#B9F2FF', '#87CEEB', '#E0FFFF'] },
+      phaseUnlock:         { tier: 4, colors: ['#FFD700', '#FF6B35', '#4A90D9', '#27AE60', '#9B59B6'], flashColor: '#FFFFFF' },
+      prestige:            { tier: 5, colors: ['#FF69B4', '#4A90D9', '#FFD700', '#27AE60', '#9B59B6', '#E74C3C', '#FF6B35'], flashColor: '#FFFFFF' },
+      setComplete:         { tier: 5, colors: ['#4A90D9', '#27AE60', '#FFD700', '#9B59B6'] },
+      challengeComplete:   { tier: 4, colors: ['#FFD700', '#FF4444', '#FF6B35'], flashColor: '#FFD700' },
+      contractComplete:    { tier: 2, colors: ['#27AE60', '#00FF88'] },
+      eggHatch:            { tier: 3, colors: ['#FFD700', '#FFA500'] },
+      goldenRush:          { tier: 3, colors: ['#FFD700', '#FFE066', '#FFA500'] },
+      synergyActivate:     { tier: 2, colors: ['#FFD700', '#FFA500'] },
+      dailyDay7:           { tier: 3, colors: ['#FFD700', '#FF69B4', '#4A90D9'] },
+      rareAsteroid:        { tier: 2, colors: ['#4A90D9', '#9B59B6'] },
+      miniGameWin:         { tier: 2, colors: ['#27AE60', '#FFD700'] }
+    },
+
+    // Play a preset celebration by name
+    playPreset(presetName, opts = {}) {
+      const preset = this.PRESETS[presetName];
+      if (!preset) return this.play(1, opts);
+      const merged = {
+        ...opts,
+        colors: opts.colors || preset.colors,
+        flashColor: opts.flashColor || preset.flashColor
+      };
+      this.play(preset.tier, merged);
+    },
+
     play(tier, opts = {}) {
       const config = this.TIERS[tier] || this.TIERS[1];
 
-      // Haptic feedback
-      if (tier >= 2) Haptics.medium();
-      if (tier >= 4) Haptics.heavy();
+      // Haptic feedback scaled by tier
+      if (tier === 1) Haptics.light();
+      else if (tier === 2) Haptics.medium();
+      else if (tier === 3) Haptics.success();
+      else if (tier >= 4) Haptics.heavy();
       if (tier === 5) Haptics.prestige();
 
       // Screen shake
@@ -897,22 +1240,38 @@ const Juice = (() => {
         ScreenShake.trigger(config.shakeIntensity, config.shakeDuration);
       }
 
-      // Screen flash
+      // Screen flash — use event-specific color or white
       if (config.flashOpacity > 0) {
+        const flashEl = document.getElementById('screen-flash-overlay');
+        if (flashEl && opts.flashColor) {
+          flashEl.style.background = opts.flashColor;
+        }
         ScreenFlash.trigger(config.flashOpacity, config.shakeDuration);
+        // Reset flash color back to white
+        if (flashEl && opts.flashColor) {
+          setTimeout(() => { flashEl.style.background = '#fff'; }, config.shakeDuration + 100);
+        }
       }
 
-      // Confetti
+      // Confetti with physics integration
       if (config.confettiCount > 0) {
         const colors = opts.colors || ['#FFD700', '#FF6B35', '#4A90D9', '#27AE60', '#9B59B6'];
+        // Apply wind based on celebration tier for variety
+        ConfettiPhysics.windX = (Math.random() - 0.5) * tier * 0.5;
+
         Confetti.burst(config.confettiCount, colors, opts.x, opts.y);
-        // Extra bursts for higher tiers
+        // Extra bursts for higher tiers with staggered positions
         if (tier >= 4) {
-          setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.6), colors), 300);
+          const offsetX = (opts.x || (Confetti.canvas ? Confetti.canvas.width / 2 : 200));
+          setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.6), colors, offsetX - 60), 300);
+          setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.5), colors, offsetX + 60), 450);
         }
         if (tier === 5) {
           setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.4), colors), 600);
           setTimeout(() => Confetti.burst(Math.floor(config.confettiCount * 0.3), colors), 900);
+          setTimeout(() => { ConfettiPhysics.windX = 0; }, 1200);
+        } else {
+          setTimeout(() => { ConfettiPhysics.windX = 0; }, 600);
         }
       }
 
@@ -1175,6 +1534,7 @@ const Juice = (() => {
     Haptics, ScreenShake, ScreenFlash, Confetti, CurrencyAnims,
     NumberMilestones, GenAnims, ButtonAnims, TeaserSystem,
     ProgressShimmer, ToastAnims,
+    SceneTransition, NumberSatisfaction, PrestigeSummary,
     EggHatchAnim, ContractAnim, ChallengeAnim, ComboFlame,
     WeatherOverlay, PrestigeBigBang, GoldenRushGlow,
     LuckyDropAnim, SynergyFlash,

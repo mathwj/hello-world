@@ -171,9 +171,23 @@ const AdaptiveAudio = (() => {
 
   // ========== PHASE CHANGE ==========
   function setPhase(phase) {
+    const prevPhase = currentPhase;
     currentPhase = phase;
-    // Phase change triggers music layer rebuild
-    // In a full implementation, this would crossfade between phase-specific audio buffers
+
+    // Crossfade ambient to new phase
+    if (prevPhase !== phase) {
+      stopAmbientLoop();
+      // Fade out all layers briefly before rebuilding
+      for (const key in layers) {
+        if (layers[key].gain) {
+          const g = layers[key].gain;
+          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.3);
+          layers[key].volume = 0;
+        }
+      }
+      // After fade, restart ambient for new phase
+      setTimeout(() => startAmbientLoop(phase), 400);
+    }
   }
 
   // ========== EXPANSION B: Phase Transition Stinger ==========
@@ -266,38 +280,168 @@ const AdaptiveAudio = (() => {
 
   // ========== EXPANSION B: Ambient Intensity System ==========
   let ambientInterval = null;
+  let ambientDroneNodes = [];
+
+  // Phase-specific ambient textures — each phase has a unique sonic character
+  const AMBIENT_TEXTURES = {
+    1: { drone: 'sine', droneFreq: 55, filterType: 'lowpass', filterFreq: 200, lfoRate: 0.1, character: 'warm', detune: 5 },
+    2: { drone: 'triangle', droneFreq: 65, filterType: 'bandpass', filterFreq: 400, lfoRate: 0.3, character: 'hollow', detune: 8 },
+    3: { drone: 'sine', droneFreq: 73, filterType: 'lowpass', filterFreq: 250, lfoRate: 0.15, character: 'muffled', detune: 3 },
+    4: { drone: 'sawtooth', droneFreq: 82, filterType: 'lowpass', filterFreq: 180, lfoRate: 0.2, character: 'dusty', detune: 10 },
+    5: { drone: 'triangle', droneFreq: 98, filterType: 'bandpass', filterFreq: 600, lfoRate: 0.5, character: 'metallic', detune: 12 },
+    6: { drone: 'sawtooth', droneFreq: 55, filterType: 'lowpass', filterFreq: 150, lfoRate: 0.08, character: 'rumbling', detune: 15 },
+    7: { drone: 'sine', droneFreq: 130, filterType: 'highpass', filterFreq: 800, lfoRate: 0.4, character: 'ethereal', detune: 6 },
+    8: { drone: 'triangle', droneFreq: 146, filterType: 'bandpass', filterFreq: 1000, lfoRate: 0.7, character: 'cosmic', detune: 20 },
+    9: { drone: 'sawtooth', droneFreq: 164, filterType: 'highpass', filterFreq: 1200, lfoRate: 1.2, character: 'glitchy', detune: 30 }
+  };
+
   function startAmbientLoop(phase) {
     if (!audioCtx || !sfxGain) return;
     stopAmbientLoop();
+    resume();
 
+    const config = PHASE_MUSIC[phase] || PHASE_MUSIC[1];
+    const texture = AMBIENT_TEXTURES[phase] || AMBIENT_TEXTURES[1];
+    const now = audioCtx.currentTime;
+
+    // === Layer 1: Continuous low drone ===
+    const drone = audioCtx.createOscillator();
+    const droneGain = audioCtx.createGain();
+    const droneFilter = audioCtx.createBiquadFilter();
+    drone.type = texture.drone;
+    drone.frequency.value = texture.droneFreq;
+    drone.detune.value = texture.detune;
+    droneFilter.type = texture.filterType;
+    droneFilter.frequency.value = texture.filterFreq;
+    droneGain.gain.setValueAtTime(0, now);
+    droneGain.gain.linearRampToValueAtTime(0.012, now + 2); // slow fade in
+    drone.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(musicGain);
+    drone.start(now);
+    ambientDroneNodes.push({ osc: drone, gain: droneGain, filter: droneFilter });
+
+    // === Layer 2: LFO-modulated texture oscillator ===
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    const texOsc = audioCtx.createOscillator();
+    const texGain = audioCtx.createGain();
+    const texFilter = audioCtx.createBiquadFilter();
+    lfo.type = 'sine';
+    lfo.frequency.value = texture.lfoRate;
+    lfoGain.gain.value = texture.droneFreq * 0.15;
+    lfo.connect(lfoGain);
+    lfoGain.connect(texOsc.frequency);
+    texOsc.type = 'sine';
+    texOsc.frequency.value = texture.droneFreq * 2;
+    texFilter.type = 'lowpass';
+    texFilter.frequency.value = texture.filterFreq * 0.8;
+    texGain.gain.setValueAtTime(0, now);
+    texGain.gain.linearRampToValueAtTime(0.006, now + 3);
+    texOsc.connect(texFilter);
+    texFilter.connect(texGain);
+    texGain.connect(musicGain);
+    lfo.start(now);
+    texOsc.start(now);
+    ambientDroneNodes.push(
+      { osc: lfo, gain: lfoGain },
+      { osc: texOsc, gain: texGain, filter: texFilter }
+    );
+
+    // === Layer 3: Periodic stochastic ambient events ===
     const sounds = AMBIENT_SOUNDS[phase] || AMBIENT_SOUNDS[1];
     ambientInterval = setInterval(() => {
-      if (Math.random() < 0.3) {
-        resume();
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        const filter = audioCtx.createBiquadFilter();
-
-        // Generate ambient tone based on phase
-        const config = PHASE_MUSIC[phase] || PHASE_MUSIC[1];
-        osc.type = 'sine';
-        osc.frequency.value = config.baseFreq * (0.5 + Math.random());
-        filter.type = 'lowpass';
-        filter.frequency.value = 300 + Math.random() * 200;
-
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.015, now + 1);
-        gain.gain.linearRampToValueAtTime(0.015, now + 2);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 4);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(sfxGain);
-        osc.start(now);
-        osc.stop(now + 4.1);
+      if (Math.random() < 0.35) {
+        _playAmbientEvent(phase, config, texture, sounds);
       }
-    }, 5000);
+    }, 4000 + Math.random() * 3000);
+  }
+
+  function _playAmbientEvent(phase, config, texture, sounds) {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+
+    // Pick a random ambient character for this event
+    const variation = Math.random();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    if (variation < 0.4) {
+      // Tonal ambient — long pad note derived from phase scale
+      osc.type = 'sine';
+      const scaleMultipliers = {
+        minor: [1, 1.125, 1.2, 1.333, 1.5, 1.6, 1.8],
+        pentatonic: [1, 1.125, 1.25, 1.5, 1.667],
+        dorian: [1, 1.125, 1.2, 1.333, 1.5, 1.6875, 1.8],
+        mixolydian: [1, 1.125, 1.25, 1.333, 1.5, 1.6875, 1.8],
+        phrygian: [1, 1.067, 1.2, 1.333, 1.5, 1.6, 1.8],
+        lydian: [1, 1.125, 1.25, 1.406, 1.5, 1.6875, 1.875],
+        chromatic: [1, 1.06, 1.12, 1.19, 1.26, 1.33, 1.41],
+        wholetone: [1, 1.12, 1.26, 1.41, 1.59, 1.78]
+      };
+      const scale = scaleMultipliers[config.scale] || scaleMultipliers.minor;
+      const mult = scale[Math.floor(Math.random() * scale.length)];
+      const octave = Math.random() < 0.3 ? 2 : 1;
+      osc.frequency.value = config.baseFreq * mult * octave;
+      filter.type = 'lowpass';
+      filter.frequency.value = 400 + Math.random() * 300;
+
+      const dur = 3 + Math.random() * 4;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + dur * 0.3);
+      gain.gain.linearRampToValueAtTime(0.01, now + dur * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(musicGain);
+      osc.start(now);
+      osc.stop(now + dur + 0.1);
+
+    } else if (variation < 0.7) {
+      // Percussive ambient — short burst with resonant filter (metallic/organic based on phase)
+      osc.type = phase >= 5 ? 'sawtooth' : 'triangle';
+      osc.frequency.value = config.baseFreq * (1 + Math.random() * 3);
+      filter.type = 'bandpass';
+      filter.frequency.value = 200 + Math.random() * 800;
+      filter.Q.value = 5 + Math.random() * 10;
+      gain.gain.setValueAtTime(0.008, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3 + Math.random() * 0.3);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(musicGain);
+      osc.start(now);
+      osc.stop(now + 0.8);
+
+    } else {
+      // Textural ambient — detuned pair for beating effect
+      osc.type = 'sine';
+      const freq = config.baseFreq * (0.5 + Math.random() * 1.5);
+      osc.frequency.value = freq;
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'sine';
+      osc2.frequency.value = freq + 1 + Math.random() * 3; // slight detune = beating
+      const gain2 = audioCtx.createGain();
+      filter.type = 'lowpass';
+      filter.frequency.value = 500;
+      const dur = 4 + Math.random() * 4;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.008, now + 1.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      gain2.gain.setValueAtTime(0, now);
+      gain2.gain.linearRampToValueAtTime(0.006, now + 1.5);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + dur);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(musicGain);
+      osc2.connect(gain2);
+      gain2.connect(musicGain);
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + dur + 0.1);
+      osc2.stop(now + dur + 0.1);
+    }
   }
 
   function stopAmbientLoop() {
@@ -305,6 +449,21 @@ const AdaptiveAudio = (() => {
       clearInterval(ambientInterval);
       ambientInterval = null;
     }
+    // Fade out drone nodes
+    if (audioCtx) {
+      const now = audioCtx.currentTime;
+      for (const node of ambientDroneNodes) {
+        try {
+          if (node.gain && node.gain.gain) {
+            node.gain.gain.setTargetAtTime(0, now, 0.2);
+          }
+          if (node.osc) {
+            node.osc.stop(now + 1);
+          }
+        } catch (e) { /* node already stopped */ }
+      }
+    }
+    ambientDroneNodes = [];
   }
 
   // ========== SOUND EFFECTS ==========
@@ -366,7 +525,7 @@ const AdaptiveAudio = (() => {
     return 'machine'; // drills, factories, refineries, etc.
   }
 
-  function playPurchaseSound(genTypeOrId) {
+  function playPurchaseSound(genTypeOrId, genCount) {
     if (!audioCtx || !sfxGain) return;
     resume();
 
@@ -377,17 +536,25 @@ const AdaptiveAudio = (() => {
     }
     const config = GEN_SOUND_TYPES[soundType] || GEN_SOUND_TYPES.machine;
     const now = audioCtx.currentTime;
+    const count = genCount || 1;
+
+    // Scale pitch and richness with owned count — your 100th sounds grander than your 1st
+    const countTier = Math.floor(Math.min(count, 200) / 25); // 0-8
+    const pitchMult = 1 + countTier * 0.08; // subtle pitch rise
+    const volumeBoost = Math.min(0.04, countTier * 0.005); // slightly louder at milestones
+
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
 
     osc.type = config.type === 'noise' ? 'sawtooth' : config.type;
-    osc.frequency.value = config.freq;
+    osc.frequency.value = config.freq * pitchMult;
     filter.type = config.filter;
-    filter.frequency.value = config.freq * 2;
+    filter.frequency.value = config.freq * 2 * pitchMult;
+    filter.Q.value = 1 + countTier * 0.5; // more resonant at higher counts
 
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.12, now + config.attack);
+    gain.gain.linearRampToValueAtTime(0.12 + volumeBoost, now + config.attack);
     gain.gain.exponentialRampToValueAtTime(0.001, now + config.attack + config.decay);
 
     osc.connect(filter);
@@ -395,6 +562,20 @@ const AdaptiveAudio = (() => {
     gain.connect(sfxGain);
     osc.start(now);
     osc.stop(now + config.attack + config.decay + 0.05);
+
+    // At milestone counts (25, 50, 100, 200), add a harmonic overtone
+    if (count > 0 && count % 25 === 0) {
+      const overtone = audioCtx.createOscillator();
+      const oGain = audioCtx.createGain();
+      overtone.type = 'sine';
+      overtone.frequency.value = config.freq * pitchMult * 2; // octave above
+      oGain.gain.setValueAtTime(0.04, now + config.attack * 0.5);
+      oGain.gain.exponentialRampToValueAtTime(0.001, now + config.attack + config.decay * 1.5);
+      overtone.connect(oGain);
+      oGain.connect(sfxGain);
+      overtone.start(now + config.attack * 0.3);
+      overtone.stop(now + config.attack + config.decay * 1.5 + 0.05);
+    }
   }
 
   function playCriticalSound() {
@@ -871,6 +1052,110 @@ const AdaptiveAudio = (() => {
     }
   }
 
+  function playGoldenRushSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Shimmering golden cascade — quick ascending arpeggiated thirds
+    const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.5];
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.04);
+      gain.gain.linearRampToValueAtTime(0.05 - i * 0.005, now + i * 0.04 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.4);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.04);
+      osc.stop(now + i * 0.04 + 0.45);
+    });
+    // Sustain pad underneath
+    const pad = audioCtx.createOscillator();
+    const padGain = audioCtx.createGain();
+    pad.type = 'sine';
+    pad.frequency.value = 220;
+    padGain.gain.setValueAtTime(0, now);
+    padGain.gain.linearRampToValueAtTime(0.03, now + 0.15);
+    padGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    pad.connect(padGain);
+    padGain.connect(sfxGain);
+    pad.start(now);
+    pad.stop(now + 0.85);
+  }
+
+  function playSynergySound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Two-tone resonant ping — represents two generators linking
+    const freqs = [523.25, 783.99]; // perfect fifth
+    freqs.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      filter.type = 'bandpass';
+      filter.frequency.value = freq;
+      filter.Q.value = 8;
+      gain.gain.setValueAtTime(0, now + i * 0.06);
+      gain.gain.linearRampToValueAtTime(0.06, now + i * 0.06 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.5);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.06);
+      osc.stop(now + i * 0.06 + 0.55);
+    });
+    // Brief shimmer after the ping
+    const shimmer = audioCtx.createOscillator();
+    const sGain = audioCtx.createGain();
+    shimmer.type = 'triangle';
+    shimmer.frequency.value = 1200;
+    shimmer.frequency.linearRampToValueAtTime(1800, audioCtx.currentTime + 0.35);
+    sGain.gain.setValueAtTime(0, now + 0.12);
+    sGain.gain.linearRampToValueAtTime(0.015, now + 0.16);
+    sGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    shimmer.connect(sGain);
+    sGain.connect(sfxGain);
+    shimmer.start(now + 0.12);
+    shimmer.stop(now + 0.45);
+  }
+
+  function playWeatherTransitionSound(weatherId) {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    const weatherSounds = {
+      rain: { freq: 300, type: 'sawtooth', filter: 'lowpass', filterFreq: 400, dur: 0.8 },
+      snow: { freq: 800, type: 'sine', filter: 'highpass', filterFreq: 600, dur: 1.0 },
+      lightning: { freq: 80, type: 'sawtooth', filter: 'lowpass', filterFreq: 200, dur: 0.3 },
+      dust_storm: { freq: 120, type: 'sawtooth', filter: 'bandpass', filterFreq: 250, dur: 1.2 },
+      aurora: { freq: 440, type: 'sine', filter: 'bandpass', filterFreq: 800, dur: 1.5 },
+      meteor_shower: { freq: 600, type: 'triangle', filter: 'highpass', filterFreq: 400, dur: 0.6 },
+      golden_hour: { freq: 350, type: 'triangle', filter: 'lowpass', filterFreq: 500, dur: 1.0 },
+      default: { freq: 200, type: 'sine', filter: 'lowpass', filterFreq: 300, dur: 0.5 }
+    };
+    const w = weatherSounds[weatherId] || weatherSounds.default;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc.type = w.type;
+    osc.frequency.value = w.freq;
+    filter.type = w.filter;
+    filter.frequency.value = w.filterFreq;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.04, now + w.dur * 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + w.dur);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + w.dur + 0.05);
+  }
+
   function playEggWarmSound() {
     if (!audioCtx || !sfxGain) return;
     resume();
@@ -898,10 +1183,11 @@ const AdaptiveAudio = (() => {
     playChallengeStartSound, playChallengeCompleteSound,
     playMiniGameStartSound, playBoosterActivateSound,
     playComboSound, playEggWarmSound, playSuffixChime,
+    playGoldenRushSound, playSynergySound, playWeatherTransitionSound,
     playPhaseTransitionStinger, playPrestigeBigBang,
     startAmbientLoop, stopAmbientLoop,
     startEventMusic, stopEventMusic,
     getActivityState, getTapRate, getGenSoundType,
-    PHASE_MUSIC, AMBIENT_SOUNDS, GEN_SOUND_TYPES
+    PHASE_MUSIC, AMBIENT_SOUNDS, AMBIENT_TEXTURES, GEN_SOUND_TYPES
   };
 })();

@@ -8572,3 +8572,245 @@ body.reduced-motion .gen-anim-blink,
 body.reduced-motion .gen-anim-pulse {
   animation: none !important;
 }
+
+/* ===== PART 7: PRODUCTION SHIMMER ON GENERATOR ROWS ===== */
+
+.generator-row.producing {
+  --prod-intensity: 0;
+  background: linear-gradient(
+    90deg,
+    var(--ds-glass-bg) 0%,
+    rgba(74, 144, 217, calc(var(--prod-intensity) * 0.08)) 50%,
+    var(--ds-glass-bg) 100%
+  );
+  background-size: 200% 100%;
+  animation: productionShimmer 2s ease-in-out infinite;
+}
+
+@keyframes productionShimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* High production = brighter shimmer border */
+.generator-row.producing::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(74, 144, 217, calc(var(--prod-intensity) * 0.5)) 50%,
+    transparent 100%
+  );
+  border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+}
+
+/* ===== PART 7: CPS COLOR WAVE ===== */
+
+.cps-color-wave {
+  animation: cpsColorWave 0.6s ease-out;
+}
+
+@keyframes cpsColorWave {
+  0% { color: inherit; transform: scale(1); }
+  25% { color: #FFD700; transform: scale(1.2); text-shadow: 0 0 8px rgba(255, 215, 0, 0.6); }
+  50% { color: #FF6B35; transform: scale(1.15); }
+  75% { color: #27AE60; transform: scale(1.05); }
+  100% { color: inherit; transform: scale(1); text-shadow: none; }
+}
+
+/* ===== PART 7: ROUND NUMBER HIT SATISFACTION ===== */
+
+.round-number-hit {
+  animation: roundNumberHit 0.5s var(--ds-ease-bounce);
+}
+
+@keyframes roundNumberHit {
+  0% { transform: scale(1); filter: brightness(1); }
+  20% { transform: scale(1.15); filter: brightness(1.3); }
+  40% { transform: scale(0.95); }
+  60% { transform: scale(1.05); filter: brightness(1.1); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* ===== PART 7: SCENE TRANSITION OVERLAY ===== */
+
+.scene-transition-overlay {
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.scene-phase-label {
+  font-family: var(--ds-font-display);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* ===== PART 7: TEASER SYSTEM — ALMOST THERE ===== */
+
+.teaser-almost .next-unlock-fill {
+  animation: teaserAlmostPulse 1s ease-in-out infinite;
+}
+
+@keyframes teaserAlmostPulse {
+  0%, 100% { opacity: 1; box-shadow: none; }
+  50% { opacity: 0.85; box-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+}
+
+.teaser-imminent .next-unlock-fill {
+  animation: teaserImminentPulse 0.5s ease-in-out infinite;
+  background: linear-gradient(90deg, var(--phase-primary), #FFD700, var(--phase-primary));
+  background-size: 200% 100%;
+}
+
+@keyframes teaserImminentPulse {
+  0%, 100% { background-position: 0% 0; box-shadow: 0 0 6px rgba(255, 215, 0, 0.5); }
+  50% { background-position: 100% 0; box-shadow: 0 0 12px rgba(255, 215, 0, 0.8); }
+}
+
+/* Momentum glow — brighter when progress is actively increasing */
+.teaser-gaining .next-unlock-fill {
+  filter: brightness(calc(1 + var(--teaser-momentum, 0) * 0.5));
+  transition: filter 0.3s ease;
+}
+
+.teaser-almost .next-unlock-label {
+  color: var(--accent-gold);
+  font-weight: var(--ds-weight-bold);
+}
+
+.teaser-imminent .next-unlock-label::after {
+  content: ' — Almost there!';
+  color: var(--accent-gold);
+  font-size: var(--ds-type-sm);
+  animation: almostThereFlash 0.8s ease infinite;
+}
+
+@keyframes almostThereFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ===== PART 7: PRESTIGE SUMMARY PANEL ===== */
+
+.prestige-summary-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 40px);
+  max-width: 340px;
+  background: rgba(10, 10, 30, 0.95);
+  border: 1px solid var(--accent-gold);
+  border-radius: var(--ds-radius-lg);
+  padding: 24px 20px;
+  z-index: 300;
+  text-align: center;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: prestigeSummaryAppear 0.5s var(--ds-ease-bounce);
+}
+
+@keyframes prestigeSummaryAppear {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.prestige-summary-exit {
+  animation: prestigeSummaryExit 0.4s ease-in forwards;
+}
+
+@keyframes prestigeSummaryExit {
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+.prestige-summary-header {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-type-lg);
+  font-weight: var(--ds-weight-bold);
+  color: var(--accent-gold);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.prestige-summary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.prestige-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.prestige-summary-item.ps-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.ps-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ps-label {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  flex: 1;
+  text-align: left;
+}
+
+.ps-value {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-body);
+  font-weight: var(--ds-weight-bold);
+  color: var(--accent-gold);
+  text-align: right;
+}
+
+.prestige-summary-close {
+  font-size: var(--ds-type-sm);
+  color: var(--ds-text-secondary);
+  cursor: pointer;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  animation: tapToContinuePulse 2s ease-in-out infinite;
+}
+
+@keyframes tapToContinuePulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ===== PART 7: REDUCED MOTION — NEW ADDITIONS ===== */
+
+body.reduced-motion .producing,
+body.reduced-motion .cps-color-wave,
+body.reduced-motion .round-number-hit,
+body.reduced-motion .teaser-almost .next-unlock-fill,
+body.reduced-motion .teaser-imminent .next-unlock-fill,
+body.reduced-motion .prestige-summary-panel {
+  animation: none !important;
+}
+
+body.reduced-motion .prestige-summary-item {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}

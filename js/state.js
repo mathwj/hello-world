@@ -289,7 +289,11 @@ const GameState = (() => {
         playedFriday13: false,
         playedNewYear: false,
         terraformTime: 0,
-        lastPrestigeTimestamp: 0
+        lastPrestigeTimestamp: 0,
+        prestigeStreak: 0,
+        bestPrestigeStreak: 0,
+        totalPrestigeEggsAwarded: 0,
+        totalPrestigeBoostersAwarded: 0
       },
 
       // ===== EXPANSION v2.0 FIELDS =====
@@ -429,7 +433,10 @@ const GameState = (() => {
       permanentPrestigeMult: 1.0,
 
       // CD doubled flag (from 100th prestige milestone)
-      cdDoubledPermanent: false
+      cdDoubledPermanent: false,
+
+      // Last prestige reward summary (for UI display)
+      _lastPrestigeRewards: null
     };
   }
 
@@ -794,55 +801,153 @@ const GameState = (() => {
       state.terraforming.marsPercent = 50;
     }
 
-    // ===== Section 59.2: Prestige also awards eggs + boosters =====
-    // Award 1-3 random eggs based on lifetime earnings tier
-    const earningsTier = state.cosmicDustLifetime >= 10000 ? 3 :
-                         state.cosmicDustLifetime >= 1000 ? 2 : 1;
-    const eggTiers = ['bronze', 'silver', 'gold', 'cosmic'];
-    const eggCount = Math.min(earningsTier, 3);
+    // ===== Section 59.2: Prestige rewards — eggs, boosters, streak bonuses =====
+
+    // Compute reward tier from multiple factors (not just lifetime CD)
+    const lifetimeCD = state.cosmicDustLifetime;
+    const prestigeCount = state.totalPrestigeCount;
+    const achievementCount = Object.keys(state.achievements).length;
+    const playTimeHours = state.totalPlayTimeSeconds / 3600;
+
+    // Multi-factor tier: each factor contributes independently
+    let rewardScore = 0;
+    // CD factor (0-4 points)
+    if (lifetimeCD >= 50000) rewardScore += 4;
+    else if (lifetimeCD >= 10000) rewardScore += 3;
+    else if (lifetimeCD >= 1000) rewardScore += 2;
+    else if (lifetimeCD >= 100) rewardScore += 1;
+    // Prestige count factor (0-3 points)
+    if (prestigeCount >= 50) rewardScore += 3;
+    else if (prestigeCount >= 20) rewardScore += 2;
+    else if (prestigeCount >= 5) rewardScore += 1;
+    // Achievement factor (0-2 points)
+    if (achievementCount >= 100) rewardScore += 2;
+    else if (achievementCount >= 30) rewardScore += 1;
+    // Play time factor (0-1 point)
+    if (playTimeHours >= 10) rewardScore += 1;
+
+    const rewardTier = Math.min(4, Math.floor(rewardScore / 2.5)); // 0-4
+
+    // === Egg Rewards: 1-3 eggs, quality scales with tier ===
+    const eggTierNames = ['bronze', 'silver', 'gold', 'cosmic', 'void'];
+    const eggCount = 1 + Math.min(rewardTier, 2); // 1-3 eggs
+    const eggsAwarded = [];
     for (let i = 0; i < eggCount; i++) {
-      const tierIdx = Math.min(earningsTier - 1 + (Math.random() < 0.3 ? 1 : 0), eggTiers.length - 1);
-      const eggType = 'egg_' + eggTiers[tierIdx];
-      if (state.eggs.slots.length < state.eggs.maxSlots) {
-        state.eggs.slots.push({ type: eggType, startTime: Date.now(), duration: (tierIdx + 1) * 3600000 });
-      } else {
-        // Try to fill an empty slot
-        const emptyIdx = state.eggs.slots.findIndex(e => e === null);
-        if (emptyIdx >= 0) {
-          state.eggs.slots[emptyIdx] = { type: eggType, startTime: Date.now(), duration: (tierIdx + 1) * 3600000 };
-        }
+      // Base egg tier from reward tier, with 25% chance to upgrade one tier
+      let tierIdx = Math.min(rewardTier, eggTierNames.length - 1);
+      if (Math.random() < 0.25 && tierIdx < eggTierNames.length - 1) tierIdx++;
+      // First egg always matches base tier, subsequent eggs can be lower
+      if (i > 0 && Math.random() < 0.4) tierIdx = Math.max(0, tierIdx - 1);
+      const eggType = 'egg_' + eggTierNames[tierIdx];
+      const duration = (tierIdx + 1) * 3600000; // 1h per tier
+      const emptyIdx = state.eggs.slots.findIndex(e => e === null);
+      if (emptyIdx >= 0) {
+        const egg = { type: eggType, startTime: Date.now(), duration: duration };
+        state.eggs.slots[emptyIdx] = egg;
+        eggsAwarded.push(egg);
       }
     }
-    // Award 1 random booster (rarity based on earnings tier)
-    const boosterRarities = ['common', 'uncommon', 'rare', 'legendary'];
-    const boosterRarity = boosterRarities[Math.min(earningsTier - 1, boosterRarities.length - 1)];
+
+    // === Booster Rewards: 1 base + streak bonus ===
+    const boosterRarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
     const boosterTypes = ['boost_credits', 'boost_tap', 'boost_rp', 'boost_all', 'boost_lucky', 'boost_xp'];
-    const boosterType = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
     if (!state.boosters.inventory) state.boosters.inventory = [];
+
+    // Base booster — rarity from reward tier
+    const baseBoosterRarity = boosterRarities[Math.min(rewardTier, boosterRarities.length - 1)];
+    const baseBoosterType = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
+    let boosterAwarded = null;
     if (state.boosters.inventory.length < 5) {
-      state.boosters.inventory.push({ type: boosterType, rarity: boosterRarity });
+      boosterAwarded = { type: baseBoosterType, rarity: baseBoosterRarity };
+      state.boosters.inventory.push(boosterAwarded);
     }
-    // CD shop: cosmic egg on prestige
+
+    // === Prestige Streak Bonus ===
+    // If last prestige was within 2 hours, count it as a streak
+    const now = Date.now();
+    const timeSinceLastPrestige = now - (state.stats.lastPrestigeTimestamp || 0);
+    let streak = state.stats.prestigeStreak || 0;
+    if (timeSinceLastPrestige < 7200000 && state.stats.lastPrestigeTimestamp > 0) {
+      streak++;
+    } else {
+      streak = 1; // reset streak
+    }
+    state.stats.prestigeStreak = streak;
+    state.stats.lastPrestigeTimestamp = now;
+
+    // Streak bonuses: every 3 consecutive prestiges within 2h
+    const streakRewards = [];
+    if (streak >= 3 && streak % 3 === 0) {
+      // Bonus egg for streak
+      const streakEggIdx = Math.min(Math.floor(streak / 3), eggTierNames.length - 1);
+      const streakEggType = 'egg_' + eggTierNames[streakEggIdx];
+      const emptyIdx = state.eggs.slots.findIndex(e => e === null);
+      if (emptyIdx >= 0) {
+        state.eggs.slots[emptyIdx] = { type: streakEggType, startTime: Date.now(), duration: (streakEggIdx + 1) * 3600000 };
+        streakRewards.push('Streak ' + streak + ' bonus egg: ' + eggTierNames[streakEggIdx]);
+      }
+      // Bonus booster for streak
+      if (state.boosters.inventory.length < 5) {
+        const streakBoosterRarity = boosterRarities[Math.min(Math.floor(streak / 3), boosterRarities.length - 1)];
+        state.boosters.inventory.push({ type: boosterTypes[Math.floor(Math.random() * boosterTypes.length)], rarity: streakBoosterRarity });
+        streakRewards.push('Streak ' + streak + ' bonus booster: ' + streakBoosterRarity);
+      }
+    }
+
+    // === CD Shop prestige effects ===
+    // Cosmic egg on prestige
     if (state.cdShopPurchased['cd_cosmicegg']) {
       const emptyIdx = state.eggs.slots.findIndex(e => e === null);
       if (emptyIdx >= 0) {
         state.eggs.slots[emptyIdx] = { type: 'egg_cosmic', startTime: Date.now(), duration: 86400000 };
       }
     }
-    // CD shop: lucky start — 3 random boosters
+    // Lucky start — 3 random boosters (uncommon+)
     if (state.cdShopPurchased['cd_luckystart']) {
       for (let i = 0; i < 3 && state.boosters.inventory.length < 5; i++) {
         const bt = boosterTypes[Math.floor(Math.random() * boosterTypes.length)];
-        state.boosters.inventory.push({ type: bt, rarity: 'uncommon' });
+        const rarity = boosterRarities[1 + Math.floor(Math.random() * Math.min(rewardTier, 3))]; // uncommon to epic
+        state.boosters.inventory.push({ type: bt, rarity: rarity });
       }
     }
-    // CD shop: egg magnet — 1 Gold Egg
+    // Egg magnet — 1 Gold Egg
     if (state.cdShopPurchased['cd_eggmagnet']) {
       const emptyIdx = state.eggs.slots.findIndex(e => e === null);
       if (emptyIdx >= 0) {
         state.eggs.slots[emptyIdx] = { type: 'egg_gold', startTime: Date.now(), duration: 7200000 };
       }
     }
+
+    // Build prestige reward summary for UI display
+    const milestoneRewards = [];
+    if (typeof GameData !== 'undefined' && GameData.PRESTIGE_MILESTONES) {
+      for (const m of GameData.PRESTIGE_MILESTONES) {
+        if (state.totalPrestigeCount >= m.count && state.prestigeMilestonesClaimed[m.count]) {
+          if (m.title) milestoneRewards.push('Title: ' + m.title);
+          if (m.rocketSkin) milestoneRewards.push('Skin: ' + m.rocketSkin);
+          if (m.permanentMult) milestoneRewards.push(m.permanentMult + 'x permanent mult');
+        }
+      }
+    }
+
+    const prestigeRewardSummary = {
+      cosmicDust: cdEarned,
+      eggs: eggsAwarded,
+      booster: boosterAwarded,
+      streak: streak,
+      streakRewards: streakRewards,
+      milestoneRewards: milestoneRewards,
+      rewardTier: rewardTier,
+      prestigeCount: state.totalPrestigeCount
+    };
+
+    // Track prestige reward stats
+    state.stats.totalPrestigeEggsAwarded = (state.stats.totalPrestigeEggsAwarded || 0) + eggsAwarded.length;
+    state.stats.totalPrestigeBoostersAwarded = (state.stats.totalPrestigeBoostersAwarded || 0) + (boosterAwarded ? 1 : 0);
+    state.stats.bestPrestigeStreak = Math.max(state.stats.bestPrestigeStreak || 0, streak);
+
+    // Store summary in state for UI to display
+    state._lastPrestigeRewards = prestigeRewardSummary;
 
     save();
     return cdEarned;
@@ -945,10 +1050,14 @@ const GameState = (() => {
     return getCurrency(currency) >= amount;
   }
 
+  function getLastPrestigeRewards() {
+    return state._lastPrestigeRewards;
+  }
+
   return {
     getState, save, load, exportSave, importSave, hardReset,
     calculateOfflineEarnings, applyOfflineEarnings,
-    calculatePrestigeReward, performPrestige,
+    calculatePrestigeReward, performPrestige, getLastPrestigeRewards,
     getGeneratorCount, setGeneratorCount,
     getGeneratorMultiplier, getPhaseMultiplier,
     addCurrency, getCurrency, spendCurrency, canAfford,
