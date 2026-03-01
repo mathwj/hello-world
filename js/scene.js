@@ -175,61 +175,147 @@ const SceneRenderer = (() => {
   }
 
   function drawJunkyard(w, h) {
-    // Sky gradient
+    // Sky gradient — warm desert junkyard
     const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.6);
     skyGrad.addColorStop(0, '#87CEEB');
+    skyGrad.addColorStop(0.6, '#C9B896');
     skyGrad.addColorStop(1, '#E8D5B7');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Sun
+    // Sun with glow
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+    ctx.beginPath();
+    ctx.arc(w * 0.8, h * 0.15, 45, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#FFD700';
     ctx.beginPath();
-    ctx.arc(w * 0.8, h * 0.15, 25, 0, Math.PI * 2);
+    ctx.arc(w * 0.8, h * 0.15, 22, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ground
-    ctx.fillStyle = '#D2B48C';
+    // Distant hills
+    ctx.fillStyle = '#C4A97D';
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.48);
+    ctx.quadraticCurveTo(w * 0.2, h * 0.40, w * 0.4, h * 0.47);
+    ctx.quadraticCurveTo(w * 0.6, h * 0.42, w * 0.8, h * 0.46);
+    ctx.quadraticCurveTo(w * 0.9, h * 0.43, w, h * 0.47);
+    ctx.lineTo(w, h * 0.55);
+    ctx.lineTo(0, h * 0.55);
+    ctx.fill();
+
+    // Ground with subtle texture gradient
+    const groundGrad = ctx.createLinearGradient(0, h * 0.55, 0, h);
+    groundGrad.addColorStop(0, '#D2B48C');
+    groundGrad.addColorStop(1, '#B8976A');
+    ctx.fillStyle = groundGrad;
     ctx.fillRect(0, h * 0.55, w, h * 0.45);
 
-    // Fence
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 2;
-    for (let x = 0; x < w; x += 20) {
+    // Ground texture lines
+    ctx.strokeStyle = 'rgba(139, 69, 19, 0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const gy = h * 0.58 + i * h * 0.05;
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(w, gy + Math.sin(i) * 3);
+      ctx.stroke();
+    }
+
+    // Fence (chain-link style)
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 1.5;
+    for (let x = 0; x < w; x += 18) {
       ctx.beginPath();
       ctx.moveTo(x, h * 0.4);
       ctx.lineTo(x, h * 0.55);
       ctx.stroke();
     }
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.45);
-    ctx.lineTo(w, h * 0.45);
-    ctx.stroke();
+    // Horizontal fence wires
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    for (let fy = h * 0.42; fy < h * 0.55; fy += 6) {
+      ctx.beginPath();
+      ctx.moveTo(0, fy);
+      ctx.lineTo(w, fy);
+      ctx.stroke();
+    }
 
-    // Scrap piles
+    // Scrap piles — varied colors
     const s = GameState.getState();
     const genCount = GameData.getTotalGenerators(s);
 
     ctx.fillStyle = '#8B4513';
-    drawScrapPile(w * 0.1, h * 0.6, 40, 25);
-    drawScrapPile(w * 0.3, h * 0.65, 50, 30);
-    drawScrapPile(w * 0.7, h * 0.6, 35, 20);
+    drawScrapPile(w * 0.08, h * 0.6, 40, 25);
+    ctx.fillStyle = '#7A6B5D';
+    drawScrapPile(w * 0.28, h * 0.65, 55, 32);
+    ctx.fillStyle = '#6B4226';
+    drawScrapPile(w * 0.72, h * 0.6, 35, 20);
 
-    // Rocket pad
+    // Metal scraps on ground
+    ctx.fillStyle = '#A0A0A0';
+    for (let i = 0; i < 6; i++) {
+      const sx = w * 0.05 + i * w * 0.16;
+      const sy = h * 0.7 + Math.sin(i * 2.3) * 8;
+      ctx.fillRect(sx, sy, 4 + i % 3, 2);
+    }
+
+    // Rocket pad with lights
+    ctx.fillStyle = '#555';
+    ctx.fillRect(w * 0.5 - 32, h * 0.55, 64, 8);
     ctx.fillStyle = '#666';
-    ctx.fillRect(w * 0.5 - 30, h * 0.55, 60, 8);
+    ctx.fillRect(w * 0.5 - 28, h * 0.55, 56, 6);
+    // Pad warning stripes
+    ctx.fillStyle = '#FFD700';
+    for (let sx = w * 0.5 - 26; sx < w * 0.5 + 26; sx += 10) {
+      ctx.fillRect(sx, h * 0.554, 5, 3);
+    }
 
     // Rocket (if parts owned)
     drawRocket(w * 0.5, h * 0.55, s);
 
     // Animated elements based on generators
     if (genCount > 0) {
-      // Small walking figure
+      // Scrap collector walking figure
       const walkX = (w * 0.2 + Math.sin(time * 0.5) * 50);
+      const legSwing = Math.sin(time * 3) * 3;
+      // Body
       ctx.fillStyle = '#654321';
-      ctx.fillRect(walkX, h * 0.63, 6, 12);
+      ctx.fillRect(walkX, h * 0.63, 6, 10);
+      // Hard hat
       ctx.fillStyle = '#FFD700';
-      ctx.fillRect(walkX + 1, h * 0.61, 4, 4);
+      ctx.fillRect(walkX - 1, h * 0.615, 8, 4);
+      // Legs
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(walkX + 2, h * 0.64 + 10);
+      ctx.lineTo(walkX + 2 + legSwing, h * 0.64 + 15);
+      ctx.moveTo(walkX + 4, h * 0.64 + 10);
+      ctx.lineTo(walkX + 4 - legSwing, h * 0.64 + 15);
+      ctx.stroke();
+    }
+
+    if (genCount >= 5) {
+      // Metal detector sweeper
+      const sweepX = (w * 0.6 + Math.cos(time * 0.3) * 40);
+      const sweepAngle = Math.sin(time * 2) * 0.3;
+      ctx.fillStyle = '#4A3728';
+      ctx.fillRect(sweepX, h * 0.62, 5, 10);
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(sweepX, h * 0.61, 5, 3);
+      // Detector rod
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sweepX + 2, h * 0.65);
+      ctx.lineTo(sweepX + 2 + Math.sin(sweepAngle) * 15, h * 0.72);
+      ctx.stroke();
+      // Detector head
+      ctx.fillStyle = '#444';
+      ctx.beginPath();
+      ctx.arc(sweepX + 2 + Math.sin(sweepAngle) * 15, h * 0.72, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     if (genCount >= 10) {
@@ -238,24 +324,83 @@ const SceneRenderer = (() => {
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(w * 0.85, h * 0.55);
-      ctx.lineTo(w * 0.85, h * 0.3);
-      ctx.lineTo(w * 0.7, h * 0.3);
+      ctx.lineTo(w * 0.85, h * 0.28);
+      ctx.lineTo(w * 0.68, h * 0.28);
       ctx.stroke();
-      // Crane hook
-      const hookY = h * 0.35 + Math.sin(time) * 10;
+      // Crane cab
+      ctx.fillStyle = '#B8860B';
+      ctx.fillRect(w * 0.83, h * 0.38, 8, 10);
+      // Crane hook with cable
+      const hookSwing = Math.sin(time * 0.8) * 12;
+      const hookY = h * 0.33 + Math.sin(time) * 8;
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(w * 0.75, h * 0.3);
-      ctx.lineTo(w * 0.75, hookY);
+      ctx.moveTo(w * 0.74 + hookSwing * 0.3, h * 0.28);
+      ctx.lineTo(w * 0.74 + hookSwing, hookY);
+      ctx.stroke();
+      // Hook
+      ctx.strokeStyle = '#DAA520';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(w * 0.74 + hookSwing, hookY + 4, 4, 0, Math.PI);
       ctx.stroke();
     }
 
-    // Dust particles
-    ctx.fillStyle = 'rgba(210, 180, 140, 0.4)';
-    for (let i = 0; i < 5; i++) {
-      const px = (time * 20 + i * 80) % w;
-      const py = h * 0.5 + Math.sin(time + i) * 15;
+    if (genCount >= 15) {
+      // Small drone flying
+      const droneX = w * 0.4 + Math.sin(time * 0.7) * 60;
+      const droneY = h * 0.35 + Math.cos(time * 0.5) * 15;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(droneX - 4, droneY, 8, 3);
+      // Propellers (spinning effect)
+      ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
+      ctx.lineWidth = 1;
+      const propAngle = time * 20;
       ctx.beginPath();
-      ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.moveTo(droneX - 6, droneY - 1);
+      ctx.lineTo(droneX - 6 + Math.cos(propAngle) * 5, droneY - 1);
+      ctx.moveTo(droneX + 6, droneY - 1);
+      ctx.lineTo(droneX + 6 + Math.cos(propAngle + Math.PI) * 5, droneY - 1);
+      ctx.stroke();
+      // Blinking light
+      if (Math.sin(time * 4) > 0) {
+        ctx.fillStyle = '#FF0000';
+        ctx.beginPath();
+        ctx.arc(droneX, droneY + 3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (genCount >= 20) {
+      // Second worker near scrap pile
+      const w2x = w * 0.35 + Math.sin(time * 0.3 + 2) * 20;
+      ctx.fillStyle = '#5B3A1E';
+      ctx.fillRect(w2x, h * 0.635, 6, 10);
+      ctx.fillStyle = '#FF6600';
+      ctx.fillRect(w2x - 1, h * 0.62, 8, 4); // Orange vest
+    }
+
+    // Birds in sky (subtle)
+    ctx.strokeStyle = 'rgba(50, 50, 50, 0.4)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const bx = (w * 0.3 + i * 80 + time * 8) % (w + 40) - 20;
+      const by = h * 0.12 + i * 15 + Math.sin(time * 2 + i) * 5;
+      ctx.beginPath();
+      ctx.moveTo(bx - 4, by + 2);
+      ctx.quadraticCurveTo(bx, by - 2, bx + 4, by + 2);
+      ctx.stroke();
+    }
+
+    // Dust particles — wind-blown
+    ctx.fillStyle = 'rgba(210, 180, 140, 0.4)';
+    for (let i = 0; i < 8; i++) {
+      const px = (time * 25 + i * 60) % w;
+      const py = h * 0.5 + Math.sin(time * 1.5 + i * 0.7) * 15;
+      const pSize = 1 + Math.sin(i) * 1;
+      ctx.beginPath();
+      ctx.arc(px, py, pSize, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -270,54 +415,178 @@ const SceneRenderer = (() => {
   }
 
   function drawRocket(x, baseY, s) {
-    const scale = 0.8;
-    // Fuel tank
-    if (s.rocketParts.fuelTank) {
-      ctx.fillStyle = '#DDD';
-      ctx.fillRect(x - 10 * scale, baseY - 40 * scale, 20 * scale, 30 * scale);
-      ctx.fillStyle = '#333';
-      ctx.font = `${6 * scale}px sans-serif`;
-      ctx.fillText('FUEL', x - 8 * scale, baseY - 22 * scale);
-    }
-    // Engine
-    if (s.rocketParts.engine) {
-      ctx.fillStyle = '#444';
-      ctx.beginPath();
-      ctx.moveTo(x - 12 * scale, baseY - 8 * scale);
-      ctx.lineTo(x + 12 * scale, baseY - 8 * scale);
-      ctx.lineTo(x + 8 * scale, baseY);
-      ctx.lineTo(x - 8 * scale, baseY);
-      ctx.fill();
-      ctx.fillStyle = '#FF6600';
-      ctx.beginPath();
-      ctx.arc(x, baseY, 4 * scale, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // Hull
-    if (s.rocketParts.hull) {
-      ctx.fillStyle = '#B8B8B8';
-      ctx.fillRect(x - 12 * scale, baseY - 55 * scale, 24 * scale, 50 * scale);
-      ctx.strokeStyle = '#888';
-      ctx.strokeRect(x - 12 * scale, baseY - 55 * scale, 24 * scale, 50 * scale);
-    }
-    // Nav computer
-    if (s.rocketParts.navigationComputer) {
-      ctx.fillStyle = '#0066FF';
-      ctx.fillRect(x + 8 * scale, baseY - 48 * scale, 6 * scale, 5 * scale);
-      // Blinking light
-      if (Math.sin(time * 3) > 0) {
-        ctx.fillStyle = '#00FF00';
-        ctx.fillRect(x + 9 * scale, baseY - 47 * scale, 2 * scale, 2 * scale);
-      }
-    }
-    // Nose cone
-    if (s.rocketParts.noseCone) {
-      ctx.fillStyle = '#CC0000';
+    const scale = 0.85;
+    const partsCount = ['engine', 'fuelTank', 'hull', 'navigationComputer', 'noseCone']
+      .filter(p => s.rocketParts[p]).length;
+
+    // Blueprint ghost outline (shows what's coming)
+    if (partsCount > 0 && partsCount < 5) {
+      ctx.strokeStyle = 'rgba(100, 150, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
       ctx.beginPath();
       ctx.moveTo(x, baseY - 75 * scale);
       ctx.lineTo(x - 12 * scale, baseY - 55 * scale);
+      ctx.lineTo(x - 12 * scale, baseY - 8 * scale);
+      ctx.lineTo(x - 8 * scale, baseY);
+      ctx.lineTo(x + 8 * scale, baseY);
+      ctx.lineTo(x + 12 * scale, baseY - 8 * scale);
+      ctx.lineTo(x + 12 * scale, baseY - 55 * scale);
+      ctx.lineTo(x, baseY - 75 * scale);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Engine — bottom nozzle
+    if (s.rocketParts.engine) {
+      // Nozzle body
+      ctx.fillStyle = '#3A3A3A';
+      ctx.beginPath();
+      ctx.moveTo(x - 12 * scale, baseY - 8 * scale);
+      ctx.lineTo(x + 12 * scale, baseY - 8 * scale);
+      ctx.lineTo(x + 9 * scale, baseY + 2 * scale);
+      ctx.lineTo(x - 9 * scale, baseY + 2 * scale);
+      ctx.fill();
+      // Inner nozzle
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.moveTo(x - 8 * scale, baseY - 6 * scale);
+      ctx.lineTo(x + 8 * scale, baseY - 6 * scale);
+      ctx.lineTo(x + 6 * scale, baseY);
+      ctx.lineTo(x - 6 * scale, baseY);
+      ctx.fill();
+      // Engine glow (idle)
+      ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
+      ctx.beginPath();
+      ctx.arc(x, baseY + 1 * scale, 5 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      // Exhaust flicker
+      if (Math.sin(time * 8) > 0) {
+        ctx.fillStyle = 'rgba(255, 150, 50, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(x - 4 * scale, baseY + 2 * scale);
+        ctx.lineTo(x, baseY + 8 * scale + Math.random() * 3);
+        ctx.lineTo(x + 4 * scale, baseY + 2 * scale);
+        ctx.fill();
+      }
+    }
+
+    // Fuel tank — above engine
+    if (s.rocketParts.fuelTank) {
+      ctx.fillStyle = '#DDD';
+      ctx.fillRect(x - 10 * scale, baseY - 40 * scale, 20 * scale, 30 * scale);
+      // Tank rivets
+      ctx.fillStyle = '#BBB';
+      ctx.beginPath();
+      ctx.arc(x - 8 * scale, baseY - 35 * scale, 1, 0, Math.PI * 2);
+      ctx.arc(x + 8 * scale, baseY - 35 * scale, 1, 0, Math.PI * 2);
+      ctx.arc(x - 8 * scale, baseY - 15 * scale, 1, 0, Math.PI * 2);
+      ctx.arc(x + 8 * scale, baseY - 15 * scale, 1, 0, Math.PI * 2);
+      ctx.fill();
+      // FUEL label
+      ctx.fillStyle = '#555';
+      ctx.font = `bold ${5 * scale}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('FUEL', x, baseY - 22 * scale);
+      ctx.textAlign = 'start';
+    }
+
+    // Hull — main body
+    if (s.rocketParts.hull) {
+      // Main hull body
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(x - 12 * scale, baseY - 55 * scale, 24 * scale, 50 * scale);
+      // Hull panel lines
+      ctx.strokeStyle = 'rgba(160, 160, 160, 0.6)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 12 * scale, baseY - 35 * scale);
+      ctx.lineTo(x + 12 * scale, baseY - 35 * scale);
+      ctx.moveTo(x, baseY - 55 * scale);
+      ctx.lineTo(x, baseY - 5 * scale);
+      ctx.stroke();
+      // Hull border
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 12 * scale, baseY - 55 * scale, 24 * scale, 50 * scale);
+      // Window
+      ctx.fillStyle = 'rgba(100, 180, 255, 0.6)';
+      ctx.beginPath();
+      ctx.arc(x, baseY - 45 * scale, 4 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#AAA';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      // Fins
+      ctx.fillStyle = '#999';
+      ctx.beginPath();
+      ctx.moveTo(x - 12 * scale, baseY - 10 * scale);
+      ctx.lineTo(x - 18 * scale, baseY - 2 * scale);
+      ctx.lineTo(x - 12 * scale, baseY - 2 * scale);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x + 12 * scale, baseY - 10 * scale);
+      ctx.lineTo(x + 18 * scale, baseY - 2 * scale);
+      ctx.lineTo(x + 12 * scale, baseY - 2 * scale);
+      ctx.fill();
+    }
+
+    // Nav computer — side panel
+    if (s.rocketParts.navigationComputer) {
+      ctx.fillStyle = '#003366';
+      ctx.fillRect(x + 8 * scale, baseY - 50 * scale, 7 * scale, 8 * scale);
+      // Screen glow
+      ctx.fillStyle = 'rgba(0, 255, 128, 0.4)';
+      ctx.fillRect(x + 9 * scale, baseY - 49 * scale, 5 * scale, 4 * scale);
+      // Blinking indicators
+      const blink1 = Math.sin(time * 3) > 0;
+      const blink2 = Math.sin(time * 4 + 1) > 0;
+      ctx.fillStyle = blink1 ? '#00FF00' : '#003300';
+      ctx.fillRect(x + 9 * scale, baseY - 44 * scale, 2 * scale, 2 * scale);
+      ctx.fillStyle = blink2 ? '#FFAA00' : '#332200';
+      ctx.fillRect(x + 12 * scale, baseY - 44 * scale, 2 * scale, 2 * scale);
+    }
+
+    // Nose cone — top
+    if (s.rocketParts.noseCone) {
+      ctx.fillStyle = '#CC0000';
+      ctx.beginPath();
+      ctx.moveTo(x, baseY - 78 * scale);
+      ctx.lineTo(x - 12 * scale, baseY - 55 * scale);
       ctx.lineTo(x + 12 * scale, baseY - 55 * scale);
       ctx.fill();
+      // Highlight stripe
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.beginPath();
+      ctx.moveTo(x - 2 * scale, baseY - 76 * scale);
+      ctx.lineTo(x - 6 * scale, baseY - 55 * scale);
+      ctx.lineTo(x - 2 * scale, baseY - 55 * scale);
+      ctx.fill();
+      // Antenna tip
+      ctx.strokeStyle = '#DDD';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY - 78 * scale);
+      ctx.lineTo(x, baseY - 83 * scale);
+      ctx.stroke();
+    }
+
+    // All parts assembled — glow effect
+    if (partsCount === 5) {
+      ctx.shadowColor = 'rgba(100, 200, 255, 0.4)';
+      ctx.shadowBlur = 8 + Math.sin(time * 2) * 4;
+      ctx.strokeStyle = 'rgba(100, 200, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, baseY - 83 * scale);
+      ctx.lineTo(x - 14 * scale, baseY - 55 * scale);
+      ctx.lineTo(x - 14 * scale, baseY - 8 * scale);
+      ctx.lineTo(x + 14 * scale, baseY - 8 * scale);
+      ctx.lineTo(x + 14 * scale, baseY - 55 * scale);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
     }
   }
 
@@ -374,44 +643,262 @@ const SceneRenderer = (() => {
     ctx.fillRect(0, 0, w, h);
     drawStarfield(w, h);
 
-    // Earth in sky
-    ctx.fillStyle = '#1E90FF';
+    // Earth in sky — detailed with atmosphere
+    const earthX = w * 0.82;
+    const earthY = h * 0.14;
+    const earthR = 16;
+    const earthGlow = ctx.createRadialGradient(earthX, earthY, earthR, earthX, earthY, earthR + 6);
+    earthGlow.addColorStop(0, 'rgba(30, 144, 255, 0.3)');
+    earthGlow.addColorStop(1, 'rgba(30, 144, 255, 0)');
+    ctx.fillStyle = earthGlow;
     ctx.beginPath();
-    ctx.arc(w * 0.8, h * 0.15, 15, 0, Math.PI * 2);
+    ctx.arc(earthX, earthY, earthR + 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Earth surface
+    const earthGrad = ctx.createRadialGradient(earthX - 3, earthY - 3, 2, earthX, earthY, earthR);
+    earthGrad.addColorStop(0, '#4A90D9');
+    earthGrad.addColorStop(0.4, '#228B22');
+    earthGrad.addColorStop(0.7, '#1E90FF');
+    earthGrad.addColorStop(1, '#0D4F8B');
+    ctx.fillStyle = earthGrad;
+    ctx.beginPath();
+    ctx.arc(earthX, earthY, earthR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Lunar surface
+    // Lunar surface with subtle terrain
     const surfaceY = h * 0.6;
-    ctx.fillStyle = '#B0B0B0';
+    const surfGrad = ctx.createLinearGradient(0, surfaceY, 0, h);
+    surfGrad.addColorStop(0, '#B8B8B8');
+    surfGrad.addColorStop(0.3, '#A8A8A8');
+    surfGrad.addColorStop(1, '#888888');
+    ctx.fillStyle = surfGrad;
     ctx.fillRect(0, surfaceY, w, h - surfaceY);
 
-    // Craters
-    ctx.fillStyle = '#909090';
-    drawCrater(w * 0.15, surfaceY + 20, 25);
-    drawCrater(w * 0.4, surfaceY + 35, 15);
-    drawCrater(w * 0.65, surfaceY + 15, 20);
-    drawCrater(w * 0.85, surfaceY + 30, 12);
+    // Terrain undulation
+    ctx.fillStyle = '#B0B0B0';
+    ctx.beginPath();
+    ctx.moveTo(0, surfaceY);
+    for (let x = 0; x <= w; x += 10) {
+      const undulate = Math.sin(x * 0.03) * 4 + Math.sin(x * 0.07) * 2;
+      ctx.lineTo(x, surfaceY + undulate);
+    }
+    ctx.lineTo(w, surfaceY + 10);
+    ctx.lineTo(0, surfaceY + 10);
+    ctx.fill();
 
-    // Base structures based on generators
+    // Craters with depth
+    ctx.fillStyle = '#909090';
+    drawCrater(w * 0.12, surfaceY + 22, 25);
+    drawCrater(w * 0.38, surfaceY + 38, 15);
+    drawCrater(w * 0.62, surfaceY + 16, 20);
+    drawCrater(w * 0.88, surfaceY + 32, 12);
+    // Smaller craters for texture
+    ctx.fillStyle = '#989898';
+    drawCrater(w * 0.25, surfaceY + 45, 8);
+    drawCrater(w * 0.52, surfaceY + 50, 6);
+    drawCrater(w * 0.75, surfaceY + 42, 10);
+
+    // Base structures based on generators — progressive base building
     const s = GameState.getState();
     const genCount = GameData.getTotalGenerators(s);
 
+    // Phase 3 base: hab dome appears first
     if (genCount > 0) {
-      // Small dome
+      // Primary hab dome
       ctx.fillStyle = '#DDD';
       ctx.beginPath();
-      ctx.arc(w * 0.5, surfaceY, 15, Math.PI, 0);
+      ctx.arc(w * 0.5, surfaceY - 1, 16, Math.PI, 0);
       ctx.fill();
+      // Dome window
+      ctx.fillStyle = 'rgba(100, 200, 255, 0.5)';
+      ctx.beginPath();
+      ctx.arc(w * 0.5, surfaceY - 6, 5, Math.PI, 0);
+      ctx.fill();
+      // Dome base ring
       ctx.fillStyle = '#AAA';
-      ctx.fillRect(w * 0.5 - 15, surfaceY - 2, 30, 4);
+      ctx.fillRect(w * 0.5 - 16, surfaceY - 2, 32, 4);
+      // Airlock door
+      ctx.fillStyle = '#999';
+      ctx.fillRect(w * 0.5 + 12, surfaceY - 8, 4, 8);
+    }
+
+    if (genCount >= 5) {
+      // Drill rig (ore extractors)
+      const drillX = w * 0.2;
+      ctx.strokeStyle = '#B0B0B0';
+      ctx.lineWidth = 2;
+      // Drill tower
+      ctx.beginPath();
+      ctx.moveTo(drillX, surfaceY);
+      ctx.lineTo(drillX, surfaceY - 25);
+      ctx.moveTo(drillX - 6, surfaceY);
+      ctx.lineTo(drillX, surfaceY - 25);
+      ctx.lineTo(drillX + 6, surfaceY);
+      ctx.stroke();
+      // Drill bit (animated)
+      const drillSpin = time * 3;
+      ctx.fillStyle = '#888';
+      ctx.beginPath();
+      ctx.arc(drillX, surfaceY + 3, 3, drillSpin, drillSpin + Math.PI);
+      ctx.fill();
+      // Sparks from drill
+      if (Math.sin(time * 5) > 0.3) {
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(drillX + Math.random() * 4 - 2, surfaceY + 2, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (genCount >= 10) {
+      // Power lines connecting base elements
+      ctx.strokeStyle = 'rgba(200, 200, 200, 0.4)';
+      ctx.lineWidth = 1;
+      // Power pylons
+      for (let px = w * 0.25; px < w * 0.75; px += w * 0.12) {
+        ctx.beginPath();
+        ctx.moveTo(px, surfaceY);
+        ctx.lineTo(px, surfaceY - 12);
+        ctx.stroke();
+      }
+      // Power cables (sagging)
+      ctx.beginPath();
+      ctx.moveTo(w * 0.25, surfaceY - 12);
+      for (let px = w * 0.25; px <= w * 0.73; px += w * 0.12) {
+        const nextX = px + w * 0.12;
+        const midX = (px + nextX) / 2;
+        ctx.quadraticCurveTo(midX, surfaceY - 6, Math.min(nextX, w * 0.73), surfaceY - 12);
+      }
+      ctx.stroke();
+
+      // Solar panels
+      ctx.fillStyle = '#2244AA';
+      ctx.fillRect(w * 0.65, surfaceY - 10, 14, 8);
+      ctx.fillRect(w * 0.66, surfaceY - 9, 12, 6);
+      ctx.strokeStyle = '#556';
+      ctx.lineWidth = 0.5;
+      // Panel grid lines
+      ctx.beginPath();
+      ctx.moveTo(w * 0.66, surfaceY - 6);
+      ctx.lineTo(w * 0.78, surfaceY - 6);
+      ctx.moveTo(w * 0.72, surfaceY - 9);
+      ctx.lineTo(w * 0.72, surfaceY - 3);
+      ctx.stroke();
+      // Panel support
+      ctx.strokeStyle = '#AAA';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.72, surfaceY - 2);
+      ctx.lineTo(w * 0.72, surfaceY);
+      ctx.stroke();
     }
 
     if (genCount >= 20) {
-      // Larger dome
+      // Larger science dome
       ctx.fillStyle = '#CCC';
       ctx.beginPath();
-      ctx.arc(w * 0.35, surfaceY, 20, Math.PI, 0);
+      ctx.arc(w * 0.36, surfaceY - 1, 22, Math.PI, 0);
       ctx.fill();
+      // Dome stripes (pressure segments)
+      ctx.strokeStyle = 'rgba(150, 150, 150, 0.5)';
+      ctx.lineWidth = 0.5;
+      for (let a = Math.PI; a < Math.PI * 2; a += 0.3) {
+        ctx.beginPath();
+        ctx.moveTo(w * 0.36, surfaceY - 1);
+        ctx.lineTo(w * 0.36 + Math.cos(a) * 22, surfaceY - 1 + Math.sin(a) * 22);
+        ctx.stroke();
+      }
+      // Connecting corridor
+      ctx.fillStyle = '#BBB';
+      ctx.fillRect(w * 0.36 + 18, surfaceY - 6, w * 0.5 - w * 0.36 - 32, 6);
+    }
+
+    if (genCount >= 30) {
+      // Mass driver track
+      ctx.strokeStyle = '#AAA';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.05, surfaceY + 5);
+      ctx.lineTo(w * 0.18, surfaceY - 15);
+      ctx.stroke();
+      // Track rails
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.05, surfaceY + 7);
+      ctx.lineTo(w * 0.18, surfaceY - 13);
+      ctx.moveTo(w * 0.05, surfaceY + 3);
+      ctx.lineTo(w * 0.18, surfaceY - 17);
+      ctx.stroke();
+      // Cargo pod on track
+      const podPos = (Math.sin(time * 0.4) + 1) / 2;
+      const podX = w * 0.05 + podPos * (w * 0.13);
+      const podY = surfaceY + 5 - podPos * 20;
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(podX - 3, podY - 3, 6, 4);
+    }
+
+    if (genCount >= 40) {
+      // Space elevator tether
+      ctx.strokeStyle = 'rgba(200, 200, 255, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 4]);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.8, surfaceY);
+      ctx.lineTo(w * 0.8, 0);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Elevator platform
+      const elevY = (Math.sin(time * 0.2) + 1) / 2 * surfaceY * 0.6;
+      ctx.fillStyle = '#CCC';
+      ctx.fillRect(w * 0.8 - 4, elevY, 8, 5);
+      // Blinking light at base
+      if (Math.sin(time * 2) > 0) {
+        ctx.fillStyle = '#00FF00';
+        ctx.beginPath();
+        ctx.arc(w * 0.8, surfaceY - 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Lunar rover (if any generators)
+    if (genCount >= 3) {
+      const roverX = w * 0.55 + Math.sin(time * 0.15) * 25;
+      const roverY = surfaceY + 8;
+      ctx.fillStyle = '#CCC';
+      ctx.fillRect(roverX - 5, roverY - 3, 10, 4);
+      // Wheels
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.arc(roverX - 4, roverY + 1, 2, 0, Math.PI * 2);
+      ctx.arc(roverX + 4, roverY + 1, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Antenna
+      ctx.strokeStyle = '#DDD';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(roverX + 3, roverY - 3);
+      ctx.lineTo(roverX + 5, roverY - 8);
+      ctx.stroke();
+      // Rover tracks behind it
+      ctx.strokeStyle = 'rgba(120, 120, 120, 0.3)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(roverX - 25, roverY + 1);
+      ctx.lineTo(roverX - 6, roverY + 1);
+      ctx.stroke();
+    }
+
+    // Footprints near base
+    if (genCount > 0) {
+      ctx.fillStyle = 'rgba(140, 140, 140, 0.3)';
+      for (let i = 0; i < 5; i++) {
+        const fpx = w * 0.5 + 20 + i * 8;
+        const fpy = surfaceY + 5 + Math.sin(i) * 2;
+        ctx.beginPath();
+        ctx.ellipse(fpx, fpy, 2, 1.2, i * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
@@ -429,59 +916,246 @@ const SceneRenderer = (() => {
   function drawMars(w, h) {
     const s = GameState.getState();
     const terraform = s.terraforming.marsPercent;
+    const t100 = terraform / 100; // normalized 0-1
 
-    // Sky
-    const skyColor = lerpColor('#1A0A00', '#6699CC', terraform / 100);
-    ctx.fillStyle = skyColor;
+    // Sky gradient — transitions from dark rusty to Earth-like blue
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.65);
+    if (terraform < 25) {
+      skyGrad.addColorStop(0, lerpColor('#1A0A00', '#3D2215', t100 * 4));
+      skyGrad.addColorStop(1, lerpColor('#4A2010', '#7A5030', t100 * 4));
+    } else if (terraform < 50) {
+      const t = (terraform - 25) / 25;
+      skyGrad.addColorStop(0, lerpColor('#3D2215', '#556688', t));
+      skyGrad.addColorStop(1, lerpColor('#7A5030', '#8899AA', t));
+    } else if (terraform < 90) {
+      const t = (terraform - 50) / 40;
+      skyGrad.addColorStop(0, lerpColor('#556688', '#5588BB', t));
+      skyGrad.addColorStop(1, lerpColor('#8899AA', '#99BBDD', t));
+    } else {
+      const t = (terraform - 90) / 10;
+      skyGrad.addColorStop(0, lerpColor('#5588BB', '#6699CC', t));
+      skyGrad.addColorStop(1, lerpColor('#99BBDD', '#87CEEB', t));
+    }
+    ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, w, h);
 
-    if (terraform < 50) drawStarfield(w, h, 0.3);
-
-    // Surface
-    const surfaceY = h * 0.6;
-    const groundColor = lerpColor('#C1440E', '#228B22', terraform / 100);
-    ctx.fillStyle = groundColor;
-    ctx.fillRect(0, surfaceY, w, h - surfaceY);
-
-    // Mountains
-    ctx.fillStyle = lerpColor('#8B3010', '#6B8E23', terraform / 100);
-    ctx.beginPath();
-    ctx.moveTo(0, surfaceY);
-    ctx.lineTo(w * 0.15, surfaceY - 40);
-    ctx.lineTo(w * 0.3, surfaceY);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(w * 0.6, surfaceY);
-    ctx.lineTo(w * 0.75, surfaceY - 60);
-    ctx.lineTo(w * 0.9, surfaceY);
-    ctx.fill();
-
-    // Water if terraform > 25
-    if (terraform > 25) {
-      ctx.fillStyle = `rgba(30, 144, 255, ${(terraform - 25) / 75 * 0.6})`;
-      ctx.fillRect(w * 0.3, surfaceY + 10, w * 0.25, 15);
+    // Stars visible until atmosphere forms
+    if (terraform < 60) {
+      const starAlpha = Math.max(0, 1 - terraform / 60);
+      drawStarfield(w, h, starAlpha * 0.5);
     }
 
-    // Clouds if terraform > 50
-    if (terraform > 50) {
-      ctx.fillStyle = `rgba(255, 255, 255, ${(terraform - 50) / 50 * 0.5})`;
-      const cx = (time * 10) % (w + 60) - 30;
+    // Phobos (larger, closer moon)
+    if (terraform < 80) {
+      const phobosX = w * 0.25 + Math.sin(time * 0.1) * w * 0.1;
+      const phobosY = h * 0.12 + Math.cos(time * 0.08) * 8;
+      ctx.fillStyle = `rgba(170, 150, 130, ${Math.max(0.2, 1 - terraform / 80)})`;
       ctx.beginPath();
-      ctx.arc(cx, h * 0.2, 20, 0, Math.PI * 2);
-      ctx.arc(cx + 15, h * 0.18, 15, 0, Math.PI * 2);
-      ctx.arc(cx - 10, h * 0.19, 12, 0, Math.PI * 2);
+      // Irregular shape
+      ctx.ellipse(phobosX, phobosY, 6, 4, time * 0.02, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Dust devil
-    if (terraform < 50) {
-      ctx.strokeStyle = 'rgba(193, 68, 14, 0.3)';
-      ctx.lineWidth = 2;
-      const dx = (w * 0.5 + Math.sin(time * 0.2) * w * 0.3);
+    // Deimos (smaller, farther moon)
+    if (terraform < 80) {
+      const deimosX = w * 0.7 + Math.sin(time * 0.05 + 2) * w * 0.08;
+      const deimosY = h * 0.08 + Math.cos(time * 0.04) * 5;
+      ctx.fillStyle = `rgba(160, 145, 125, ${Math.max(0.15, 0.8 - terraform / 80)})`;
       ctx.beginPath();
-      ctx.moveTo(dx, surfaceY);
-      ctx.quadraticCurveTo(dx + Math.sin(time * 2) * 10, surfaceY - 30, dx, surfaceY - 50);
-      ctx.stroke();
+      ctx.arc(deimosX, deimosY, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Surface
+    const surfaceY = h * 0.6;
+    const groundGrad = ctx.createLinearGradient(0, surfaceY, 0, h);
+    groundGrad.addColorStop(0, lerpColor('#C1440E', '#228B22', t100));
+    groundGrad.addColorStop(1, lerpColor('#8B3010', '#1A6B1A', t100));
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, surfaceY, w, h - surfaceY);
+
+    // Olympus Mons (large volcanic mountain, far background)
+    const olympusColor = lerpColor('#6B3010', '#4B6B23', t100);
+    ctx.fillStyle = olympusColor;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.35, surfaceY);
+    ctx.quadraticCurveTo(w * 0.43, surfaceY - 75, w * 0.5, surfaceY - 80);
+    ctx.quadraticCurveTo(w * 0.57, surfaceY - 75, w * 0.65, surfaceY);
+    ctx.fill();
+    // Snow cap if terraform > 60
+    if (terraform > 60) {
+      const snowAlpha = (terraform - 60) / 40 * 0.7;
+      ctx.fillStyle = `rgba(255, 255, 255, ${snowAlpha})`;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.46, surfaceY - 70);
+      ctx.lineTo(w * 0.5, surfaceY - 80);
+      ctx.lineTo(w * 0.54, surfaceY - 70);
+      ctx.fill();
+    }
+
+    // Mountain range
+    ctx.fillStyle = lerpColor('#8B3010', '#6B8E23', t100);
+    ctx.beginPath();
+    ctx.moveTo(0, surfaceY);
+    ctx.lineTo(w * 0.05, surfaceY - 20);
+    ctx.lineTo(w * 0.12, surfaceY - 38);
+    ctx.lineTo(w * 0.2, surfaceY - 25);
+    ctx.lineTo(w * 0.28, surfaceY);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.7, surfaceY);
+    ctx.lineTo(w * 0.76, surfaceY - 30);
+    ctx.lineTo(w * 0.82, surfaceY - 52);
+    ctx.lineTo(w * 0.88, surfaceY - 35);
+    ctx.lineTo(w * 0.95, surfaceY - 15);
+    ctx.lineTo(w, surfaceY);
+    ctx.fill();
+
+    // Water bodies — progressive stages
+    if (terraform > 25) {
+      const waterAlpha = Math.min(0.7, (terraform - 25) / 50);
+      // Small water patches at 25%
+      ctx.fillStyle = `rgba(30, 100, 200, ${waterAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(w * 0.35, surfaceY + 12, 20, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (terraform > 50) {
+        // Larger lake
+        ctx.fillStyle = `rgba(25, 120, 220, ${waterAlpha})`;
+        ctx.beginPath();
+        ctx.ellipse(w * 0.36, surfaceY + 14, 35, 10, -0.1, 0, Math.PI * 2);
+        ctx.fill();
+        // Second water body
+        ctx.beginPath();
+        ctx.ellipse(w * 0.72, surfaceY + 18, 18, 7, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (terraform > 75) {
+        // Lakes become rivers — connected waterway
+        ctx.strokeStyle = `rgba(25, 120, 220, ${waterAlpha})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.36, surfaceY + 14);
+        ctx.quadraticCurveTo(w * 0.55, surfaceY + 25, w * 0.72, surfaceY + 18);
+        ctx.stroke();
+      }
+
+      if (terraform >= 90) {
+        // Oceans forming
+        ctx.fillStyle = `rgba(20, 100, 200, ${waterAlpha * 0.8})`;
+        ctx.fillRect(w * 0.25, surfaceY + 8, w * 0.55, h * 0.06);
+        // Wave shimmer
+        ctx.strokeStyle = `rgba(100, 180, 255, ${waterAlpha * 0.3})`;
+        ctx.lineWidth = 0.5;
+        for (let wx = w * 0.26; wx < w * 0.79; wx += 12) {
+          ctx.beginPath();
+          ctx.moveTo(wx, surfaceY + 10 + Math.sin(time * 2 + wx * 0.1) * 2);
+          ctx.lineTo(wx + 6, surfaceY + 10 + Math.sin(time * 2 + wx * 0.1 + 1) * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Green vegetation patches at 50%+
+    if (terraform > 50) {
+      const vegAlpha = (terraform - 50) / 50 * 0.6;
+      ctx.fillStyle = `rgba(34, 139, 34, ${vegAlpha})`;
+      // Scattered green patches
+      for (let i = 0; i < 8; i++) {
+        const vx = w * 0.1 + (i * w * 0.1) + Math.sin(i * 1.7) * 15;
+        const vy = surfaceY + 5 + i * 4 + Math.cos(i * 2.1) * 5;
+        if (vy > surfaceY + 2) {
+          ctx.beginPath();
+          ctx.ellipse(vx, vy, 8 + i % 3 * 4, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // Trees/forests at 75%+
+    if (terraform > 75) {
+      const treeAlpha = (terraform - 75) / 25 * 0.7;
+      ctx.fillStyle = `rgba(20, 100, 20, ${treeAlpha})`;
+      for (let i = 0; i < 6; i++) {
+        const tx = w * 0.08 + i * w * 0.15 + Math.sin(i * 3) * 10;
+        const ty = surfaceY + 3;
+        // Tree trunk
+        ctx.fillStyle = `rgba(100, 60, 20, ${treeAlpha})`;
+        ctx.fillRect(tx - 1, ty - 6, 2, 6);
+        // Tree crown
+        ctx.fillStyle = `rgba(20, 100, 20, ${treeAlpha})`;
+        ctx.beginPath();
+        ctx.arc(tx, ty - 9, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Clouds — progressive layers
+    if (terraform > 50) {
+      const cloudAlpha = (terraform - 50) / 50 * 0.5;
+      // Multiple cloud clusters moving at different speeds
+      for (let ci = 0; ci < 3; ci++) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${cloudAlpha * (0.5 + ci * 0.2)})`;
+        const cSpeed = 8 + ci * 4;
+        const cx = (time * cSpeed + ci * w * 0.35) % (w + 80) - 40;
+        const cy = h * 0.15 + ci * h * 0.08;
+        const cSize = 15 + ci * 5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, cSize, 0, Math.PI * 2);
+        ctx.arc(cx + cSize * 0.7, cy - cSize * 0.15, cSize * 0.7, 0, Math.PI * 2);
+        ctx.arc(cx - cSize * 0.5, cy + cSize * 0.1, cSize * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Dust devils — more active at low terraform
+    if (terraform < 50) {
+      const dustCount = terraform < 10 ? 3 : terraform < 25 ? 2 : 1;
+      for (let di = 0; di < dustCount; di++) {
+        const dustAlpha = 0.3 * (1 - terraform / 50);
+        ctx.strokeStyle = `rgba(193, 68, 14, ${dustAlpha})`;
+        ctx.lineWidth = 1.5;
+        const dx = (w * (0.2 + di * 0.3) + Math.sin(time * 0.2 + di * 2) * w * 0.15);
+        const dHeight = 30 + di * 15;
+        ctx.beginPath();
+        ctx.moveTo(dx, surfaceY);
+        for (let dy = 0; dy < dHeight; dy += 5) {
+          const sway = Math.sin(time * 3 + dy * 0.15 + di) * (5 + dy * 0.2);
+          ctx.lineTo(dx + sway, surfaceY - dy);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // Hab dome / base structures
+    const genCount = GameData.getTotalGenerators(s);
+    if (genCount > 0) {
+      // Mars hab dome
+      ctx.fillStyle = `rgba(200, 180, 160, 0.8)`;
+      ctx.beginPath();
+      ctx.arc(w * 0.5, surfaceY, 12, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(150, 130, 110, 0.6)';
+      ctx.fillRect(w * 0.5 - 12, surfaceY - 1, 24, 3);
+      // Red light on dome
+      if (Math.sin(time * 2) > 0) {
+        ctx.fillStyle = 'rgba(255, 50, 50, 0.6)';
+        ctx.beginPath();
+        ctx.arc(w * 0.5, surfaceY - 11, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Terraform progress visual indicator — subtle horizon glow
+    if (terraform > 10) {
+      const glowAlpha = t100 * 0.2;
+      const horizonGlow = ctx.createLinearGradient(0, surfaceY - 15, 0, surfaceY + 5);
+      horizonGlow.addColorStop(0, `rgba(135, 206, 235, ${glowAlpha})`);
+      horizonGlow.addColorStop(1, 'rgba(135, 206, 235, 0)');
+      ctx.fillStyle = horizonGlow;
+      ctx.fillRect(0, surfaceY - 15, w, 20);
     }
   }
 

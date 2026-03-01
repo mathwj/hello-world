@@ -830,7 +830,22 @@ const Engine = (() => {
         if (eff.globalRPMultiplier) s.globalRPMultiplier *= eff.globalRPMultiplier;
         if (eff.globalOreMultiplier) s.globalOreMultiplier *= eff.globalOreMultiplier;
         if (eff.globalCreditMultiplier) s.globalCreditMultiplier *= eff.globalCreditMultiplier;
+        if (eff.passiveRPMultiplier) s.globalRPMultiplier *= eff.passiveRPMultiplier;
+        // Unlock "Martian" title at 100% terraform
+        if (eff.title) {
+          if (!s.titles.unlocked.includes(eff.title)) {
+            s.titles.unlocked.push(eff.title);
+          }
+        }
         if (milestone.logEntry) addLogEntry(milestone.logEntry);
+        // Show milestone notification
+        if (typeof UI !== 'undefined') {
+          UI.showMilestoneNotification('Terraform ' + milestone.percent + '%', milestone.desc);
+        }
+        // Record terraform time for stats
+        if (milestone.percent === 100 && s.stats.terraformTime === 0) {
+          s.stats.terraformTime = s.totalPlayTimeSeconds;
+        }
       }
     }
   }

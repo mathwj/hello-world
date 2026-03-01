@@ -63,7 +63,7 @@ const GameData = (() => {
       { id: 'p3g10', name: 'Dark Side Mining Complex', baseCost: 1.5e12, growth: 1.15, output: { credits: 80e9, ore: 7000, rp: 3000 }, icon: '\u26CF', desc: 'Underground complex on far side of Moon' }
     ],
     4: [
-      { id: 'p4g1', name: 'Dust Collector', baseCost: 100e9, growth: 1.15, output: { credits: 1e9 }, terraform: 0.001, icon: '\u{1F32A}', desc: 'Collects Martian dust' },
+      { id: 'p4g1', name: 'Dust Collector', baseCost: 100e9, growth: 1.15, output: { credits: 1e9 }, icon: '\u{1F32A}', desc: 'Collects Martian dust' },
       { id: 'p4g2', name: 'Atmospheric Processor', baseCost: 500e9, growth: 1.15, output: { credits: 5e9 }, terraform: 0.01, icon: '\u{1F32B}', desc: 'Adds gases to atmosphere' },
       { id: 'p4g3', name: 'Ice Melter', baseCost: 2.5e12, growth: 1.15, output: { credits: 25e9 }, terraform: 0.05, icon: '\u2744', desc: 'Melts polar ice caps' },
       { id: 'p4g4', name: 'Greenhouse Array', baseCost: 12e12, growth: 1.15, output: { credits: 120e9 }, terraform: 0.1, icon: '\u{1F33F}', desc: 'Warms the atmosphere' },
@@ -321,13 +321,13 @@ const GameData = (() => {
 
   // ========== TERRAFORM MILESTONES (Phase 4) ==========
   const TERRAFORM_MILESTONES = [
-    { percent: 5, effect: { phaseMultiplier: { phase: 4, mult: 1.2 } }, desc: 'Mars generators +20%' },
-    { percent: 10, effect: { phaseMultiplier: { phase: 4, mult: 1.5 } }, desc: 'Mars generators +50%' },
-    { percent: 25, effect: { globalRPMultiplier: 3 }, logEntry: 'log9', desc: 'First Rain — all RP x3' },
-    { percent: 50, effect: { unlockArtifacts: true }, desc: 'Unlock alien artifact fragments' },
-    { percent: 75, effect: { globalOreMultiplier: 2 }, desc: 'All ore production x2' },
-    { percent: 90, effect: { globalCreditMultiplier: 2 }, desc: 'All credits x2' },
-    { percent: 100, effect: { phaseMultiplier: { phase: 4, mult: 5 } }, logEntry: 'log10', desc: 'New Earth — Mars generators x5' }
+    { percent: 5, effect: { phaseMultiplier: { phase: 4, mult: 1.2 } }, desc: 'Mars generators +20% — First moisture in air' },
+    { percent: 10, effect: { globalCreditMultiplier: 1.5, globalRPMultiplier: 1.5, globalOreMultiplier: 1.5 }, desc: 'All generators +50% output — Blue tinge at horizon' },
+    { percent: 25, effect: { passiveRPMultiplier: 3, unlockMarsTourism: true }, logEntry: 'log9', desc: 'Mars Tourism unlocked — passive RP x3, small water patches' },
+    { percent: 50, effect: { unlockArtifacts: true }, desc: 'Alien Artifact fragments now appear — Green patches visible' },
+    { percent: 75, effect: { globalOreMultiplier: 2 }, desc: 'Double all Ore production everywhere — Forests and lakes' },
+    { percent: 90, effect: { globalCreditMultiplier: 2, globalRPMultiplier: 2, globalOreMultiplier: 2 }, desc: 'All currencies x2 — Oceans forming' },
+    { percent: 100, effect: { phaseMultiplier: { phase: 4, mult: 5 }, title: 'Martian' }, logEntry: 'log10', desc: 'New Earth — Mars ₡ x5, "Martian" title unlocked' }
   ];
 
   // ========== COSMIC DUST SHOP ==========
