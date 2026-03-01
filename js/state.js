@@ -3,7 +3,52 @@
 
 const GameState = (() => {
   const SAVE_KEY = 'deepSpaceInc_save';
+  const BACKUP_KEY = 'deepSpaceInc_backup';
   const VERSION = '2.0.0';
+  const MAX_OFFLINE_SECONDS = 86400; // 24h cap per Section 32
+
+  // Simple hash for save integrity (not cryptographic, just tamper-detection)
+  function computeHash(obj) {
+    const str = JSON.stringify(obj);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + ch;
+      hash = hash & hash; // Convert to 32-bit int
+    }
+    return 'dsi_' + Math.abs(hash).toString(36);
+  }
+
+  // Clock manipulation detection
+  let _lastTickTimestamp = Date.now();
+  let _clockWarnings = 0;
+
+  function checkClockManipulation() {
+    const now = Date.now();
+    const delta = now - _lastTickTimestamp;
+    _lastTickTimestamp = now;
+
+    // If time jumped forward by more than 5 minutes in a single check, suspicious
+    if (delta > 300000 && delta < 1000) {
+      // Time went backwards — clear manipulation
+      _clockWarnings++;
+      return 'backward';
+    }
+    // Large forward jump while game is running (not offline)
+    if (delta > 300000) {
+      _clockWarnings++;
+      return 'forward';
+    }
+    return null;
+  }
+
+  function getClockWarnings() {
+    return _clockWarnings;
+  }
+
+  function resetClockCheck() {
+    _lastTickTimestamp = Date.now();
+  }
 
   function createDefaultState() {
     return {
@@ -397,68 +442,189 @@ const GameState = (() => {
   function save() {
     try {
       state.lastOnlineTimestamp = Date.now();
-      const json = JSON.stringify(state);
+      state.totalPlayTimeSeconds += (Date.now() - (state._lastSaveTimestamp || Date.now())) / 1000;
+      state._lastSaveTimestamp = Date.now();
+
+      // Create save envelope with integrity hash
+      const saveData = { ...state };
+      delete saveData._hash; // Don't include old hash in computation
+      const hash = computeHash(saveData);
+
+      const envelope = {
+        data: state,
+        hash: hash,
+        savedAt: Date.now(),
+        version: VERSION
+      };
+
+      const json = JSON.stringify(envelope);
       localStorage.setItem(SAVE_KEY, json);
+
+      // Rotating backup — save backup every 5th save
+      if (!state._saveCount) state._saveCount = 0;
+      state._saveCount++;
+      if (state._saveCount % 5 === 0) {
+        localStorage.setItem(BACKUP_KEY, json);
+      }
     } catch (e) {
       console.error('Save failed:', e);
     }
+  }
+
+  function _applySavedData(saved) {
+    state = Object.assign(createDefaultState(), saved);
+    // Ensure nested objects are properly merged
+    const defaults = createDefaultState();
+    state.rocketParts = Object.assign(defaults.rocketParts, saved.rocketParts || {});
+    state.crew = Object.assign(defaults.crew, saved.crew || {});
+    state.terraforming = Object.assign(defaults.terraforming, saved.terraforming || {});
+    state.starSystems = Object.assign(defaults.starSystems, saved.starSystems || {});
+    state.multiverse = Object.assign(defaults.multiverse, saved.multiverse || {});
+    state.dailyReward = Object.assign(defaults.dailyReward, saved.dailyReward || {});
+    state.fleet = Object.assign(defaults.fleet, saved.fleet || {});
+    state.settings = Object.assign(defaults.settings, saved.settings || {});
+    state.stats = Object.assign(defaults.stats, saved.stats || {});
+    // Expansion v2.0 nested merges
+    state.combo = Object.assign(defaults.combo, saved.combo || {});
+    state.criticalTaps = Object.assign(defaults.criticalTaps, saved.criticalTaps || {});
+    state.luckyDrops = Object.assign(defaults.luckyDrops, saved.luckyDrops || {});
+    state.synergies = Object.assign(defaults.synergies, saved.synergies || {});
+    state.collection = Object.assign(defaults.collection, saved.collection || {});
+    state.contracts = Object.assign(defaults.contracts, saved.contracts || {});
+    state.boosters = Object.assign(defaults.boosters, saved.boosters || {});
+    state.eggs = Object.assign(defaults.eggs, saved.eggs || {});
+    state.weather = Object.assign(defaults.weather, saved.weather || {});
+    state.streaks = Object.assign(defaults.streaks, saved.streaks || {});
+    state.rocket = Object.assign(defaults.rocket, saved.rocket || {});
+    state.titles = Object.assign(defaults.titles, saved.titles || {});
+    state.goldenRush = Object.assign(defaults.goldenRush, saved.goldenRush || {});
+    state.flyingBonus = Object.assign(defaults.flyingBonus, saved.flyingBonus || {});
+    state.challenge = Object.assign(defaults.challenge, saved.challenge || {});
+    // Expansion C nested merges
+    state.audio = Object.assign(defaults.audio, saved.audio || {});
+
+    // Initialize clock check baseline
+    state._lastSaveTimestamp = Date.now();
+    resetClockCheck();
   }
 
   function load() {
     try {
       const json = localStorage.getItem(SAVE_KEY);
       if (!json) return false;
-      const saved = JSON.parse(json);
+
+      const parsed = JSON.parse(json);
+
+      // Support new envelope format (with hash) and legacy flat format
+      let saved, integrityOk = true;
+      if (parsed && parsed.data && parsed.hash) {
+        // New envelope format — verify integrity
+        saved = parsed.data;
+        const checkData = { ...saved };
+        delete checkData._hash;
+        const expectedHash = computeHash(checkData);
+        if (expectedHash !== parsed.hash) {
+          console.warn('Save integrity mismatch — possible tampering detected');
+          integrityOk = false;
+          // Try backup save
+          const backupJson = localStorage.getItem(BACKUP_KEY);
+          if (backupJson) {
+            try {
+              const backup = JSON.parse(backupJson);
+              if (backup && backup.data && backup.hash) {
+                const backupCheck = { ...backup.data };
+                delete backupCheck._hash;
+                if (computeHash(backupCheck) === backup.hash) {
+                  console.info('Loaded from backup save instead');
+                  saved = backup.data;
+                  integrityOk = true;
+                }
+              }
+            } catch (be) { /* backup also corrupt, use primary anyway */ }
+          }
+        }
+      } else if (parsed && parsed.version) {
+        // Legacy flat format (no envelope)
+        saved = parsed;
+      } else {
+        return false;
+      }
+
       if (saved && saved.version) {
-        state = Object.assign(createDefaultState(), saved);
-        // Ensure nested objects are properly merged
-        state.rocketParts = Object.assign(createDefaultState().rocketParts, saved.rocketParts || {});
-        state.crew = Object.assign(createDefaultState().crew, saved.crew || {});
-        state.terraforming = Object.assign(createDefaultState().terraforming, saved.terraforming || {});
-        state.starSystems = Object.assign(createDefaultState().starSystems, saved.starSystems || {});
-        state.multiverse = Object.assign(createDefaultState().multiverse, saved.multiverse || {});
-        state.dailyReward = Object.assign(createDefaultState().dailyReward, saved.dailyReward || {});
-        state.fleet = Object.assign(createDefaultState().fleet, saved.fleet || {});
-        state.settings = Object.assign(createDefaultState().settings, saved.settings || {});
-        state.stats = Object.assign(createDefaultState().stats, saved.stats || {});
-        // Expansion v2.0 nested merges
-        state.combo = Object.assign(createDefaultState().combo, saved.combo || {});
-        state.criticalTaps = Object.assign(createDefaultState().criticalTaps, saved.criticalTaps || {});
-        state.luckyDrops = Object.assign(createDefaultState().luckyDrops, saved.luckyDrops || {});
-        state.synergies = Object.assign(createDefaultState().synergies, saved.synergies || {});
-        state.collection = Object.assign(createDefaultState().collection, saved.collection || {});
-        state.contracts = Object.assign(createDefaultState().contracts, saved.contracts || {});
-        state.boosters = Object.assign(createDefaultState().boosters, saved.boosters || {});
-        state.eggs = Object.assign(createDefaultState().eggs, saved.eggs || {});
-        state.weather = Object.assign(createDefaultState().weather, saved.weather || {});
-        state.streaks = Object.assign(createDefaultState().streaks, saved.streaks || {});
-        state.rocket = Object.assign(createDefaultState().rocket, saved.rocket || {});
-        state.titles = Object.assign(createDefaultState().titles, saved.titles || {});
-        state.goldenRush = Object.assign(createDefaultState().goldenRush, saved.goldenRush || {});
-        state.flyingBonus = Object.assign(createDefaultState().flyingBonus, saved.flyingBonus || {});
-        state.challenge = Object.assign(createDefaultState().challenge, saved.challenge || {});
-        // Expansion C nested merges
-        state.audio = Object.assign(createDefaultState().audio, saved.audio || {});
+        _applySavedData(saved);
+
+        // Anti-cheat: clock manipulation check on load
+        const now = Date.now();
+        if (state.lastOnlineTimestamp > now + 60000) {
+          // Last save is in the future — clock was set forward then back
+          console.warn('Clock manipulation detected: save timestamp is in the future');
+          state.lastOnlineTimestamp = now;
+          _clockWarnings++;
+        }
+
+        // Mark integrity status in state for UI to display if needed
+        if (!integrityOk) {
+          state._saveIntegrityFailed = true;
+        }
+
         return true;
       }
     } catch (e) {
       console.error('Load failed:', e);
+      // Attempt backup recovery
+      try {
+        const backupJson = localStorage.getItem(BACKUP_KEY);
+        if (backupJson) {
+          const backup = JSON.parse(backupJson);
+          const saved = backup.data || backup;
+          if (saved && saved.version) {
+            _applySavedData(saved);
+            console.info('Recovered from backup save');
+            return true;
+          }
+        }
+      } catch (be) {
+        console.error('Backup recovery also failed:', be);
+      }
     }
     return false;
   }
 
   function exportSave() {
     save();
-    const json = JSON.stringify(state);
-    return btoa(json);
+    const envelope = {
+      data: state,
+      hash: computeHash(state),
+      exportedAt: Date.now(),
+      version: VERSION
+    };
+    const json = JSON.stringify(envelope);
+    return btoa(unescape(encodeURIComponent(json)));
   }
 
   function importSave(b64) {
     try {
-      const json = atob(b64);
-      const saved = JSON.parse(json);
+      const json = decodeURIComponent(escape(atob(b64)));
+      const parsed = JSON.parse(json);
+
+      // Support envelope and legacy formats
+      let saved;
+      if (parsed && parsed.data && parsed.hash) {
+        saved = parsed.data;
+        // Verify integrity
+        const checkData = { ...saved };
+        delete checkData._hash;
+        if (computeHash(checkData) !== parsed.hash) {
+          console.warn('Imported save integrity mismatch — loading anyway');
+        }
+      } else if (parsed && parsed.version) {
+        saved = parsed;
+      } else {
+        return false;
+      }
+
       if (saved && saved.version) {
-        state = Object.assign(createDefaultState(), saved);
+        _applySavedData(saved);
         save();
         return true;
       }
@@ -476,7 +642,16 @@ const GameState = (() => {
   function calculateOfflineEarnings() {
     const now = Date.now();
     const offlineMs = now - state.lastOnlineTimestamp;
-    const offlineSec = Math.min(offlineMs / 1000, 86400); // cap 24h
+
+    // Anti-cheat: if lastOnlineTimestamp is in the future, clock was manipulated
+    if (offlineMs < 0) {
+      console.warn('Clock manipulation detected: negative offline time');
+      _clockWarnings++;
+      state.lastOnlineTimestamp = now;
+      return null;
+    }
+
+    const offlineSec = Math.min(offlineMs / 1000, MAX_OFFLINE_SECONDS); // cap 24h
 
     if (offlineSec < 60) return null; // less than 1 min, skip
 
@@ -487,7 +662,8 @@ const GameState = (() => {
       rm: state.rmPerSecond * offlineSec * state.offlineEarningsMultiplier,
       sd: state.sdPerSecond * offlineSec * state.offlineEarningsMultiplier,
       terraforming: state.terraforming.marsPerSecond * offlineSec * state.offlineEarningsMultiplier,
-      time: offlineSec
+      time: offlineSec,
+      capped: offlineMs / 1000 > MAX_OFFLINE_SECONDS // Indicate if earnings were capped
     };
 
     return earnings;
@@ -727,6 +903,7 @@ const GameState = (() => {
     getGeneratorMultiplier, getPhaseMultiplier,
     addCurrency, getCurrency, spendCurrency, canAfford,
     getCDSpeedMultiplier, applyPermanentUpgrades,
-    createDefaultState
+    createDefaultState,
+    checkClockManipulation, getClockWarnings, resetClockCheck
   };
 })();

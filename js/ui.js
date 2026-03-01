@@ -460,12 +460,20 @@ const UI = (() => {
       ioInfo = `<div class="io-eff">Efficiency: ${eff}% <button class="repair-btn" data-genid="${gen.id}">Repair</button></div>`;
     }
 
-    return `<div class="generator-row ${canAfford ? 'affordable' : 'expensive'}">
+    // Visual level per spec: 1-9 small, 10-49 medium, 50+ large, 100+ massive
+    const levelClass = owned >= 100 ? 'gen-level-massive' : owned >= 50 ? 'gen-level-large' : owned >= 10 ? 'gen-level-medium' : owned > 0 ? 'gen-level-small' : '';
+
+    // Total output from this generator (owned * base per second)
+    let totalOutput = '';
+    if (owned > 0 && gen.output.credits) totalOutput = '\u20A1' + fmt(gen.output.credits * owned) + '/s total';
+
+    return `<div class="generator-row ${canAfford ? 'affordable' : 'expensive'} ${levelClass}">
       <div class="gen-info">
         <span class="gen-icon">${gen.icon}</span>
         <div class="gen-details">
           <div class="gen-name">${gen.name} ${getGeneratorBadgeHTML(gen.id)}</div>
-          <div class="gen-output">Owned: ${owned} | ${outputDesc}</div>
+          <div class="gen-output">Owned: <strong>${owned}</strong> | ${outputDesc}</div>
+          ${owned > 0 && totalOutput ? `<div class="gen-total-output">${totalOutput}</div>` : ''}
           ${ioInfo}
         </div>
       </div>
@@ -507,8 +515,14 @@ const UI = (() => {
     const panel = document.getElementById('panel-upgrades');
     const phase = s.currentPhase;
     const upgrades = GameData.UPGRADES[phase] || [];
+    const phaseName = GameData.PHASES[phase] ? GameData.PHASES[phase].name : 'Phase ' + phase;
 
-    let html = '<h3>Upgrades - Phase ' + phase + '</h3>';
+    // Count purchased vs total visible
+    const purchasedCount = upgrades.filter(u => s.upgradesPurchased[u.id]).length;
+    const totalVisible = upgrades.length;
+
+    let html = `<h3>Upgrades \u2014 ${phaseName}</h3>
+      <div class="upg-progress-summary">${purchasedCount}/${totalVisible} purchased</div>`;
 
     for (const upg of upgrades) {
       if (s.upgradesPurchased[upg.id]) {
@@ -610,32 +624,94 @@ const UI = (() => {
   function updateZones() {
     const s = GameState.getState();
     const panel = document.getElementById('panel-zones');
-    let html = '<h3>Zones</h3>';
+    const fmt = NumberFormatter.formatSmart;
+
+    // Calculate per-zone income
+    function getZoneIncome(phaseKey) {
+      const gens = GameData.GENERATORS[phaseKey];
+      if (!gens) return 0;
+      let total = 0;
+      for (const gen of gens) {
+        const count = s.generators[gen.id] || 0;
+        if (count > 0 && gen.output.credits) total += count * gen.output.credits;
+      }
+      return total;
+    }
+
+    // Unlock requirement descriptions
+    const unlockReqs = {
+      2: 'Launch your rocket in Phase 1',
+      3: 'Earn enough credits in Phase 2',
+      4: 'Unlock Phase 4 through research',
+      5: 'Complete Mars terraforming milestones',
+      6: 'Establish asteroid belt operations',
+      7: 'Decode alien signals from Europa',
+      8: 'Colonize interstellar systems',
+      9: 'Reach the Galactic Core'
+    };
+
+    let html = '<h3>Zones</h3><div class="zone-list">';
 
     for (let i = 1; i <= 9; i++) {
       const phaseData = GameData.PHASES[i];
       const unlocked = i <= s.highestPhaseReached;
       const isCurrent = i === s.currentPhase;
 
+      // Get per-zone income (check sub-zones for P6/P7)
+      let zoneIncome = 0;
+      if (unlocked) {
+        if (i === 6) {
+          for (const sub of ['6_orbit', '6_io', '6_europa', '6_ganymede', '6_callisto']) {
+            zoneIncome += getZoneIncome(sub);
+          }
+        } else if (i === 7) {
+          for (const sub of ['7_haven', '7_ferrum', '7_nebula']) {
+            zoneIncome += getZoneIncome(sub);
+          }
+        } else {
+          zoneIncome = getZoneIncome(String(i));
+        }
+      }
+
+      // Generator count for this zone
+      let genCount = 0;
+      if (unlocked) {
+        const keys = i === 6 ? ['6_orbit', '6_io', '6_europa', '6_ganymede', '6_callisto'] :
+          i === 7 ? ['7_haven', '7_ferrum', '7_nebula'] : [String(i)];
+        for (const key of keys) {
+          const gens = GameData.GENERATORS[key];
+          if (gens) {
+            for (const gen of gens) genCount += (s.generators[gen.id] || 0);
+          }
+        }
+      }
+
       html += `<div class="zone-row ${unlocked ? 'unlocked' : 'locked'} ${isCurrent ? 'current' : ''}"
+        style="--zone-color: ${phaseData.color}"
         ${unlocked ? 'data-phase="' + i + '"' : ''}>
-        <div class="zone-icon">${phaseData.tapIcon}</div>
+        <div class="zone-icon" style="color: ${phaseData.color}">${phaseData.tapIcon}</div>
         <div class="zone-info">
           <div class="zone-name">Phase ${i}: ${phaseData.name}</div>
           <div class="zone-location">${phaseData.location}</div>
+          ${unlocked && zoneIncome > 0 ? `<div class="zone-income">\u20A1${fmt(zoneIncome)}/sec \u00B7 ${genCount} generators</div>` : ''}
+          ${!unlocked ? `<div class="zone-req">${unlockReqs[i] || 'Unknown requirement'}</div>` : ''}
         </div>
-        ${unlocked ? '<div class="zone-status">' + (isCurrent ? '\u25C6 Current' : 'Travel') + '</div>' :
-          '<div class="zone-lock">\u{1F512} Locked</div>'}
+        ${isCurrent ? '<div class="zone-current-badge">\u25C6 HERE</div>' :
+          unlocked ? '<div class="zone-travel-btn">Travel \u279C</div>' :
+          '<div class="zone-lock">\u{1F512}</div>'}
       </div>`;
     }
 
+    html += '</div>';
     panel.innerHTML = html;
 
     panel.querySelectorAll('.zone-row.unlocked').forEach(row => {
       row.addEventListener('click', () => {
         const phase = parseInt(row.dataset.phase);
-        if (phase) {
+        if (phase && phase !== s.currentPhase) {
           s.currentPhase = phase;
+          SceneRenderer.setPhase(phase);
+          updatePhaseColors();
           updateAll();
           switchTab('generators');
         }
@@ -1956,18 +2032,24 @@ const UI = (() => {
 
   // ===== EVENTS =====
 
+  let eventTotalDuration = 0;
+
   function showEventBanner(event) {
     const banner = document.getElementById('event-banner');
     const typeClass = event.type === 'positive' ? 'event-positive' :
       event.type === 'negative' ? 'event-negative' : 'event-neutral';
     const isMiniGame = event.icon === '\uD83C\uDFAE';
     const playBtn = isMiniGame ? '<button class="mg-play-btn" id="mg-accept-btn">PLAY</button>' : '';
+    eventTotalDuration = event.duration || 0;
     banner.innerHTML = `<div class="event-content ${typeClass}">
       <span class="event-icon">${event.icon}</span>
-      <span class="event-name">${event.name}</span>
-      <span class="event-desc">${event.desc}</span>
+      <div class="event-text">
+        <span class="event-name">${event.name}</span>
+        <span class="event-desc">${event.desc}</span>
+      </div>
       ${playBtn}
       <span class="event-timer" id="event-timer"></span>
+      ${eventTotalDuration > 0 ? '<div class="event-progress-bar"><div class="event-progress-fill" id="event-progress-fill"></div></div>' : ''}
     </div>`;
     banner.classList.remove('hidden');
 
@@ -1979,11 +2061,20 @@ const UI = (() => {
 
   function hideEventBanner() {
     document.getElementById('event-banner').classList.add('hidden');
+    eventTotalDuration = 0;
   }
 
   function updateEventTimer(remaining) {
     const timer = document.getElementById('event-timer');
     if (timer) timer.textContent = Math.ceil(remaining) + 's';
+    // Update progress bar
+    if (eventTotalDuration > 0) {
+      const fill = document.getElementById('event-progress-fill');
+      if (fill) {
+        const pct = Math.max(0, (remaining / eventTotalDuration) * 100);
+        fill.style.width = pct + '%';
+      }
+    }
   }
 
   // ===== PHASE TRANSITION =====
