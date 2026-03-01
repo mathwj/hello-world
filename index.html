@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Deep Space Inc.</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Top Bar -->
+    <div id="top-bar">
+      <button id="menu-btn" class="icon-btn" title="Menu">&#9776;</button>
+      <span id="phase-name">PHASE 1: THE JUNKYARD</span>
+      <button id="settings-btn" class="icon-btn" title="Settings">&#9881;</button>
+    </div>
+
+    <!-- Currency Bar -->
+    <div id="currency-bar"></div>
+
+    <!-- Scene Area -->
+    <div id="scene-area">
+      <canvas id="scene-canvas"></canvas>
+      <div id="rocket-assembly"></div>
+      <div id="floating-numbers"></div>
+      <!-- Tap Button -->
+      <button id="tap-btn">
+        <span id="tap-icon">&#128295;</span>
+        <span id="tap-label">SCAVENGE</span>
+        <span id="auto-tap-badge" class="hidden">AUTO</span>
+      </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="main-content">
+      <!-- Buy Amount Toggle -->
+      <div id="buy-toggle">
+        <button class="buy-amt active" data-amount="1">&times;1</button>
+        <button class="buy-amt" data-amount="10">&times;10</button>
+        <button class="buy-amt" data-amount="100">&times;100</button>
+        <button class="buy-amt" data-amount="max">MAX</button>
+      </div>
+
+      <!-- Tab Panels -->
+      <div id="tab-content">
+        <div id="panel-generators" class="tab-panel active"></div>
+        <div id="panel-upgrades" class="tab-panel"></div>
+        <div id="panel-zones" class="tab-panel"></div>
+        <div id="panel-crew" class="tab-panel"></div>
+        <div id="panel-fleet" class="tab-panel"></div>
+        <div id="panel-research" class="tab-panel"></div>
+        <div id="panel-log" class="tab-panel"></div>
+        <div id="panel-stats" class="tab-panel"></div>
+        <div id="panel-prestige" class="tab-panel"></div>
+        <div id="panel-achievements" class="tab-panel"></div>
+        <div id="panel-settings" class="tab-panel"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Tab Bar -->
+    <div id="bottom-tabs">
+      <button class="tab-btn active" data-tab="generators" data-label="Generators">&#9881;</button>
+      <button class="tab-btn" data-tab="upgrades" data-label="Upgrades">&#11014;</button>
+      <button class="tab-btn" data-tab="zones" data-label="Zones">&#127757;</button>
+      <button class="tab-btn" data-tab="achievements" data-label="Achievements">&#127942;</button>
+      <button class="tab-btn" data-tab="stats" data-label="Stats">&#128202;</button>
+      <button class="tab-btn hidden" data-tab="crew" data-label="Crew">&#128100;</button>
+      <button class="tab-btn hidden" data-tab="fleet" data-label="Fleet">&#128640;</button>
+      <button class="tab-btn hidden" data-tab="research" data-label="Research">&#128300;</button>
+      <button class="tab-btn hidden" data-tab="log" data-label="Log">&#128214;</button>
+      <button class="tab-btn hidden" data-tab="prestige" data-label="Prestige">&#9733;</button>
+      <button class="tab-btn" data-tab="settings" data-label="Settings">&#9881;&#65039;</button>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="hidden">
+      <div id="modal-content"></div>
+    </div>
+
+    <!-- Event Banner -->
+    <div id="event-banner" class="hidden"></div>
+
+    <!-- Achievement Banner -->
+    <div id="achievement-banner" class="hidden"></div>
+
+    <!-- Tutorial Overlay -->
+    <div id="tutorial-overlay" class="hidden">
+      <div id="tutorial-spotlight"></div>
+      <div id="tutorial-tooltip"></div>
+    </div>
+
+    <!-- Transition Overlay -->
+    <div id="transition-overlay" class="hidden"></div>
+  </div>
+
+  <script src="js/numbers.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/tutorial.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

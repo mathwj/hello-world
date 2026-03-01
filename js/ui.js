@@ -1,0 +1,1101 @@
+// ui.js — All UI rendering, tab management, modals, popups
+'use strict';
+
+const UI = (() => {
+  let currentTab = 'generators';
+  let buyAmount = 1;
+  let activePhaseView = 1;
+  let floatingNumberPool = [];
+
+  function init() {
+    setupTabs();
+    setupBuyToggle();
+    setupTapButton();
+    setupMenuButtons();
+    updateAll();
+  }
+
+  function setupTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        switchTab(tab);
+      });
+    });
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('panel-' + tab);
+    if (panel) panel.classList.add('active');
+
+    // Show/hide buy toggle
+    const buyToggle = document.getElementById('buy-toggle');
+    buyToggle.style.display = (tab === 'generators') ? 'flex' : 'none';
+
+    refreshPanel(tab);
+  }
+
+  function refreshPanel(tab) {
+    switch (tab) {
+      case 'generators': updateGenerators(); break;
+      case 'upgrades': updateUpgrades(); break;
+      case 'zones': updateZones(); break;
+      case 'crew': updateCrew(); break;
+      case 'fleet': updateFleet(); break;
+      case 'research': updateResearch(); break;
+      case 'log': updateLog(); break;
+      case 'stats': updateStats(); break;
+      case 'prestige': updatePrestigePanel(); break;
+      case 'achievements': updateAchievements(); break;
+      case 'settings': updateSettings(); break;
+    }
+  }
+
+  function setupBuyToggle() {
+    document.querySelectorAll('.buy-amt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.buy-amt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        buyAmount = btn.dataset.amount === 'max' ? 'max' : parseInt(btn.dataset.amount);
+        updateGenerators();
+      });
+    });
+  }
+
+  function getBuyAmount() {
+    return buyAmount;
+  }
+
+  function setupTapButton() {
+    const tapBtn = document.getElementById('tap-btn');
+    tapBtn.addEventListener('click', (e) => {
+      const s = GameState.getState();
+      const amount = Engine.doTap(s, false);
+      animateTapButton(tapBtn);
+    });
+
+    // Prevent double-tap zoom on mobile
+    tapBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      tapBtn.click();
+    });
+  }
+
+  function animateTapButton(btn) {
+    btn.classList.add('tap-active');
+    setTimeout(() => btn.classList.remove('tap-active'), 150);
+  }
+
+  function setupMenuButtons() {
+    document.getElementById('menu-btn').addEventListener('click', () => {
+      switchTab('zones');
+    });
+    document.getElementById('settings-btn').addEventListener('click', () => {
+      switchTab('settings');
+    });
+  }
+
+  // ===== UPDATE FUNCTIONS =====
+
+  function updateAll() {
+    updateTopBar();
+    updateCurrencyBar();
+    updateTapButton();
+    updateGenerators();
+    updateRocketAssembly();
+    updateTabVisibility();
+  }
+
+  function updateTick() {
+    updateCurrencyBar();
+    updateTopBar();
+    // Only update active panel content to reduce DOM thrash
+    if (currentTab === 'generators') updateGeneratorCosts();
+    if (currentTab === 'stats') updateStats();
+  }
+
+  function updateTopBar() {
+    const s = GameState.getState();
+    const phaseData = GameData.PHASES[s.currentPhase];
+    document.getElementById('phase-name').textContent =
+      'PHASE ' + s.currentPhase + ': ' + (phaseData ? phaseData.name : '');
+  }
+
+  function updateCurrencyBar() {
+    const s = GameState.getState();
+    const bar = document.getElementById('currency-bar');
+    const fmt = NumberFormatter.format;
+    const fps = NumberFormatter.formatPerSec;
+
+    let html = `<div class="currency credits">
+      <span class="cur-icon" style="color:#FFD700">\u20A1</span>
+      <span class="cur-val">${fmt(s.credits)}</span>
+      <span class="cur-rate">${fps(s.creditsPerSecond, '\u20A1')}</span>
+    </div>`;
+
+    if (s.highestPhaseReached >= 2) {
+      html += `<div class="currency rp">
+        <span class="cur-icon" style="color:#4A90D9">RP</span>
+        <span class="cur-val">${fmt(s.researchPoints)}</span>
+        ${s.rpPerSecond > 0 ? `<span class="cur-rate">${fps(s.rpPerSecond, '')}</span>` : ''}
+      </div>`;
+    }
+
+    if (s.highestPhaseReached >= 3) {
+      html += `<div class="currency ore">
+        <span class="cur-icon" style="color:#A8A8A8">Ore</span>
+        <span class="cur-val">${fmt(s.lunarOre)}</span>
+        ${s.orePerSecond > 0 ? `<span class="cur-rate">${fps(s.orePerSecond, '')}</span>` : ''}
+      </div>`;
+    }
+
+    if (s.highestPhaseReached >= 5) {
+      html += `<div class="currency rm">
+        <span class="cur-icon" style="color:#9B59B6">RM</span>
+        <span class="cur-val">${fmt(s.rareMinerals)}</span>
+      </div>`;
+    }
+
+    if (s.highestPhaseReached >= 6) {
+      html += `<div class="currency as">
+        <span class="cur-icon" style="color:#2ECC71">AS</span>
+        <span class="cur-val">${Math.floor(s.alienSignals)}</span>
+      </div>`;
+    }
+
+    if (s.highestPhaseReached >= 7) {
+      html += `<div class="currency sd">
+        <span class="cur-icon" style="color:#F0E6FF">SD</span>
+        <span class="cur-val">${fmt(s.stardust)}</span>
+        ${s.sdPerSecond > 0 ? `<span class="cur-rate">${fps(s.sdPerSecond, '')}</span>` : ''}
+      </div>`;
+    }
+
+    if (s.cosmicDust > 0) {
+      html += `<div class="currency cd">
+        <span class="cur-icon cd-icon">CD</span>
+        <span class="cur-val">${fmt(s.cosmicDust)}</span>
+      </div>`;
+    }
+
+    if (s.infinityTokens > 0) {
+      html += `<div class="currency it">
+        <span class="cur-icon" style="color:#FFD700">IT</span>
+        <span class="cur-val">${fmt(s.infinityTokens)}</span>
+      </div>`;
+    }
+
+    bar.innerHTML = html;
+  }
+
+  function updateTapButton() {
+    const s = GameState.getState();
+    const phaseData = GameData.PHASES[s.currentPhase];
+    if (phaseData) {
+      document.getElementById('tap-label').textContent = phaseData.tapLabel;
+      document.getElementById('tap-icon').textContent = phaseData.tapIcon;
+    }
+    const badge = document.getElementById('auto-tap-badge');
+    if (s.autoTapPerSecond > 0) badge.classList.remove('hidden');
+    else badge.classList.add('hidden');
+  }
+
+  function updateTabVisibility() {
+    const s = GameState.getState();
+    showTabBtn('crew', s.crew.unlocked);
+    showTabBtn('fleet', s.fleet.unlocked || s.highestPhaseReached >= 5);
+    showTabBtn('research', s.highestPhaseReached >= 2);
+    showTabBtn('log', s.captainsLog.length > 0);
+    showTabBtn('prestige', s.highestPhaseReached >= 8 || s.totalPrestigeCount > 0);
+  }
+
+  function showTabBtn(tab, visible) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) btn.classList.toggle('hidden', !visible);
+  }
+
+  function showTab(tab) {
+    showTabBtn(tab, true);
+  }
+
+  // ===== GENERATORS =====
+
+  function updateGenerators() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-generators');
+    const phase = s.currentPhase;
+    const keys = Engine.getActiveGeneratorKeysForPhase(phase);
+
+    // Sub-zone selector for Phase 6 and 7
+    let html = '';
+    if (phase === 6) {
+      html += renderSubZoneSelector(['6_orbit', '6_io', '6_europa', '6_ganymede', '6_callisto'],
+        ['Jupiter Orbit', 'Io', 'Europa', 'Ganymede', 'Callisto']);
+    } else if (phase === 7) {
+      html += renderSubZoneSelector(['7_haven', '7_ferrum', '7_nebula'],
+        ["Kepler's Haven", 'Ferrum Prime', 'Nebula Giant']);
+    }
+
+    // Show rocket parts in phase 1
+    if (phase === 1 && !s.rocketLaunched) {
+      html += renderRocketPartsInline(s);
+    }
+
+    // Mars terraform bar
+    if (phase === 4) {
+      const pct = s.terraforming.marsPercent.toFixed(1);
+      html += `<div class="terraform-bar">
+        <div class="terraform-label">TERRAFORMING MARS: ${pct}%</div>
+        <div class="progress-outer"><div class="progress-inner" style="width:${Math.min(100, pct)}%"></div></div>
+        <div class="terraform-rate">+${s.terraforming.marsPerSecond.toFixed(3)}%/sec</div>
+      </div>`;
+    }
+
+    // Generator list
+    const activeKey = phase === 6 ? (s.currentSubZone || '6_orbit') :
+      phase === 7 ? (s.currentSubZone || '7_haven') :
+      String(phase);
+
+    const gens = GameData.GENERATORS[activeKey];
+    if (gens) {
+      for (const gen of gens) {
+        html += renderGenerator(gen, s);
+      }
+    }
+
+    // Launch button
+    if (phase === 1 && !s.rocketLaunched && Object.values(s.rocketParts).every(v => v)) {
+      html += `<button class="launch-btn" onclick="Engine.launchRocket()">
+        <span class="launch-icon">\u{1F680}</span> LAUNCH!
+      </button>`;
+    }
+
+    panel.innerHTML = html;
+
+    // Attach buy handlers
+    panel.querySelectorAll('.gen-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyGenerator(btn.dataset.genid));
+    });
+
+    // Attach rocket part handlers
+    panel.querySelectorAll('.part-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyRocketPart(btn.dataset.partid));
+    });
+
+    // Attach sub-zone handlers
+    panel.querySelectorAll('.subzone-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        s.currentSubZone = btn.dataset.zone;
+        updateGenerators();
+      });
+    });
+
+    // Repair buttons for Io
+    panel.querySelectorAll('.repair-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.repairIoGenerator(btn.dataset.genid));
+    });
+  }
+
+  function renderSubZoneSelector(zones, labels) {
+    const s = GameState.getState();
+    const current = s.currentSubZone || zones[0];
+    let html = '<div class="subzone-selector">';
+    zones.forEach((z, i) => {
+      html += `<button class="subzone-btn ${z === current ? 'active' : ''}" data-zone="${z}">${labels[i]}</button>`;
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderRocketPartsInline(s) {
+    let html = '<div class="rocket-parts-section"><h3>Rocket Assembly</h3><div class="rocket-parts-grid">';
+    for (const part of GameData.ROCKET_PARTS) {
+      const owned = s.rocketParts[part.id];
+      let cost = part.cost;
+      if (s.cdShopPurchased && s.cdShopPurchased['cd_quick']) cost *= 0.5;
+      const canBuy = !owned && s.credits >= cost;
+      html += `<div class="rocket-part ${owned ? 'owned' : ''} ${canBuy ? 'affordable' : ''}">
+        <div class="part-name">${part.name}</div>
+        <div class="part-desc">${part.desc}</div>
+        ${owned ? '<div class="part-status">\u2714 Installed</div>' :
+          `<button class="part-buy-btn ${canBuy ? '' : 'disabled'}" data-partid="${part.id}">\u20A1${NumberFormatter.format(cost)}</button>`}
+      </div>`;
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderGenerator(gen, s) {
+    const owned = s.generators[gen.id] || 0;
+    const currency = gen.costCurrency || 'credits';
+    const amt = buyAmount === 'max' ?
+      NumberFormatter.maxAffordable(gen.baseCost, gen.growth, owned, GameState.getCurrency(currency)).count :
+      buyAmount;
+    const cost = buyAmount === 'max' ?
+      NumberFormatter.maxAffordable(gen.baseCost, gen.growth, owned, GameState.getCurrency(currency)).totalCost :
+      NumberFormatter.bulkCost(gen.baseCost, gen.growth, owned, amt);
+
+    const canAfford = GameState.canAfford(currency, cost) && amt > 0;
+    const currencySymbol = currency === 'credits' ? '\u20A1' : currency === 'ore' ? 'Ore ' : currency.toUpperCase() + ' ';
+
+    // Output description
+    let outputDesc = '';
+    if (gen.output.credits) outputDesc += '\u20A1' + NumberFormatter.format(gen.output.credits) + '/s ';
+    if (gen.output.rp) outputDesc += NumberFormatter.format(gen.output.rp) + ' RP/s ';
+    if (gen.output.ore) outputDesc += NumberFormatter.format(gen.output.ore) + ' Ore/s ';
+    if (gen.output.rm) outputDesc += NumberFormatter.format(gen.output.rm) + ' RM/s ';
+    if (gen.output.sd) outputDesc += NumberFormatter.format(gen.output.sd) + ' SD/s ';
+    if (gen.terraform) outputDesc += '+' + gen.terraform + '%/s terraform ';
+    if (gen.globalBoost) outputDesc += '+' + (gen.globalBoost * 100) + '% all income ';
+    if (gen.crewCapacity) outputDesc += '+' + gen.crewCapacity + ' crew ';
+
+    let ioInfo = '';
+    if (gen.degrades && owned > 0) {
+      const eff = ((s.ioEfficiency[gen.id] || 1) * 100).toFixed(0);
+      ioInfo = `<div class="io-eff">Efficiency: ${eff}% <button class="repair-btn" data-genid="${gen.id}">Repair</button></div>`;
+    }
+
+    return `<div class="generator-row ${canAfford ? 'affordable' : 'expensive'}">
+      <div class="gen-info">
+        <span class="gen-icon">${gen.icon}</span>
+        <div class="gen-details">
+          <div class="gen-name">${gen.name}</div>
+          <div class="gen-output">Owned: ${owned} | ${outputDesc}</div>
+          ${ioInfo}
+        </div>
+      </div>
+      <button class="gen-buy-btn ${canAfford ? '' : 'disabled'}" data-genid="${gen.id}">
+        <div class="gen-cost">${currencySymbol}${NumberFormatter.format(cost)}</div>
+        <div class="gen-buy-label">BUY${amt > 1 ? ' x' + amt : ''}</div>
+      </button>
+    </div>`;
+  }
+
+  function updateGeneratorCosts() {
+    // Lightweight update for generator affordability
+    const s = GameState.getState();
+    document.querySelectorAll('.gen-buy-btn').forEach(btn => {
+      const genId = btn.dataset.genid;
+      const gen = Engine.findGenerator(genId);
+      if (!gen) return;
+      const currency = gen.costCurrency || 'credits';
+      const owned = s.generators[genId] || 0;
+      const cost = NumberFormatter.nextCost(gen.baseCost, gen.growth, owned);
+      const canAfford = GameState.canAfford(currency, cost);
+      btn.classList.toggle('disabled', !canAfford);
+      btn.closest('.generator-row')?.classList.toggle('affordable', canAfford);
+      btn.closest('.generator-row')?.classList.toggle('expensive', !canAfford);
+    });
+  }
+
+  function updateRocketAssembly() {
+    // Handled in updateGenerators for phase 1
+    if (GameState.getState().currentPhase === 1) {
+      updateGenerators();
+    }
+  }
+
+  // ===== UPGRADES =====
+
+  function updateUpgrades() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-upgrades');
+    const phase = s.currentPhase;
+    const upgrades = GameData.UPGRADES[phase] || [];
+
+    let html = '<h3>Upgrades - Phase ' + phase + '</h3>';
+
+    for (const upg of upgrades) {
+      if (s.upgradesPurchased[upg.id]) {
+        html += `<div class="upgrade-row purchased">
+          <div class="upg-info">
+            <div class="upg-name">\u2714 ${upg.name}</div>
+            <div class="upg-desc">${upg.desc}</div>
+          </div>
+        </div>`;
+        continue;
+      }
+
+      // Check if requirements met (hide if not)
+      if (upg.req) {
+        if (upg.req.generator && (s.generators[upg.req.generator] || 0) < upg.req.count) continue;
+        if (upg.req.totalTaps && s.totalTaps < upg.req.totalTaps) continue;
+        if (upg.req.allGeneratorsPhase) {
+          const phaseGens = GameData.GENERATORS[upg.req.allGeneratorsPhase];
+          if (phaseGens && !phaseGens.every(g => (s.generators[g.id] || 0) > 0)) continue;
+        }
+      }
+
+      const canAfford = GameState.canAfford(upg.currency, upg.cost) &&
+        (!upg.costSecondary || Object.entries(upg.costSecondary).every(([c, a]) => GameState.canAfford(c, a)));
+
+      const currencySymbol = upg.currency === 'credits' ? '\u20A1' : upg.currency.toUpperCase() + ' ';
+      let costStr = currencySymbol + NumberFormatter.format(upg.cost);
+      if (upg.costSecondary) {
+        for (const [c, a] of Object.entries(upg.costSecondary)) {
+          costStr += ' + ' + (c === 'credits' ? '\u20A1' : c.toUpperCase() + ' ') + NumberFormatter.format(a);
+        }
+      }
+
+      html += `<div class="upgrade-row ${canAfford ? 'affordable' : 'expensive'}">
+        <div class="upg-info">
+          <div class="upg-name">${upg.name}</div>
+          <div class="upg-desc">${upg.desc}</div>
+        </div>
+        <button class="upg-buy-btn ${canAfford ? '' : 'disabled'}" data-upgid="${upg.id}">
+          <div class="upg-cost">${costStr}</div>
+          <div>BUY</div>
+        </button>
+      </div>`;
+    }
+
+    if (upgrades.length === 0) {
+      html += '<p class="empty-msg">No upgrades available for this phase yet.</p>';
+    }
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.upg-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Engine.buyUpgrade(btn.dataset.upgid);
+      });
+    });
+  }
+
+  // ===== ZONES =====
+
+  function updateZones() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-zones');
+    let html = '<h3>Zones</h3>';
+
+    for (let i = 1; i <= 9; i++) {
+      const phaseData = GameData.PHASES[i];
+      const unlocked = i <= s.highestPhaseReached;
+      const isCurrent = i === s.currentPhase;
+
+      html += `<div class="zone-row ${unlocked ? 'unlocked' : 'locked'} ${isCurrent ? 'current' : ''}"
+        ${unlocked ? 'data-phase="' + i + '"' : ''}>
+        <div class="zone-icon">${phaseData.tapIcon}</div>
+        <div class="zone-info">
+          <div class="zone-name">Phase ${i}: ${phaseData.name}</div>
+          <div class="zone-location">${phaseData.location}</div>
+        </div>
+        ${unlocked ? '<div class="zone-status">' + (isCurrent ? '\u25C6 Current' : 'Travel') + '</div>' :
+          '<div class="zone-lock">\u{1F512} Locked</div>'}
+      </div>`;
+    }
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.zone-row.unlocked').forEach(row => {
+      row.addEventListener('click', () => {
+        const phase = parseInt(row.dataset.phase);
+        if (phase) {
+          s.currentPhase = phase;
+          updateAll();
+          switchTab('generators');
+        }
+      });
+    });
+  }
+
+  // ===== CREW =====
+
+  function updateCrew() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-crew');
+
+    if (!s.crew.unlocked) {
+      panel.innerHTML = '<p class="empty-msg">Crew system not yet unlocked. Purchase "Habitat Expansion" on the Moon.</p>';
+      return;
+    }
+
+    const crewBonus = Engine.getCrewBonus();
+    const hireCost = 100 * Math.pow(1.2, s.crew.totalAstronauts);
+    const canHire = s.crew.totalAstronauts < s.crew.maxCapacity && GameState.canAfford('ore', hireCost);
+
+    let html = `<h3>Crew</h3>
+      <div class="crew-summary">
+        <div>Crew: ${s.crew.totalAstronauts} / ${s.crew.maxCapacity}</div>
+        <div>Total Bonus: +${(crewBonus * 100).toFixed(0)}% all generators</div>
+      </div>
+      <div class="crew-actions">
+        <button class="action-btn ${canHire ? '' : 'disabled'}" id="hire-crew-btn">
+          Hire Astronaut (${NumberFormatter.format(hireCost)} Ore)
+        </button>
+        <button class="action-btn" id="upgrade-all-crew-btn">Upgrade All</button>
+      </div>
+      <div class="crew-list">`;
+
+    for (let i = 0; i < s.crew.astronauts.length; i++) {
+      const a = s.crew.astronauts[i];
+      const tierName = GameData.CREW_TIERS[a.tier].name;
+      const canUpgrade = a.tier < 4;
+      html += `<div class="crew-row">
+        <div class="crew-name">${a.name}</div>
+        <div class="crew-tier tier-${a.tier}">${tierName}</div>
+        <div class="crew-bonus">+${(a.bonus * 100).toFixed(0)}%</div>
+        ${canUpgrade ? `<button class="crew-upgrade-btn" data-idx="${i}">Upgrade</button>` : '<span class="max-tier">MAX</span>'}
+      </div>`;
+    }
+
+    html += '</div>';
+    panel.innerHTML = html;
+
+    document.getElementById('hire-crew-btn')?.addEventListener('click', () => {
+      Engine.hireCrew();
+    });
+    document.getElementById('upgrade-all-crew-btn')?.addEventListener('click', () => {
+      Engine.upgradeAllCrew();
+    });
+    panel.querySelectorAll('.crew-upgrade-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.upgradeCrewMember(parseInt(btn.dataset.idx)));
+    });
+  }
+
+  // ===== FLEET =====
+
+  function updateFleet() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-fleet');
+
+    if (s.highestPhaseReached < 5) {
+      panel.innerHTML = '<p class="empty-msg">Fleet unlocks at Phase 5: The Asteroid Belt.</p>';
+      return;
+    }
+
+    let totalShips = 0;
+    const gens = GameData.GENERATORS[5] || [];
+    let html = '<h3>Fleet</h3>';
+
+    for (const gen of gens) {
+      const count = s.generators[gen.id] || 0;
+      totalShips += count;
+    }
+
+    html += `<div class="fleet-summary">Total Ships: ${totalShips}</div>`;
+    html += '<div class="fleet-list">';
+    for (const gen of gens) {
+      const count = s.generators[gen.id] || 0;
+      html += `<div class="fleet-row">
+        <span class="fleet-icon">${gen.icon}</span>
+        <span class="fleet-name">${gen.name}</span>
+        <span class="fleet-count">x${count}</span>
+      </div>`;
+    }
+    html += '</div>';
+    panel.innerHTML = html;
+  }
+
+  // ===== RESEARCH =====
+
+  function updateResearch() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-research');
+
+    let html = '<h3>Research Tree</h3>';
+    let currentTier = 0;
+
+    for (const res of GameData.RESEARCH) {
+      if (res.tier !== currentTier) {
+        if (currentTier > 0) html += '</div>';
+        currentTier = res.tier;
+        html += `<div class="research-tier"><h4>Tier ${currentTier}</h4>`;
+      }
+
+      const purchased = s.researchPurchased[res.id];
+      const reqMet = !res.req || s.researchPurchased[res.req];
+      const canAfford = reqMet && !purchased && GameState.canAfford('rp', res.cost);
+
+      html += `<div class="research-node ${purchased ? 'purchased' : ''} ${reqMet ? '' : 'locked'} ${canAfford ? 'affordable' : ''}">
+        <div class="res-name">${purchased ? '\u2714 ' : ''}${res.name}</div>
+        <div class="res-desc">${res.desc}</div>
+        ${!purchased ? `<button class="res-buy-btn ${canAfford ? '' : 'disabled'}" data-resid="${res.id}">
+          ${reqMet ? NumberFormatter.format(res.cost) + ' RP' : '\u{1F512} Requires: ' + (res.req || '')}
+        </button>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.res-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyResearch(btn.dataset.resid));
+    });
+  }
+
+  // ===== LOG =====
+
+  function updateLog() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-log');
+    let html = '<h3>Captain\'s Log</h3><div class="log-entries">';
+
+    for (const logId of s.captainsLog) {
+      const entry = GameData.CAPTAINS_LOG.find(l => l.id === logId);
+      if (!entry) continue;
+      html += `<div class="log-entry">
+        <div class="log-title">${entry.title}</div>
+        <div class="log-text">${entry.text}</div>
+      </div>`;
+    }
+
+    html += '</div>';
+    panel.innerHTML = html;
+  }
+
+  // ===== STATS =====
+
+  function updateStats() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-stats');
+    const fmt = NumberFormatter.format;
+    const ft = NumberFormatter.formatTime;
+
+    const runTime = (Date.now() - (s.currentRunStartTime || s.firstPlayTimestamp)) / 1000;
+
+    let html = `<h3>Statistics</h3>
+      <div class="stats-section">
+        <h4>Current Run</h4>
+        <div class="stat-row"><span>Time Elapsed</span><span>${ft(runTime)}</span></div>
+        <div class="stat-row"><span>Current Phase</span><span>${s.currentPhase}</span></div>
+        <div class="stat-row"><span>Credits Earned</span><span>\u20A1${fmt(s.creditsThisRunEarned)}</span></div>
+        <div class="stat-row"><span>Credits/sec</span><span>\u20A1${fmt(s.creditsPerSecond)}</span></div>
+        <div class="stat-row"><span>Generators Owned</span><span>${fmt(GameData.getTotalGenerators(s))}</span></div>
+        <div class="stat-row"><span>Crew</span><span>${s.crew.totalAstronauts}</span></div>
+        <div class="stat-row"><span>Mars Terraform</span><span>${s.terraforming.marsPercent.toFixed(1)}%</span></div>
+      </div>
+      <div class="stats-section">
+        <h4>All-Time</h4>
+        <div class="stat-row"><span>Total Play Time</span><span>${ft(s.totalPlayTimeSeconds)}</span></div>
+        <div class="stat-row"><span>Total Taps</span><span>${fmt(s.totalTaps)}</span></div>
+        <div class="stat-row"><span>Total Credits Earned</span><span>\u20A1${fmt(s.creditsAllTimeEarned)}</span></div>
+        <div class="stat-row"><span>Prestige Resets</span><span>${s.totalPrestigeCount}</span></div>
+        <div class="stat-row"><span>Cosmic Dust (Lifetime)</span><span>${fmt(s.cosmicDustLifetime)}</span></div>
+        <div class="stat-row"><span>Highest Phase</span><span>${s.highestPhaseReached}</span></div>
+        <div class="stat-row"><span>Generators Purchased</span><span>${fmt(s.stats.totalGeneratorsEverPurchased)}</span></div>
+        <div class="stat-row"><span>Crew Hired</span><span>${fmt(s.stats.totalCrewEverHired)}</span></div>
+        <div class="stat-row"><span>Alien Signals</span><span>${s.stats.totalAlienSignalsDecoded}</span></div>
+        <div class="stat-row"><span>Star Systems</span><span>${s.stats.totalStarSystemsColonized}</span></div>
+        <div class="stat-row"><span>Achievements</span><span>${Object.keys(s.achievements).length} / ${GameData.ACHIEVEMENTS.length}</span></div>
+        <div class="stat-row"><span>Log Entries</span><span>${s.captainsLog.length} / ${GameData.CAPTAINS_LOG.length}</span></div>
+      </div>`;
+
+    panel.innerHTML = html;
+  }
+
+  // ===== PRESTIGE =====
+
+  function updatePrestigePanel() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-prestige');
+    const fmt = NumberFormatter.format;
+
+    const projectedCD = GameState.calculatePrestigeReward();
+    const cdMult = (1 + s.cosmicDust * 0.01).toFixed(2);
+
+    let html = `<h3>Prestige - Big Bang</h3>
+      <div class="prestige-info">
+        <div class="prestige-stat">
+          <span>Cosmic Dust</span><span class="cd-icon">${fmt(s.cosmicDust)} CD</span>
+        </div>
+        <div class="prestige-stat">
+          <span>CD Multiplier</span><span>x${cdMult} all income</span>
+        </div>
+        <div class="prestige-stat">
+          <span>This Run Earnings</span><span>\u20A1${fmt(s.creditsThisRunEarned)}</span>
+        </div>
+        <div class="prestige-stat">
+          <span>Projected CD Reward</span><span class="cd-projected">${fmt(projectedCD)} CD</span>
+        </div>
+        <div class="prestige-stat">
+          <span>Prestiges Completed</span><span>${s.totalPrestigeCount}</span>
+        </div>
+      </div>`;
+
+    // Big Bang button
+    if (s.highestPhaseReached >= 8 && projectedCD > 0) {
+      html += `<button class="prestige-btn" id="prestige-btn">
+        <span class="prestige-icon">\u{1F4A5}</span>
+        <span>BIG BANG</span>
+        <span class="prestige-reward">+${fmt(projectedCD)} CD</span>
+      </button>
+      <div class="prestige-warning">This will reset all progress except permanent upgrades!</div>`;
+    } else {
+      html += `<div class="prestige-locked">Reach the Galactic Core (Phase 8) to unlock Prestige.</div>`;
+    }
+
+    // CD Shop
+    html += '<h3>Cosmic Dust Shop</h3><div class="cd-shop">';
+    for (const item of GameData.CD_SHOP) {
+      const purchased = s.cdShopPurchased[item.id];
+      const reqMet = !item.req || s.cdShopPurchased[item.req];
+      const canAfford = reqMet && !purchased && GameState.canAfford('cosmicDust', item.cost);
+
+      html += `<div class="cd-shop-item ${purchased ? 'purchased' : ''} ${canAfford ? 'affordable' : ''} ${reqMet ? '' : 'locked'}">
+        <div class="cd-item-info">
+          <div class="cd-item-name">${purchased ? '\u2714 ' : ''}${item.name}</div>
+          <div class="cd-item-desc">${item.desc}</div>
+        </div>
+        ${!purchased ? `<button class="cd-buy-btn ${canAfford ? '' : 'disabled'}" data-cdid="${item.id}">
+          ${reqMet ? item.cost + ' CD' : '\u{1F512}'}
+        </button>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+
+    panel.innerHTML = html;
+
+    document.getElementById('prestige-btn')?.addEventListener('click', () => {
+      if (s.settings.confirmPrestige) {
+        showModal('Confirm Prestige',
+          `<p>Are you sure? You will earn <strong>${fmt(projectedCD)} CD</strong>.</p>
+           <p>All progress will be reset except permanent upgrades.</p>`,
+          [
+            { label: 'Cancel', action: () => hideModal() },
+            { label: 'BIG BANG', action: () => { hideModal(); doPrestige(); }, className: 'danger' }
+          ]);
+      } else {
+        doPrestige();
+      }
+    });
+
+    panel.querySelectorAll('.cd-buy-btn').forEach(btn => {
+      btn.addEventListener('click', () => Engine.buyCDShopItem(btn.dataset.cdid));
+    });
+  }
+
+  function doPrestige() {
+    const cdEarned = GameState.performPrestige();
+    if (cdEarned > 0) {
+      showModal('Big Bang Complete!',
+        `<div class="prestige-result">
+          <p>A new universe begins...</p>
+          <p class="cd-earned">+${NumberFormatter.format(cdEarned)} Cosmic Dust</p>
+        </div>`,
+        [{ label: 'Continue', action: () => { hideModal(); updateAll(); switchTab('generators'); } }]);
+
+      Engine.addLogEntry('log22');
+      const s = GameState.getState();
+      if (s.totalPrestigeCount === 1) Engine.unlockAchievement('ach_prestige');
+    }
+  }
+
+  // ===== ACHIEVEMENTS =====
+
+  function updateAchievements() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-achievements');
+
+    let html = '<h3>Achievements</h3>';
+    const categories = ['progression', 'earning', 'tapping', 'generator', 'crew', 'terraform', 'prestige', 'secret'];
+    const catNames = ['Progression', 'Earning', 'Tapping', 'Generators', 'Crew', 'Terraforming', 'Prestige', 'Secret'];
+
+    categories.forEach((cat, i) => {
+      const achs = GameData.ACHIEVEMENTS.filter(a => a.category === cat);
+      html += `<h4>${catNames[i]}</h4>`;
+      for (const ach of achs) {
+        const unlocked = s.achievements[ach.id];
+        if (ach.secret && !unlocked) {
+          html += `<div class="ach-row locked"><div class="ach-name">???</div><div class="ach-desc">Secret achievement</div></div>`;
+        } else {
+          html += `<div class="ach-row ${unlocked ? 'unlocked' : ''}">
+            <div class="ach-name">${unlocked ? '\u2714 ' : '\u25CB '}${ach.name}</div>
+            <div class="ach-desc">${ach.desc}</div>
+          </div>`;
+        }
+      }
+    });
+
+    panel.innerHTML = html;
+  }
+
+  // ===== SETTINGS =====
+
+  function updateSettings() {
+    const s = GameState.getState();
+    const panel = document.getElementById('panel-settings');
+
+    panel.innerHTML = `<h3>Settings</h3>
+      <div class="settings-list">
+        <div class="setting-row">
+          <label>Music Volume</label>
+          <input type="range" min="0" max="100" value="${s.settings.musicVolume * 100}" id="set-music">
+        </div>
+        <div class="setting-row">
+          <label>SFX Volume</label>
+          <input type="range" min="0" max="100" value="${s.settings.sfxVolume * 100}" id="set-sfx">
+        </div>
+        <div class="setting-row">
+          <label>Number Format</label>
+          <select id="set-numformat">
+            <option value="abbreviated" ${s.settings.numberFormat === 'abbreviated' ? 'selected' : ''}>Abbreviated</option>
+            <option value="scientific" ${s.settings.numberFormat === 'scientific' ? 'selected' : ''}>Scientific</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Particle Effects</label>
+          <input type="checkbox" id="set-particles" ${s.settings.particleEffects ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <label>Screen Shake</label>
+          <input type="checkbox" id="set-shake" ${s.settings.screenShake ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <label>Confirm Prestige</label>
+          <input type="checkbox" id="set-confirm" ${s.settings.confirmPrestige ? 'checked' : ''}>
+        </div>
+        <div class="setting-row">
+          <button class="action-btn" id="export-btn">Export Save</button>
+          <button class="action-btn" id="import-btn">Import Save</button>
+        </div>
+        <div class="setting-row">
+          <button class="action-btn danger" id="reset-btn">Hard Reset</button>
+        </div>
+        <div class="setting-row credits-info">
+          <p>Deep Space Inc. v${s.version}</p>
+          <p>An idle space exploration tycoon game</p>
+        </div>
+      </div>`;
+
+    // Event listeners
+    document.getElementById('set-music')?.addEventListener('input', e => {
+      s.settings.musicVolume = e.target.value / 100;
+    });
+    document.getElementById('set-sfx')?.addEventListener('input', e => {
+      s.settings.sfxVolume = e.target.value / 100;
+    });
+    document.getElementById('set-numformat')?.addEventListener('change', e => {
+      s.settings.numberFormat = e.target.value;
+    });
+    document.getElementById('set-particles')?.addEventListener('change', e => {
+      s.settings.particleEffects = e.target.checked;
+    });
+    document.getElementById('set-shake')?.addEventListener('change', e => {
+      s.settings.screenShake = e.target.checked;
+    });
+    document.getElementById('set-confirm')?.addEventListener('change', e => {
+      s.settings.confirmPrestige = e.target.checked;
+    });
+
+    document.getElementById('export-btn')?.addEventListener('click', () => {
+      const b64 = GameState.exportSave();
+      navigator.clipboard.writeText(b64).then(() => {
+        showModal('Save Exported', '<p>Save data copied to clipboard!</p>',
+          [{ label: 'OK', action: hideModal }]);
+      }).catch(() => {
+        showModal('Save Exported', `<textarea class="export-text" readonly>${b64}</textarea><p>Copy the text above.</p>`,
+          [{ label: 'OK', action: hideModal }]);
+      });
+    });
+
+    document.getElementById('import-btn')?.addEventListener('click', () => {
+      showModal('Import Save', `<textarea class="import-text" id="import-text" placeholder="Paste save data here..."></textarea>`,
+        [
+          { label: 'Cancel', action: hideModal },
+          {
+            label: 'Import', action: () => {
+              const txt = document.getElementById('import-text')?.value;
+              if (txt && GameState.importSave(txt.trim())) {
+                hideModal();
+                location.reload();
+              } else {
+                alert('Invalid save data');
+              }
+            }
+          }
+        ]);
+    });
+
+    document.getElementById('reset-btn')?.addEventListener('click', () => {
+      showModal('Hard Reset',
+        `<p>Type RESET to confirm. This cannot be undone!</p>
+         <input type="text" id="reset-confirm" placeholder="Type RESET">`,
+        [
+          { label: 'Cancel', action: hideModal },
+          {
+            label: 'Reset', action: () => {
+              if (document.getElementById('reset-confirm')?.value === 'RESET') {
+                GameState.hardReset();
+                hideModal();
+                location.reload();
+              }
+            }, className: 'danger'
+          }
+        ]);
+    });
+  }
+
+  // ===== GALAXY MAP (Phase 8) =====
+
+  function updateGalaxyMap() {
+    // Updates handled in generators panel for phase 8
+    if (GameState.getState().currentPhase === 8) {
+      updateGenerators();
+    }
+  }
+
+  // ===== FLOATING NUMBERS =====
+
+  function showFloatingNumber(amount) {
+    const container = document.getElementById('floating-numbers');
+    const el = document.createElement('div');
+    el.className = 'floating-num';
+    el.textContent = '+\u20A1' + NumberFormatter.format(amount);
+    el.style.left = (40 + Math.random() * 20) + '%';
+    el.style.bottom = '120px';
+    container.appendChild(el);
+
+    requestAnimationFrame(() => {
+      el.style.transform = 'translateY(-80px)';
+      el.style.opacity = '0';
+    });
+
+    setTimeout(() => el.remove(), 800);
+  }
+
+  // ===== MODALS =====
+
+  function showModal(title, content, buttons = []) {
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById('modal-content');
+
+    let html = `<h3>${title}</h3>${content}<div class="modal-buttons">`;
+    buttons.forEach((btn, i) => {
+      html += `<button class="modal-btn ${btn.className || ''}" data-idx="${i}">${btn.label}</button>`;
+    });
+    html += '</div>';
+    modal.innerHTML = html;
+
+    modal.querySelectorAll('.modal-btn').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.idx);
+        if (buttons[idx] && buttons[idx].action) buttons[idx].action();
+      });
+    });
+
+    overlay.classList.remove('hidden');
+  }
+
+  function hideModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+  }
+
+  // ===== BANNERS =====
+
+  function showAchievementBanner(ach) {
+    const banner = document.getElementById('achievement-banner');
+    banner.innerHTML = `<div class="ach-banner-content">
+      <span class="ach-banner-icon">\u{1F3C6}</span>
+      <span class="ach-banner-text"><strong>${ach.name}</strong> — ${ach.desc}</span>
+    </div>`;
+    banner.classList.remove('hidden');
+    banner.classList.add('show');
+    setTimeout(() => {
+      banner.classList.remove('show');
+      banner.classList.add('hidden');
+    }, 3000);
+  }
+
+  function showAlienSignalPopup() {
+    showModal('ALIEN SIGNAL DETECTED!',
+      '<p class="alien-signal">An alien signal has been decoded!</p><p>+1 Alien Signal</p>',
+      [{ label: 'Decode', action: hideModal }]);
+  }
+
+  // ===== EVENTS =====
+
+  function showEventBanner(event) {
+    const banner = document.getElementById('event-banner');
+    const typeClass = event.type === 'positive' ? 'event-positive' :
+      event.type === 'negative' ? 'event-negative' : 'event-neutral';
+    banner.innerHTML = `<div class="event-content ${typeClass}">
+      <span class="event-icon">${event.icon}</span>
+      <span class="event-name">${event.name}</span>
+      <span class="event-desc">${event.desc}</span>
+      <span class="event-timer" id="event-timer"></span>
+    </div>`;
+    banner.classList.remove('hidden');
+  }
+
+  function hideEventBanner() {
+    document.getElementById('event-banner').classList.add('hidden');
+  }
+
+  function updateEventTimer(remaining) {
+    const timer = document.getElementById('event-timer');
+    if (timer) timer.textContent = Math.ceil(remaining) + 's';
+  }
+
+  // ===== PHASE TRANSITION =====
+
+  function playPhaseTransition(phase) {
+    const overlay = document.getElementById('transition-overlay');
+    const phaseData = GameData.PHASES[phase];
+    overlay.innerHTML = `<div class="transition-content">
+      <div class="transition-icon">${phaseData.tapIcon}</div>
+      <div class="transition-title">Phase ${phase}</div>
+      <div class="transition-name">${phaseData.name}</div>
+      <div class="transition-location">${phaseData.location}</div>
+    </div>`;
+    overlay.classList.remove('hidden');
+    overlay.classList.add('active');
+
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      overlay.classList.add('hidden');
+      updateAll();
+      updateTapButton();
+      updateTabVisibility();
+      SceneRenderer.setPhase(phase);
+    }, 3000);
+  }
+
+  // ===== WELCOME BACK =====
+
+  function showWelcomeBack(earnings) {
+    const fmt = NumberFormatter.format;
+    const ft = NumberFormatter.formatTime;
+    let rewardList = '';
+    if (earnings.credits > 0) rewardList += `<div>\u20A1${fmt(earnings.credits)}</div>`;
+    if (earnings.rp > 0) rewardList += `<div>${fmt(earnings.rp)} RP</div>`;
+    if (earnings.ore > 0) rewardList += `<div>${fmt(earnings.ore)} Ore</div>`;
+    if (earnings.rm > 0) rewardList += `<div>${fmt(earnings.rm)} RM</div>`;
+    if (earnings.sd > 0) rewardList += `<div>${fmt(earnings.sd)} SD</div>`;
+
+    showModal('Welcome Back, Captain!',
+      `<p>You were away for ${ft(earnings.time)}</p>
+       <p>Your operations earned:</p>
+       <div class="welcome-rewards">${rewardList}</div>`,
+      [{ label: 'COLLECT', action: () => { GameState.applyOfflineEarnings(earnings); hideModal(); } }]);
+  }
+
+  // ===== DAILY REWARD =====
+
+  function showDailyReward(reward) {
+    const fmt = NumberFormatter.format;
+    showModal(`Day ${reward.day} Streak!`,
+      `<p>${reward.reward.desc}</p>
+       ${reward.amount > 0 ? `<p class="daily-amount">${fmt(reward.amount)}</p>` :
+        '<p>Bonus activated!</p>'}
+       <p>Streak multiplier: x${reward.multiplier.toFixed(1)}</p>`,
+      [{ label: 'Claim', action: hideModal }]);
+  }
+
+  return {
+    init, updateAll, updateTick, updateGenerators, updateUpgrades,
+    updateCurrencyBar, updateRocketAssembly, updateCrew, updateFleet,
+    updateResearch, updatePrestigePanel, updateGalaxyMap,
+    showFloatingNumber, showModal, hideModal, showAchievementBanner,
+    showEventBanner, hideEventBanner, updateEventTimer,
+    playPhaseTransition, showWelcomeBack, showDailyReward,
+    showAlienSignalPopup, switchTab, showTab, getBuyAmount, updateSettings
+  };
+})();
