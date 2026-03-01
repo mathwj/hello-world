@@ -639,6 +639,13 @@ const Expansion = (() => {
         }
       }
       return mult;
+    },
+
+    grantRandom(s) {
+      const maxRarity = s.totalPrestigeCount >= 20 ? 'legendary' :
+        s.totalPrestigeCount >= 10 ? 'epic' :
+        s.totalPrestigeCount >= 3 ? 'rare' : 'uncommon';
+      return this.addRandom(s, maxRarity);
     }
   };
 
@@ -765,6 +772,18 @@ const Expansion = (() => {
       const oreAmount = s.orePerSecond * timeMult;
       GameState.addCurrency('ore', Math.max(50, oreAmount));
       return { type: 'ore', amount: Math.max(50, oreAmount) };
+    },
+
+    grantRandomEgg(s) {
+      // Grant a random egg (tier based on prestige count)
+      const maxRarity = s.totalPrestigeCount >= 25 ? 'legendary' :
+        s.totalPrestigeCount >= 10 ? 'epic' :
+        s.totalPrestigeCount >= 5 ? 'rare' : 'uncommon';
+      return this.addRandom(s, maxRarity);
+    },
+
+    grantEgg(s, typeId) {
+      return this.addEgg(s, 'egg_' + typeId);
     }
   };
 

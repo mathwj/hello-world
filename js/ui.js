@@ -13,6 +13,9 @@ const UI = (() => {
     setupTapButton();
     setupMenuButtons();
     setupTooltipLongPress();
+    // Initialize juice systems
+    if (typeof Juice !== 'undefined') Juice.init();
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.init();
     updateAll();
   }
 
@@ -900,6 +903,32 @@ const UI = (() => {
     if (s.totalPrestigeCount >= 5) Engine.addLogEntry('log23');
     if (s.totalPrestigeCount >= 10) Engine.addLogEntry('log24');
 
+    // Expansion C: Prestige rewards — random eggs and booster
+    const eggCount = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < eggCount; i++) {
+      if (typeof Expansion !== 'undefined' && Expansion.Eggs) {
+        Expansion.Eggs.grantRandomEgg(s);
+      }
+    }
+    if (typeof Expansion !== 'undefined' && Expansion.Boosters && Expansion.Boosters.grantRandom) {
+      Expansion.Boosters.grantRandom(s);
+    }
+
+    // Cosmic Egg on Prestige (CD shop)
+    if (s.cdShopPurchased && s.cdShopPurchased['cd_cosmicegg']) {
+      if (typeof Expansion !== 'undefined' && Expansion.Eggs && Expansion.Eggs.grantEgg) {
+        Expansion.Eggs.grantEgg(s, 'cosmic');
+      }
+    }
+
+    // Audio & juice
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playPrestigeSound();
+    if (typeof Juice !== 'undefined') {
+      Juice.Haptics.prestige();
+      Juice.ScreenShake.prestige();
+      Juice.Confetti.prestige();
+    }
+
     playBigBangAnimation(cdEarned);
   }
 
@@ -1070,8 +1099,12 @@ const UI = (() => {
     const panel = document.getElementById('panel-achievements');
 
     let html = '<h3>Achievements</h3>';
-    const categories = ['progression', 'earning', 'tapping', 'generator', 'crew', 'terraform', 'prestige', 'secret'];
-    const catNames = ['Progression', 'Earning', 'Tapping', 'Generators', 'Crew', 'Terraforming', 'Prestige', 'Secret'];
+    const categories = ['progression', 'earning', 'tapping', 'generator', 'crew', 'terraform', 'prestige',
+      'speed', 'combo', 'critical', 'collection', 'luckyDrop', 'egg', 'contract', 'synergy', 'weather',
+      'milestone', 'booster', 'secret'];
+    const catNames = ['Progression', 'Earning', 'Tapping', 'Generators', 'Crew', 'Terraforming', 'Prestige',
+      'Speed', 'Combo', 'Critical', 'Collection', 'Lucky Drop', 'Egg', 'Contract', 'Synergy', 'Weather',
+      'Milestone', 'Booster', 'Secret'];
 
     categories.forEach((cat, i) => {
       const achs = GameData.ACHIEVEMENTS.filter(a => a.category === cat);
@@ -1545,6 +1578,14 @@ const UI = (() => {
     overlay.classList.remove('hidden');
     overlay.classList.add('active');
 
+    // Juice: confetti, shake, flash
+    if (typeof Juice !== 'undefined') {
+      Juice.ScreenShake.phaseTransition();
+      Juice.ScreenFlash.phaseTransition();
+      Juice.Confetti.phaseUnlock();
+    }
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setPhase(phase);
+
     setTimeout(() => {
       overlay.classList.remove('active');
       overlay.classList.add('hidden');
@@ -1652,11 +1693,34 @@ const UI = (() => {
     const s = GameState.getState();
     const bar = document.getElementById('next-unlock-bar');
     if (!bar) return;
-    const teaser = Expansion.NextUnlock.get(s);
+
+    // Use enhanced TeaserSystem from Juice if available, else fall back to Expansion.NextUnlock
+    let teaser = null;
+    if (typeof Juice !== 'undefined') {
+      teaser = Juice.TeaserSystem.getNextUnlock(s);
+    } else {
+      teaser = Expansion.NextUnlock.get(s);
+    }
+
     if (teaser) {
       bar.classList.remove('hidden');
-      document.getElementById('next-unlock-info').textContent = teaser.name + ' — ' + Math.floor(teaser.progress * 100) + '%';
-      document.getElementById('next-unlock-progress-inner').style.width = (teaser.progress * 100) + '%';
+      const pct = Math.floor(teaser.progress * 100);
+      const infoEl = document.getElementById('next-unlock-info');
+      const progressEl = document.getElementById('next-unlock-progress-inner');
+
+      if (pct >= 100) {
+        infoEl.textContent = '\u{1F389} READY! ' + teaser.name;
+        bar.classList.remove('almost-there');
+        bar.classList.add('ready');
+      } else if (teaser.almostThere) {
+        infoEl.textContent = '\u{1F512} ALMOST THERE! ' + teaser.name + ' — ' + pct + '%';
+        bar.classList.add('almost-there');
+        bar.classList.remove('ready');
+      } else {
+        infoEl.textContent = '\u{1F512} NEXT: ' + teaser.name + ' — ' + pct + '%';
+        bar.classList.remove('almost-there', 'ready');
+      }
+      if (progressEl) progressEl.style.width = Math.min(100, pct) + '%';
     } else {
       bar.classList.add('hidden');
     }

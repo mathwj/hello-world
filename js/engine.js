@@ -106,6 +106,12 @@ const Engine = (() => {
       }
     }
 
+    // Adaptive audio update
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.update(deltaTime);
+
+    // UI juice update (screen shake, etc.)
+    if (typeof Juice !== 'undefined') Juice.update(deltaTime);
+
     // Update UI
     UI.updateTick();
   }
@@ -254,6 +260,29 @@ const Engine = (() => {
 
     if (!isAuto) {
       UI.showFloatingNumber(amount, tapResult);
+
+      // Audio & haptic feedback
+      if (typeof AdaptiveAudio !== 'undefined') {
+        AdaptiveAudio.onTap();
+        if (tapResult.type === 'super') {
+          AdaptiveAudio.playSuperCriticalSound();
+        } else if (tapResult.type === 'critical') {
+          AdaptiveAudio.playCriticalSound();
+        } else {
+          AdaptiveAudio.playTapSound(s.combo ? s.combo.current : 0);
+        }
+      }
+      if (typeof Juice !== 'undefined') {
+        if (tapResult.type === 'super') {
+          Juice.Haptics.heavy();
+          Juice.ScreenShake.superCritical();
+          Juice.ScreenFlash.superCritical();
+        } else if (tapResult.type === 'critical') {
+          Juice.Haptics.medium();
+        } else {
+          Juice.Haptics.light();
+        }
+      }
     }
 
     return amount;
@@ -307,6 +336,23 @@ const Engine = (() => {
 
     // Expansion: milestones, purchase streak, contracts
     Expansion.onGeneratorBuy(s, genId, count);
+
+    // Audio & juice on purchase
+    if (typeof AdaptiveAudio !== 'undefined') {
+      const name = gen.name.toLowerCase();
+      let soundType = 'machine';
+      if (name.includes('worker') || name.includes('kid') || name.includes('team')) soundType = 'worker';
+      else if (name.includes('ship') || name.includes('shuttle') || name.includes('tug')) soundType = 'ship';
+      else if (name.includes('base') || name.includes('hub') || name.includes('station')) soundType = 'building';
+      else if (name.includes('ai') || name.includes('quantum') || name.includes('computer')) soundType = 'hightech';
+      else if (name.includes('alien') || name.includes('artifact') || name.includes('ansible')) soundType = 'alien';
+      AdaptiveAudio.playPurchaseSound(soundType);
+    }
+    if (typeof Juice !== 'undefined') {
+      Juice.Haptics.success();
+      Juice.ScreenShake.purchase();
+      Juice.GenAnims.popCount(genId);
+    }
 
     calculateRates(s);
     UI.updateGenerators();
@@ -709,6 +755,14 @@ const Engine = (() => {
     }
 
     UI.showAchievementBanner(ach);
+
+    // Juice: confetti, sound, haptic
+    if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.playAchievementSound();
+    if (typeof Juice !== 'undefined') {
+      Juice.Haptics.achievement();
+      Juice.ScreenFlash.achievement();
+      Juice.Confetti.achievement();
+    }
   }
 
   function checkAchievements(s) {

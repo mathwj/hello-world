@@ -2669,3 +2669,260 @@ html, body {
   text-align: center;
   padding: 16px;
 }
+
+/* ===== EXPANSION C: MICRO-ANIMATIONS (Section 56) ===== */
+
+/* Currency pump animation */
+.pump {
+  animation: pump 200ms ease-out;
+}
+@keyframes pump {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Suffix stamp animation */
+.stamp {
+  animation: stamp 400ms ease-out;
+  color: var(--accent-gold) !important;
+}
+@keyframes stamp {
+  0% { transform: scale(1.5); opacity: 0.5; }
+  50% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Generator icon animations */
+.gen-anim-sway {
+  animation: genSway 2s ease-in-out infinite;
+}
+@keyframes genSway {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+.gen-anim-vibrate {
+  animation: genVibrate 0.15s linear infinite;
+}
+@keyframes genVibrate {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1px); }
+}
+
+.gen-anim-bob {
+  animation: genBob 3s ease-in-out infinite;
+}
+@keyframes genBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.gen-anim-blink {
+  animation: genBlink 4s ease-in-out infinite;
+}
+@keyframes genBlink {
+  0%, 48%, 52%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.gen-anim-pulse {
+  animation: genPulse 2s ease-in-out infinite;
+}
+@keyframes genPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Generator count pop */
+.gen-count.pop {
+  animation: countPop 150ms ease-out;
+}
+@keyframes countPop {
+  0% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Milestone ripple on generator row */
+.milestone-ripple {
+  animation: milestoneRipple 600ms ease-out;
+}
+@keyframes milestoneRipple {
+  0% { box-shadow: inset 0 0 0 0 rgba(255, 215, 0, 0.4); }
+  50% { box-shadow: inset 0 0 20px 5px rgba(255, 215, 0, 0.2); }
+  100% { box-shadow: inset 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+
+/* Button pulse when first affordable */
+.pulse-affordable {
+  animation: pulseAffordable 300ms ease-out;
+}
+@keyframes pulseAffordable {
+  0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); }
+  100% { box-shadow: 0 0 15px 5px rgba(39, 174, 96, 0); }
+}
+
+/* Tab bounce */
+.tab-bounce {
+  animation: tabBounce 300ms ease-out;
+}
+@keyframes tabBounce {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Progress bar shimmer */
+.progress-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: progressShimmer 3s infinite;
+}
+@keyframes progressShimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* Toast slide animations */
+.toast-item {
+  transform: translateX(120%);
+  transition: transform 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.toast-item.show {
+  transform: translateX(0);
+}
+
+/* Modal popup animation */
+#modal-content {
+  animation: modalIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.1);
+}
+@keyframes modalIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Notification toast slide */
+.toast-item.milestone-toast {
+  border-color: var(--accent-gold);
+  background: linear-gradient(135deg, #1a1a3a, #2a2a1a);
+}
+
+/* Milestone popup */
+#milestone-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9997;
+  text-align: center;
+  pointer-events: none;
+}
+#milestone-popup.show {
+  animation: milestonePopIn 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes milestonePopIn {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+.milestone-content {
+  background: rgba(0,0,0,0.9);
+  border: 2px solid var(--accent-gold);
+  border-radius: var(--radius-lg);
+  padding: 24px 40px;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+}
+.milestone-label {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--accent-gold);
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+.milestone-number {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 900;
+  color: #FFF;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+.milestone-name {
+  font-size: 16px;
+  color: var(--accent-gold);
+  margin-top: 4px;
+}
+
+/* Multiplier floater */
+.multiplier-float {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Confetti canvas */
+#confetti-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Screen flash overlay */
+#screen-flash-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #fff;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Synergy pulsing connection */
+.synergy-active-gen {
+  animation: synergyPulse 2s ease-in-out infinite;
+  border-left: 2px dashed var(--accent-purple) !important;
+}
+@keyframes synergyPulse {
+  0%, 100% { border-left-color: var(--accent-purple); }
+  50% { border-left-color: rgba(155, 89, 182, 0.3); }
+}
+
+/* Day/night sky tinting (Phase 1) */
+.sky-day { background: linear-gradient(180deg, #87CEEB 0%, #4A90D9 100%); }
+.sky-dusk { background: linear-gradient(180deg, #E67E22 0%, #1A0533 100%); }
+.sky-night { background: linear-gradient(180deg, #0a0a2e 0%, #050510 100%); }
+
+/* Star twinkle */
+.star-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Next Unlock bar pulsing at 90%+ */
+#next-unlock-bar.almost-there #next-unlock-progress-inner {
+  animation: teaserPulse 1s ease-in-out infinite;
+}
+@keyframes teaserPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+}
+
+/* Buy button glow when affordable */
+.gen-buy-btn:not(.disabled) {
+  box-shadow: 0 0 8px rgba(39, 174, 96, 0.3);
+}
+.upg-buy-btn:not(.disabled) {
+  box-shadow: 0 0 8px rgba(39, 174, 96, 0.3);
+}

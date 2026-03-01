@@ -83,5 +83,12 @@ const NumberFormatter = (() => {
     return baseCost * Math.pow(growthRate, owned);
   }
 
-  return { format, formatFull, formatPerSec, formatCurrency, formatTime, bulkCost, maxAffordable, nextCost };
+  function getSuffix(num) {
+    if (num < 1000) return '';
+    const exp = Math.floor(Math.log10(num));
+    const suffixIndex = Math.floor(exp / 3);
+    return suffixIndex < SUFFIXES.length ? SUFFIXES[suffixIndex] : 'e' + exp;
+  }
+
+  return { format, formatFull, formatPerSec, formatCurrency, formatTime, bulkCost, maxAffordable, nextCost, getSuffix };
 })();

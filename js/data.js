@@ -311,7 +311,26 @@ const GameData = (() => {
     { id: 'cd_bounce', name: 'Big Bounce', cost: 3000, effect: { prestigeMultiplier: 5 }, desc: 'Prestige yields x5 CD', req: 'cd_crunch' },
     { id: 'cd_sleep', name: 'Sleep Mode', cost: 50, effect: { offlineMultiplier: 0.75 }, desc: 'Offline earnings 75%' },
     { id: 'cd_dream', name: 'Dream Engine', cost: 200, effect: { offlineMultiplier: 1.0 }, desc: 'Offline earnings 100%', req: 'cd_sleep' },
-    { id: 'cd_architect', name: 'Cosmic Architect', cost: 10000, effect: { unlockMultiverse: true }, desc: 'Unlock Phase 9: The Multiverse' }
+    { id: 'cd_architect', name: 'Cosmic Architect', cost: 10000, effect: { unlockMultiverse: true }, desc: 'Unlock Phase 9: The Multiverse' },
+    // ===== EXPANSION C: New CD Shop Items (Section 59) =====
+    { id: 'cd_luckystart', name: 'Lucky Start', cost: 20, effect: { luckyStart: true }, desc: 'Start each run with 3 random boosters' },
+    { id: 'cd_eggmagnet', name: 'Egg Magnet', cost: 40, effect: { eggMagnet: true }, desc: 'Start each run with 1 Gold Egg' },
+    { id: 'cd_contractvip', name: 'Contract VIP', cost: 60, effect: { contractVIP: true }, desc: 'Start with 3 half-complete contracts' },
+    { id: 'cd_collection', name: 'Collection Memory', cost: 150, effect: { keepCollection: true }, desc: 'Collection progress persists through prestige' },
+    { id: 'cd_weatherctrl', name: 'Weather Control', cost: 100, effect: { weatherControl: true }, desc: 'Choose your weather per phase' },
+    { id: 'cd_doubledrops', name: 'Double Drops', cost: 200, effect: { doubleDrops: true }, desc: 'Lucky Drops appear 2x as frequently' },
+    { id: 'cd_triplecrit', name: 'Triple Critical', cost: 350, effect: { tripleCrit: true }, desc: 'Critical tap chance permanently tripled' },
+    { id: 'cd_goldenage', name: 'Golden Age', cost: 500, effect: { goldenAge: true }, desc: 'Golden Rush every 5 min instead of 10-20' },
+    { id: 'cd_synmemory', name: 'Synergy Memory', cost: 400, effect: { synergyMemory: true }, desc: 'Synergies auto-unlock on generator re-purchase' },
+    { id: 'cd_eggslot4', name: 'Egg Slot 4', cost: 150, effect: { eggSlots: 4 }, desc: '4th egg incubation slot' },
+    { id: 'cd_eggslot5', name: 'Egg Slot 5', cost: 150, effect: { eggSlots: 5 }, desc: '5th egg incubation slot', req: 'cd_eggslot4' },
+    { id: 'cd_combo', name: 'Combo Persistence', cost: 250, effect: { comboTimer: 1.5 }, desc: 'Combo timer 0.8s \u2192 1.5s' },
+    { id: 'cd_supercrit', name: 'Super Critical Boost', cost: 750, effect: { superCritBoost: true }, desc: 'Super Critical chance 0.1% \u2192 0.5%' },
+    { id: 'cd_autocollect', name: 'Auto-Collector', cost: 1000, effect: { autoCollect: true }, desc: 'Lucky Drops and Flying Bonuses auto-collected' },
+    { id: 'cd_skip5', name: 'Instant Phase 5', cost: 1500, effect: { skipToPhase: 5 }, desc: 'Option to start runs at Phase 5', req: 'cd_skip3' },
+    { id: 'cd_skip7', name: 'Instant Phase 7', cost: 5000, effect: { skipToPhase: 7 }, desc: 'Option to start runs at Phase 7', req: 'cd_skip5' },
+    { id: 'cd_cosmicegg', name: 'Cosmic Egg on Prestige', cost: 2000, effect: { cosmicEggOnPrestige: true }, desc: 'Each prestige grants 1 Cosmic Egg' },
+    { id: 'cd_mastery', name: 'Mastery Bonus', cost: 3000, effect: { masteryBonus: true }, desc: 'Diamond-tier upgrades give +1% global income' }
   ];
 
   // ========== RESEARCH TREE ==========
@@ -729,7 +748,14 @@ const GameData = (() => {
     { id: 'uni_challenge', name: 'Universe-\u03B4 (Challenge)', rules: 'Generators degrade unless maintained', reward: 15 },
     { id: 'uni_mirror', name: 'Universe-\u03B5 (Mirror)', rules: 'Phase order reversed', reward: 20 },
     { id: 'uni_endless', name: 'Universe-\u221E (Endless)', rules: 'No prestige, infinite scaling', reward: 1 },
-    { id: 'uni_mystery', name: 'Universe-??? (Mystery)', rules: 'Random combination of 3 rules', reward: 10 }
+    { id: 'uni_mystery', name: 'Universe-??? (Mystery)', rules: 'Random combination of 3 rules', reward: 10 },
+    // ===== EXPANSION C: New Universes (Section 60) =====
+    { id: 'uni_chaos', name: 'Universe-\u03B6 (Chaos)', rules: 'Every 60s, two random generators swap outputs', reward: 12 },
+    { id: 'uni_pacifist', name: 'Universe-\u03B7 (Pacifist)', rules: 'No fleet/ships — reach galaxy without mining ships', reward: 18 },
+    { id: 'uni_rush', name: 'Universe-\u03B8 (Rush Hour)', rules: '3x speed but 3x costs', reward: 8 },
+    { id: 'uni_dark', name: 'Universe-\u03B9 (Dark)', rules: 'No background — navigate by numbers alone', reward: 15, bonusTitle: 'Blind Navigator' },
+    { id: 'uni_collection', name: 'Universe-\u03BA (Collection)', rules: 'Complete 3 collection sets to finish', reward: 25 },
+    { id: 'uni_bossrush', name: 'Universe-\u03BB (Boss Rush)', rules: 'Each phase transition requires a boss mini-game', reward: 20 }
   ];
 
   // ========== INFINITY TOKEN SHOP ==========
@@ -741,7 +767,18 @@ const GameData = (() => {
     { id: 'it_dark', name: 'Dark Mode Theme', cost: 10, desc: 'Alternative dark UI theme' },
     { id: 'it_retro', name: 'Retro Pixel Theme', cost: 25, desc: '8-bit pixel art style' },
     { id: 'it_rainbow', name: 'Rainbow Particles', cost: 15, desc: 'Rainbow particle effects' },
-    { id: 'it_speed', name: 'Speed Lines Background', cost: 10, desc: 'Animated speed lines' }
+    { id: 'it_speed', name: 'Speed Lines Background', cost: 10, desc: 'Animated speed lines' },
+    // ===== EXPANSION C: New IT Shop Items (Section 60) =====
+    { id: 'it_animated_bg', name: 'Animated Background', cost: 30, desc: 'Extra animated elements (shooting stars, animals)' },
+    { id: 'it_particle_color', name: 'Custom Particle Color', cost: 15, desc: 'Choose the color of your tap particles' },
+    { id: 'it_giant_nums', name: 'Giant Numbers', cost: 10, desc: 'Floating +\u20A1 numbers are 2x bigger' },
+    { id: 'it_vip', name: 'VIP Nameplate', cost: 20, desc: 'Gold border around your name in stats' },
+    { id: 'it_jukebox', name: 'Soundtrack Jukebox', cost: 25, desc: 'Play any phase music in any phase' },
+    { id: 'it_aura', name: 'Lucky Aura', cost: 35, desc: 'Permanent subtle aura around your rocket' },
+    { id: 'it_prestige_anim', name: 'Prestige Animation Selector', cost: 40, desc: 'Choose from 5 different Big Bang animations' },
+    { id: 'it_phase_anim', name: 'Phase Skip Animation', cost: 15, desc: 'Faster, cooler phase transition animations' },
+    { id: 'it_confetti2x', name: 'Double Confetti', cost: 10, desc: 'All confetti bursts are 2x bigger' },
+    { id: 'it_alien_font', name: 'Alien Language Font', cost: 20, desc: 'Display all text in alien symbols (for fun)' }
   ];
 
   // ========== ASTRONAUT NAMES ==========
@@ -762,6 +799,17 @@ const GameData = (() => {
     { name: 'Veteran', bonus: 0.25, upgradeCost: { ore: 2000, rp: 500 } },
     { name: 'Elite', bonus: 0.50, upgradeCost: { ore: 10000, rp: 2500 } },
     { name: 'Legendary', bonus: 1.00, upgradeCost: { ore: 50000, rp: 10000 } }
+  ];
+
+  // ========== PRESTIGE MILESTONES (Section 59) ==========
+  const PRESTIGE_MILESTONES = [
+    { count: 1, cdBonus: 50, desc: 'Welcome to the Cosmic Dust Shop!' },
+    { count: 3, cdBonus: 0, desc: 'Unlock Challenge Runs', unlockChallenges: true },
+    { count: 5, cdBonus: 100, desc: '+100 CD + 1 Cosmic Egg', cosmicEgg: true },
+    { count: 10, cdBonus: 250, desc: '+250 CD + 1 Void Egg + "Eternal" title', voidEgg: true, title: 'Eternal' },
+    { count: 25, cdBonus: 1000, desc: '+1000 CD + "Starborn" rocket skin', rocketSkin: 'starborn' },
+    { count: 50, cdBonus: 5000, desc: '+5000 CD + permanent x2 all income', permanentMult: 2 },
+    { count: 100, cdBonus: 25000, desc: '"The Centennial" + all future prestige CD doubled', title: 'The Centennial', rocketSkin: 'infinite', cdDoubled: true }
   ];
 
   // Merge expansion data when available (Expansion loads before GameData is consumed)
@@ -792,7 +840,7 @@ const GameData = (() => {
     PHASES, ROCKET_PARTS, GENERATORS, UPGRADES, CD_SHOP, RESEARCH,
     ACHIEVEMENTS, CAPTAINS_LOG, EVENTS, DAILY_REWARDS, STAR_SYSTEM_TYPES,
     SPECIAL_STAR_SYSTEMS, ANOMALY_BONUSES, RARE_ASTEROID, ARTIFACT_FRAGMENTS,
-    UNIVERSES, IT_SHOP, ASTRONAUT_NAMES, CREW_TIERS, getTotalGenerators,
-    mergeExpansionData
+    UNIVERSES, IT_SHOP, ASTRONAUT_NAMES, CREW_TIERS, PRESTIGE_MILESTONES,
+    getTotalGenerators, mergeExpansionData
   };
 })();

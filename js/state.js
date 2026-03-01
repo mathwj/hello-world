@@ -302,7 +302,27 @@ const GameState = (() => {
       // Flying Bonus
       flyingBonus: {
         nextIn: 300 + Math.random() * 600
-      }
+      },
+
+      // ===== EXPANSION C: New State Fields (Section 61) =====
+
+      // Prestige milestone tracking
+      prestigeMilestonesClaimed: {},
+
+      // Audio preferences
+      audio: {
+        jukeboxPhase: null,
+        particleColor: null
+      },
+
+      // IT shop purchased items
+      itShopPurchased: {},
+
+      // Permanent multiplier from prestige milestones
+      permanentPrestigeMult: 1.0,
+
+      // CD doubled flag (from 100th prestige milestone)
+      cdDoubledPermanent: false
     };
   }
 
@@ -353,6 +373,8 @@ const GameState = (() => {
         state.titles = Object.assign(createDefaultState().titles, saved.titles || {});
         state.goldenRush = Object.assign(createDefaultState().goldenRush, saved.goldenRush || {});
         state.flyingBonus = Object.assign(createDefaultState().flyingBonus, saved.flyingBonus || {});
+        // Expansion C nested merges
+        state.audio = Object.assign(createDefaultState().audio, saved.audio || {});
         return true;
       }
     } catch (e) {
@@ -427,6 +449,8 @@ const GameState = (() => {
     if (state.cdShopPurchased['cd_bounce']) cd *= 5;
     // Research multiplier
     if (state.researchPurchased['r6_3']) cd *= 1.25;
+    // Expansion C: 100th prestige milestone doubles all CD
+    if (state.cdDoubledPermanent) cd *= 2;
     return Math.floor(cd);
   }
 
@@ -459,8 +483,42 @@ const GameState = (() => {
       rocket: state.rocket,
       titles: state.titles,
       collection: state.cdShopPurchased['cd_collection'] ? state.collection : { items: {}, setsCompleted: [] },
-      combo: { current: 0, bestThisSession: 0, bestAllTime: state.combo.bestAllTime, lastTapTimestamp: 0 }
+      combo: { current: 0, bestThisSession: 0, bestAllTime: state.combo.bestAllTime, lastTapTimestamp: 0 },
+      // Expansion C permanent data
+      prestigeMilestonesClaimed: state.prestigeMilestonesClaimed,
+      itShopPurchased: state.itShopPurchased,
+      audio: state.audio,
+      permanentPrestigeMult: state.permanentPrestigeMult,
+      cdDoubledPermanent: state.cdDoubledPermanent
     };
+
+    // Check prestige milestones
+    const newPrestigeCount = permanent.totalPrestigeCount;
+    if (typeof GameData !== 'undefined' && GameData.PRESTIGE_MILESTONES) {
+      for (const m of GameData.PRESTIGE_MILESTONES) {
+        if (newPrestigeCount >= m.count && !permanent.prestigeMilestonesClaimed[m.count]) {
+          permanent.prestigeMilestonesClaimed[m.count] = true;
+          if (m.cdBonus > 0) {
+            permanent.cosmicDust += m.cdBonus;
+            permanent.cosmicDustLifetime += m.cdBonus;
+          }
+          if (m.title) {
+            permanent.titles.unlocked.push(m.title);
+          }
+          if (m.rocketSkin) {
+            if (!permanent.rocket.unlockedSkins.includes(m.rocketSkin)) {
+              permanent.rocket.unlockedSkins.push(m.rocketSkin);
+            }
+          }
+          if (m.permanentMult) {
+            permanent.permanentPrestigeMult *= m.permanentMult;
+          }
+          if (m.cdDoubled) {
+            permanent.cdDoubledPermanent = true;
+          }
+        }
+      }
+    }
 
     permanent.stats.totalGeneratorsEverPurchased = state.stats.totalGeneratorsEverPurchased;
     permanent.stats.totalCrewEverHired = state.stats.totalCrewEverHired;
@@ -498,6 +556,17 @@ const GameState = (() => {
     if (shop['cd_autotap']) state.autoTapPerSecond = Math.max(state.autoTapPerSecond, 5);
     if (shop['cd_sleep']) state.offlineEarningsMultiplier = Math.max(state.offlineEarningsMultiplier, 0.75);
     if (shop['cd_dream']) state.offlineEarningsMultiplier = 1.0;
+    // Expansion C CD shop effects
+    if (shop['cd_triplecrit']) state.criticalTaps.chance = Math.max(state.criticalTaps.chance, 0.06);
+    if (shop['cd_supercrit']) state.criticalTaps.superChance = Math.max(state.criticalTaps.superChance, 0.005);
+    if (shop['cd_eggslot4']) state.eggs.maxSlots = Math.max(state.eggs.maxSlots, 4);
+    if (shop['cd_eggslot5']) state.eggs.maxSlots = Math.max(state.eggs.maxSlots, 5);
+    // Ensure egg slots array matches maxSlots
+    while (state.eggs.slots.length < state.eggs.maxSlots) state.eggs.slots.push(null);
+    // Permanent prestige multiplier
+    if (state.permanentPrestigeMult > 1) {
+      state.globalCreditMultiplier *= state.permanentPrestigeMult;
+    }
   }
 
   function getCDSpeedMultiplier() {
