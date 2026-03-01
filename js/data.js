@@ -157,7 +157,13 @@ const GameData = (() => {
       { id: 'p8g1', name: 'Star System Colony', baseCost: 1e27, growth: 1.15, output: { credits: 100e24, sd: 100 }, icon: '\u2B50', desc: 'Colony in a new star system' },
       { id: 'p8g2', name: 'Warp Gate', baseCost: 10e27, growth: 1.15, output: { credits: 1e27, sd: 500 }, icon: '\u{1F300}', desc: 'Connects star systems' },
       { id: 'p8g3', name: 'Galactic Trade Hub', baseCost: 100e27, growth: 1.15, output: { credits: 10e27, sd: 2500 }, icon: '\u{1F4B0}', desc: 'Center of galactic trade' },
-      { id: 'p8g4', name: 'Galactic Megastructure', baseCost: 1e30, growth: 1.15, output: { credits: 100e27, sd: 10000 }, icon: '\u{1F3D7}', desc: 'Galaxy-spanning structure' }
+      { id: 'p8g4', name: 'Galactic Megastructure', baseCost: 1e30, growth: 1.15, output: { credits: 100e27, sd: 10000 }, icon: '\u{1F3D7}', desc: 'Galaxy-spanning structure' },
+      { id: 'p8g5', name: 'Deep Space Observatory', baseCost: 5e27, growth: 1.15, output: { credits: 500e24, sd: 250, rp: 10000 }, icon: '\u{1F52D}', desc: 'Scans uncharted star systems for anomalies' },
+      { id: 'p8g6', name: 'Interstellar Freighter', baseCost: 50e27, growth: 1.15, output: { credits: 5e27, sd: 1200, rm: 5000 }, icon: '\u{1F680}', desc: 'Hauls cargo between star systems' },
+      { id: 'p8g7', name: 'Stellar Nursery', baseCost: 500e27, growth: 1.15, output: { credits: 50e27, sd: 5000 }, icon: '\u2728', desc: 'Cultivates new stars to colonize' },
+      { id: 'p8g8', name: 'Quasar Harvester', baseCost: 5e30, growth: 1.15, output: { credits: 500e27, sd: 25000 }, icon: '\u{1F4A5}', desc: 'Harvests energy from distant quasars' },
+      { id: 'p8g9', name: 'Dark Matter Refinery', baseCost: 50e30, growth: 1.15, output: { credits: 5e30, sd: 100000 }, icon: '\u{1F311}', desc: 'Refines dark matter into usable energy' },
+      { id: 'p8g10', name: 'Cosmic String Engine', baseCost: 500e30, growth: 1.15, output: { credits: 50e30, sd: 500000 }, icon: '\u{1F30C}', desc: 'Harnesses cosmic strings for infinite power' }
     ]
   };
 
@@ -315,7 +321,13 @@ const GameData = (() => {
       { id: 'u8_8', name: 'Anomaly Scanner Mk.II', cost: 500000, currency: 'sd', effect: { anomalyChanceMultiplier: 3 }, desc: 'Anomaly system chance x3', req: { totalStarSystems: 20 } },
       { id: 'u8_9', name: 'Galactic Highway', cost: 1500000, currency: 'sd', effect: { phaseMultiplier: { phase: 8, mult: 3 } }, desc: 'All galaxy generators x3', req: { totalStarSystems: 30 } },
       { id: 'u8_10', name: 'Ancient Tech Integration', cost: 2000000, currency: 'sd', effect: { previousZoneMultiplier: 5 }, desc: 'All previous zones income x5 in Galaxy phase', req: { totalStarSystems: 40 } },
-      { id: 'u8_11', name: 'Galactic Megastructure Mk.II', cost: 5000000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g4', mult: 10 }, phaseMultiplier: { phase: 8, mult: 5 } }, desc: 'Megastructure x10 + Galaxy x5', req: { generator: 'p8g4', count: 10 } }
+      { id: 'u8_11', name: 'Galactic Megastructure Mk.II', cost: 5000000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g4', mult: 10 }, phaseMultiplier: { phase: 8, mult: 5 } }, desc: 'Megastructure x10 + Galaxy x5', req: { generator: 'p8g4', count: 10 } },
+      { id: 'u8_12', name: 'Gravitational Lens Array', cost: 150000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g5', mult: 3 } }, desc: 'Observatory x3', req: { generator: 'p8g5', count: 10 } },
+      { id: 'u8_13', name: 'Cargo Warp Tunnels', cost: 400000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g6', mult: 3 } }, desc: 'Interstellar Freighter x3', req: { generator: 'p8g6', count: 10 } },
+      { id: 'u8_14', name: 'Protostella Catalyst', cost: 800000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g7', mult: 3 } }, desc: 'Stellar Nursery x3', req: { generator: 'p8g7', count: 5 } },
+      { id: 'u8_15', name: 'Quasar Frequency Lock', cost: 3000000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g8', mult: 5 } }, desc: 'Quasar Harvester x5', req: { generator: 'p8g8', count: 5 } },
+      { id: 'u8_16', name: 'Dark Energy Siphon', cost: 8000000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g9', mult: 3 }, globalCreditMultiplier: 5 }, desc: 'Dark Matter Refinery x3 + all credits x5', req: { generator: 'p8g9', count: 5 } },
+      { id: 'u8_17', name: 'Cosmic String Resonance', cost: 20000000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g10', mult: 5 }, phaseMultiplier: { phase: 8, mult: 10 } }, desc: 'Cosmic String Engine x5 + all Galaxy x10', req: { generator: 'p8g10', count: 3 } }
     ]
   };
 

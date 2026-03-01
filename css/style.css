@@ -1060,13 +1060,38 @@ html, body {
   margin-bottom: 12px;
   font-family: var(--font-display);
   font-size: 12px;
+  color: var(--text-primary);
+}
+.fleet-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.fleet-stat-row:last-child { border-bottom: none; }
+.fleet-stat-row span:last-child {
   color: var(--accent-blue);
+  font-weight: 600;
+}
+.fleet-role-header {
+  padding: 6px 12px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+.fleet-role-header.fleet-locked {
+  opacity: 0.4;
 }
 
 .fleet-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 12px;
   margin-bottom: 4px;
   background: var(--bg-card);
@@ -1075,9 +1100,45 @@ html, body {
   font-size: 13px;
 }
 
-.fleet-icon { font-size: 20px; }
+.fleet-icon { font-size: 20px; width: 24px; text-align: center; }
 .fleet-name { flex: 1; }
-.fleet-count { color: var(--accent-blue); font-weight: 600; font-family: var(--font-display); }
+.fleet-count { color: var(--accent-blue); font-weight: 600; font-family: var(--font-display); min-width: 36px; text-align: right; }
+.fleet-output { color: var(--text-secondary); font-size: 11px; font-family: var(--font-display); min-width: 60px; text-align: right; }
+
+/* ===== GALAXY MAP ===== */
+.galaxy-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+  font-family: var(--font-display);
+}
+.galaxy-stat-row span:last-child {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+.galaxy-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0;
+}
+.galaxy-type-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+.galaxy-type-badge.type-lush { color: #00FF88; border-color: rgba(0, 255, 136, 0.2); }
+.galaxy-type-badge.type-barren { color: #CC8844; border-color: rgba(204, 136, 68, 0.2); }
+.galaxy-type-badge.type-gas { color: #8888FF; border-color: rgba(136, 136, 255, 0.2); }
+.galaxy-type-badge.type-frozen { color: #88DDFF; border-color: rgba(136, 221, 255, 0.2); }
+.galaxy-type-badge.type-anomaly { color: #FF44FF; border-color: rgba(255, 68, 255, 0.2); }
+.galaxy-type-badge.type-ancient { color: #FFD700; border-color: rgba(255, 215, 0, 0.2); }
+.galaxy-type-badge.type-blackHole { color: #AA00FF; border-color: rgba(170, 0, 255, 0.2); }
+.galaxy-type-badge.type-galacticCore { color: #FFAA00; border-color: rgba(255, 170, 0, 0.2); }
 
 /* ===== RESEARCH ===== */
 .research-tier {

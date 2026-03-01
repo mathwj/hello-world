@@ -1160,149 +1160,768 @@ const SceneRenderer = (() => {
   }
 
   function drawAsteroids(w, h) {
-    ctx.fillStyle = '#050510';
+    // Deep black space with faint nebula tint
+    const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+    bgGrad.addColorStop(0, '#030012');
+    bgGrad.addColorStop(0.5, '#050510');
+    bgGrad.addColorStop(1, '#08031A');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
     drawStarfield(w, h);
 
-    // Jupiter in background
-    ctx.fillStyle = '#E8A04C';
+    // Distant sun — small but intense white-yellow dot with corona
+    const sunX = w * 0.12;
+    const sunY = h * 0.15;
+    const sunCorona = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 40);
+    sunCorona.addColorStop(0, 'rgba(255, 255, 240, 0.9)');
+    sunCorona.addColorStop(0.15, 'rgba(255, 255, 200, 0.5)');
+    sunCorona.addColorStop(0.4, 'rgba(255, 220, 100, 0.15)');
+    sunCorona.addColorStop(1, 'rgba(255, 200, 80, 0)');
+    ctx.fillStyle = sunCorona;
     ctx.beginPath();
-    ctx.arc(w * 0.85, h * 0.7, 30, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
     ctx.fill();
-    // Bands
-    ctx.strokeStyle = '#D4722C';
-    ctx.lineWidth = 3;
+    // Sun core
+    ctx.fillStyle = '#FFFFF0';
     ctx.beginPath();
-    ctx.arc(w * 0.85, h * 0.7, 30, 0.2, Math.PI - 0.2);
-    ctx.stroke();
+    ctx.arc(sunX, sunY, 5, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Asteroids
-    for (let i = 0; i < 15; i++) {
-      const ax = ((time * 10 + i * 73) % (w + 40)) - 20;
-      const ay = (h * 0.2 + i * h * 0.05) + Math.sin(time * 0.5 + i) * 10;
-      const size = 5 + (i % 4) * 3;
-      ctx.fillStyle = i % 3 === 0 ? '#C0C0C0' : '#6B4226';
+    // Lens flare rays from sun
+    ctx.save();
+    ctx.globalAlpha = 0.06 + Math.sin(time * 1.5) * 0.02;
+    ctx.strokeStyle = '#FFE4B5';
+    ctx.lineWidth = 1;
+    for (let r = 0; r < 6; r++) {
+      const angle = r * Math.PI / 3 + time * 0.1;
       ctx.beginPath();
-      ctx.arc(ax, ay, size, 0, Math.PI * 2);
+      ctx.moveTo(sunX, sunY);
+      ctx.lineTo(sunX + Math.cos(angle) * 70, sunY + Math.sin(angle) * 70);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Jupiter in far background — large striped sphere
+    const jX = w * 0.82;
+    const jY = h * 0.65;
+    const jR = 35;
+    // Atmospheric glow
+    const jGlow = ctx.createRadialGradient(jX, jY, jR * 0.5, jX, jY, jR * 1.8);
+    jGlow.addColorStop(0, 'rgba(232, 160, 76, 0)');
+    jGlow.addColorStop(0.5, 'rgba(232, 160, 76, 0.05)');
+    jGlow.addColorStop(1, 'rgba(232, 160, 76, 0)');
+    ctx.fillStyle = jGlow;
+    ctx.beginPath();
+    ctx.arc(jX, jY, jR * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    // Jupiter body
+    const jupBg = ctx.createRadialGradient(jX - 5, jY - 5, 0, jX, jY, jR);
+    jupBg.addColorStop(0, '#FFF0D0');
+    jupBg.addColorStop(0.3, '#E8A04C');
+    jupBg.addColorStop(0.7, '#C1700E');
+    jupBg.addColorStop(1, '#8B3010');
+    ctx.fillStyle = jupBg;
+    ctx.beginPath();
+    ctx.arc(jX, jY, jR, 0, Math.PI * 2);
+    ctx.fill();
+    // Jupiter bands
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(jX, jY, jR, 0, Math.PI * 2);
+    ctx.clip();
+    const bandColors = ['rgba(212, 114, 44, 0.4)', 'rgba(255, 248, 220, 0.2)', 'rgba(193, 68, 14, 0.3)'];
+    for (let b = -4; b <= 4; b++) {
+      ctx.fillStyle = bandColors[((b + 4) % 3)];
+      ctx.fillRect(jX - jR, jY + b * 7 - 2, jR * 2, 4);
+    }
+    // Great Red Spot
+    ctx.fillStyle = 'rgba(180, 50, 20, 0.6)';
+    ctx.beginPath();
+    ctx.ellipse(jX + 8, jY + 5, 6, 4, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Asteroid belt — 25 tumbling asteroids with variety
+    for (let i = 0; i < 25; i++) {
+      const seed = i * 137.5;
+      // Slow drift across screen
+      const baseX = ((time * (6 + (i % 5) * 2) + seed) % (w + 60)) - 30;
+      const baseY = h * 0.12 + (i * h * 0.032) + Math.sin(time * 0.3 + seed * 0.01) * 12;
+      const size = 3 + (i % 6) * 2.5;
+      const tumble = time * (0.5 + (i % 3) * 0.3) + seed;
+
+      // Asteroid type: metallic (silver-white), rocky (brown), or dark (charcoal)
+      const type = i % 5;
+      let baseColor, shadowColor, highlight;
+      if (type === 0 || type === 3) {
+        // Metallic — gleaming silver
+        baseColor = '#B0B8C0';
+        shadowColor = '#6A7080';
+        highlight = 'rgba(220, 230, 255, 0.6)';
+      } else if (type === 1 || type === 4) {
+        // Rocky — warm brown
+        baseColor = '#8B6B42';
+        shadowColor = '#5A3A1A';
+        highlight = 'rgba(200, 170, 120, 0.4)';
+      } else {
+        // Dark carbonaceous
+        baseColor = '#3A3A40';
+        shadowColor = '#1A1A20';
+        highlight = 'rgba(100, 100, 110, 0.4)';
+      }
+
+      ctx.save();
+      ctx.translate(baseX, baseY);
+      ctx.rotate(tumble);
+
+      // Irregular asteroid shape using rough polygon
+      ctx.fillStyle = baseColor;
+      ctx.beginPath();
+      const verts = 7;
+      for (let v = 0; v <= verts; v++) {
+        const a = (v / verts) * Math.PI * 2;
+        const wobble = 0.7 + ((Math.sin(seed + v * 2.7) + 1) * 0.3);
+        const px = Math.cos(a) * size * wobble;
+        const py = Math.sin(a) * size * wobble;
+        if (v === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
       ctx.fill();
+
+      // Shadow half
+      ctx.fillStyle = shadowColor;
+      ctx.beginPath();
+      for (let v = 0; v <= verts; v++) {
+        const a = (v / verts) * Math.PI * 2;
+        const wobble = 0.7 + ((Math.sin(seed + v * 2.7) + 1) * 0.3);
+        const px = Math.cos(a) * size * wobble;
+        const py = Math.sin(a) * size * wobble;
+        if (v === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillRect(-1, -size * 1.2, size * 2.5, size * 2.5);
+      ctx.restore();
+
+      // Highlight spot on metallic asteroids
+      if (type === 0 || type === 3) {
+        ctx.fillStyle = highlight;
+        ctx.beginPath();
+        ctx.arc(baseX - size * 0.3, baseY - size * 0.3, size * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
-    // Small ships if generators owned
+    // Fleet ships based on generators owned
     const s = GameState.getState();
-    if (GameData.getTotalGenerators(s) > 0) {
-      ctx.fillStyle = '#CCC';
-      for (let i = 0; i < Math.min(5, GameData.getTotalGenerators(s)); i++) {
-        const sx = w * 0.3 + Math.cos(time * 0.3 + i * 1.2) * w * 0.2;
-        const sy = h * 0.5 + Math.sin(time * 0.4 + i * 0.8) * h * 0.15;
-        ctx.fillRect(sx - 3, sy - 1, 6, 2);
+    const totalGens = GameData.getTotalGenerators(s);
+    if (totalGens > 0) {
+      const shipCount = Math.min(8, Math.floor(Math.sqrt(totalGens)));
+      for (let i = 0; i < shipCount; i++) {
+        const orbitT = time * (0.15 + i * 0.05) + i * 1.8;
+        const sx = w * 0.45 + Math.cos(orbitT) * w * 0.25;
+        const sy = h * 0.5 + Math.sin(orbitT) * h * 0.18;
+        const facing = Math.atan2(
+          Math.cos(orbitT) * h * 0.18,
+          -Math.sin(orbitT) * w * 0.25
+        );
+
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(facing);
+
+        // Ship body — triangular with hull detail
+        const shipSize = 4 + (i % 3) * 2;
+        ctx.fillStyle = i < 3 ? '#C8D0D8' : (i < 6 ? '#8899AA' : '#B0A080');
+        ctx.beginPath();
+        ctx.moveTo(shipSize * 1.5, 0);
+        ctx.lineTo(-shipSize, -shipSize * 0.6);
+        ctx.lineTo(-shipSize * 0.7, 0);
+        ctx.lineTo(-shipSize, shipSize * 0.6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Engine glow
         ctx.fillStyle = '#FF6600';
-        ctx.fillRect(sx - 5, sy, 2, 1);
-        ctx.fillStyle = '#CCC';
+        ctx.beginPath();
+        ctx.arc(-shipSize * 0.9, 0, shipSize * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        // Engine trail
+        const trailLen = 3 + Math.sin(time * 8 + i * 2) * 2;
+        ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(-shipSize - trailLen, 0, trailLen, shipSize * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cockpit window
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.5)';
+        ctx.beginPath();
+        ctx.arc(shipSize * 0.5, 0, shipSize * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
       }
+    }
+
+    // Faint mining laser beams from ships to nearby asteroids
+    if (totalGens > 2) {
+      ctx.save();
+      ctx.globalAlpha = 0.15 + Math.sin(time * 3) * 0.1;
+      ctx.strokeStyle = '#00FF88';
+      ctx.lineWidth = 1;
+      const laserX = w * 0.45 + Math.cos(time * 0.15) * w * 0.25;
+      const laserY = h * 0.5 + Math.sin(time * 0.15) * h * 0.18;
+      const targetAX = ((time * 8 + 137.5) % (w + 60)) - 30;
+      const targetAY = h * 0.12 + h * 0.032 + Math.sin(time * 0.3 + 0.01 * 137.5) * 12;
+      ctx.beginPath();
+      ctx.moveTo(laserX, laserY);
+      ctx.lineTo(targetAX, targetAY);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
   function drawJupiter(w, h) {
-    ctx.fillStyle = '#0A0A1A';
+    // Deep space backdrop
+    const bgGrad = ctx.createRadialGradient(w * 0.3, h * 0.5, 0, w * 0.3, h * 0.5, Math.max(w, h));
+    bgGrad.addColorStop(0, '#12081E');
+    bgGrad.addColorStop(0.5, '#0A0A1A');
+    bgGrad.addColorStop(1, '#050510');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
     drawStarfield(w, h);
 
-    // Jupiter
-    const jR = Math.min(w, h) * 0.45;
-    const jX = w * 0.3;
+    // Jupiter — dominates ~55% of scene, positioned left-center
+    const jR = Math.min(w, h) * 0.52;
+    const jX = w * 0.25;
     const jY = h * 0.5;
 
-    const jupGrad = ctx.createRadialGradient(jX, jY, jR * 0.3, jX, jY, jR);
+    // Atmospheric glow behind Jupiter
+    const atmoGlow = ctx.createRadialGradient(jX, jY, jR * 0.9, jX, jY, jR * 1.3);
+    atmoGlow.addColorStop(0, 'rgba(232, 160, 76, 0.15)');
+    atmoGlow.addColorStop(0.5, 'rgba(232, 160, 76, 0.05)');
+    atmoGlow.addColorStop(1, 'rgba(232, 160, 76, 0)');
+    ctx.fillStyle = atmoGlow;
+    ctx.beginPath();
+    ctx.arc(jX, jY, jR * 1.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Jupiter sphere — multi-stop gradient
+    const jupGrad = ctx.createRadialGradient(jX - jR * 0.2, jY - jR * 0.15, 0, jX, jY, jR);
     jupGrad.addColorStop(0, '#FFF8DC');
-    jupGrad.addColorStop(0.3, '#E8A04C');
-    jupGrad.addColorStop(0.6, '#D4722C');
-    jupGrad.addColorStop(0.8, '#C1440E');
-    jupGrad.addColorStop(1, '#8B3010');
+    jupGrad.addColorStop(0.15, '#F5D090');
+    jupGrad.addColorStop(0.35, '#E8A04C');
+    jupGrad.addColorStop(0.55, '#D4722C');
+    jupGrad.addColorStop(0.75, '#C1440E');
+    jupGrad.addColorStop(0.9, '#8B3010');
+    jupGrad.addColorStop(1, '#5A1A08');
     ctx.fillStyle = jupGrad;
     ctx.beginPath();
     ctx.arc(jX, jY, jR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bands
-    ctx.strokeStyle = 'rgba(255, 248, 220, 0.3)';
-    ctx.lineWidth = 4;
-    for (let i = -3; i <= 3; i++) {
+    // Cloud bands — alternating light and dark horizontal stripes
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(jX, jY, jR, 0, Math.PI * 2);
+    ctx.clip();
+
+    const bandData = [
+      { y: -0.6, h: 0.12, color: 'rgba(255, 248, 220, 0.2)' },
+      { y: -0.4, h: 0.08, color: 'rgba(180, 100, 30, 0.25)' },
+      { y: -0.25, h: 0.1, color: 'rgba(255, 230, 180, 0.15)' },
+      { y: -0.1, h: 0.08, color: 'rgba(160, 80, 20, 0.3)' },
+      { y: 0.05, h: 0.12, color: 'rgba(255, 240, 200, 0.15)' },
+      { y: 0.2, h: 0.1, color: 'rgba(140, 70, 15, 0.25)' },
+      { y: 0.35, h: 0.08, color: 'rgba(255, 220, 160, 0.2)' },
+      { y: 0.5, h: 0.12, color: 'rgba(170, 90, 25, 0.2)' }
+    ];
+    for (const band of bandData) {
+      // Wavy bands — slight sine distortion
+      ctx.fillStyle = band.color;
       ctx.beginPath();
-      ctx.arc(jX, jY + i * jR * 0.2, jR, -0.5, Math.PI + 0.5);
+      const by = jY + band.y * jR;
+      const bh = band.h * jR;
+      ctx.moveTo(jX - jR, by);
+      for (let px = jX - jR; px <= jX + jR; px += 4) {
+        const wave = Math.sin(px * 0.02 + time * 0.3 + band.y * 5) * 2;
+        ctx.lineTo(px, by + wave);
+      }
+      for (let px = jX + jR; px >= jX - jR; px -= 4) {
+        const wave = Math.sin(px * 0.02 + time * 0.3 + band.y * 5) * 2;
+        ctx.lineTo(px, by + bh + wave);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Great Red Spot — swirling ellipse with internal structure
+    const grsX = jX + jR * 0.25;
+    const grsY = jY + jR * 0.18;
+    const grsW = jR * 0.15;
+    const grsH = jR * 0.1;
+
+    // Outer swirl
+    ctx.fillStyle = 'rgba(180, 50, 20, 0.6)';
+    ctx.beginPath();
+    ctx.ellipse(grsX, grsY, grsW, grsH, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    // Inner eye
+    ctx.fillStyle = 'rgba(220, 80, 30, 0.7)';
+    ctx.beginPath();
+    ctx.ellipse(grsX, grsY, grsW * 0.5, grsH * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Swirl lines around GRS
+    ctx.strokeStyle = 'rgba(200, 60, 20, 0.3)';
+    ctx.lineWidth = 1;
+    for (let s = 0; s < 3; s++) {
+      ctx.beginPath();
+      ctx.ellipse(grsX, grsY, grsW + 3 + s * 3, grsH + 2 + s * 2,
+        time * 0.2 + s * 0.5, 0, Math.PI * 1.2);
       ctx.stroke();
     }
 
-    // Great Red Spot
-    ctx.fillStyle = '#CC3300';
+    ctx.restore(); // Unclip from Jupiter
+
+    // Terminator shadow — dark edge on right
+    const termGrad = ctx.createLinearGradient(jX - jR * 0.5, 0, jX + jR, 0);
+    termGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    termGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+    termGrad.addColorStop(0.9, 'rgba(0, 0, 0, 0.2)');
+    termGrad.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+    ctx.fillStyle = termGrad;
     ctx.beginPath();
-    ctx.ellipse(jX + jR * 0.2, jY + jR * 0.15, 12, 8, 0, 0, Math.PI * 2);
+    ctx.arc(jX, jY, jR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Moons
+    // Orbital ring/path faint hints for moons
+    ctx.strokeStyle = 'rgba(150, 150, 200, 0.08)';
+    ctx.lineWidth = 1;
+    const moonDists = [jR + 25, jR + 50, jR + 75, jR + 100];
+    for (const dist of moonDists) {
+      ctx.beginPath();
+      ctx.ellipse(jX, jY, dist, dist * 0.3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Four Galilean moons with distinct features
+    const s = GameState.getState();
+    const subZone = s.currentSubZone || '6_orbit';
     const moons = [
-      { name: 'Io', angle: time * 0.5, dist: jR + 30, color: '#CCCC00' },
-      { name: 'Europa', angle: time * 0.3 + 1, dist: jR + 50, color: '#DDE8F0' },
-      { name: 'Ganymede', angle: time * 0.2 + 2, dist: jR + 70, color: '#AAA' },
-      { name: 'Callisto', angle: time * 0.15 + 3, dist: jR + 90, color: '#888' }
+      { name: 'Io', angle: time * 0.5, dist: jR + 25, r: 6, colors: ['#CCCC00', '#FF8800', '#AA6600'], active: subZone === '6_io' },
+      { name: 'Europa', angle: time * 0.3 + 1, dist: jR + 50, r: 7, colors: ['#DDE8F0', '#AAC0D5', '#8899AA'], active: subZone === '6_europa' },
+      { name: 'Ganymede', angle: time * 0.2 + 2, dist: jR + 75, r: 8, colors: ['#BBAA99', '#998877', '#776655'], active: subZone === '6_ganymede' },
+      { name: 'Callisto', angle: time * 0.15 + 3, dist: jR + 100, r: 7, colors: ['#888888', '#666666', '#555555'], active: subZone === '6_callisto' }
     ];
 
     for (const moon of moons) {
       const mx = jX + Math.cos(moon.angle) * moon.dist;
       const my = jY + Math.sin(moon.angle) * moon.dist * 0.3;
-      ctx.fillStyle = moon.color;
+
+      // Active moon highlight ring
+      if (moon.active) {
+        ctx.strokeStyle = 'rgba(100, 255, 200, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(mx, my, moon.r + 5, 0, Math.PI * 2);
+        ctx.stroke();
+        // Pulsing glow
+        const pulse = 0.15 + Math.sin(time * 3) * 0.1;
+        ctx.fillStyle = `rgba(100, 255, 200, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(mx, my, moon.r + 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Moon sphere with gradient
+      const moonGrad = ctx.createRadialGradient(mx - 2, my - 2, 0, mx, my, moon.r);
+      moonGrad.addColorStop(0, moon.colors[0]);
+      moonGrad.addColorStop(0.6, moon.colors[1]);
+      moonGrad.addColorStop(1, moon.colors[2]);
+      ctx.fillStyle = moonGrad;
       ctx.beginPath();
-      ctx.arc(mx, my, 5, 0, Math.PI * 2);
+      ctx.arc(mx, my, moon.r, 0, Math.PI * 2);
       ctx.fill();
+
+      // Io volcanic glow
+      if (moon.name === 'Io') {
+        ctx.fillStyle = `rgba(255, 120, 0, ${0.3 + Math.sin(time * 4) * 0.2})`;
+        ctx.beginPath();
+        ctx.arc(mx + 2, my + 1, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(mx - 3, my - 2, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Europa ice cracks
+      if (moon.name === 'Europa') {
+        ctx.strokeStyle = 'rgba(150, 100, 80, 0.3)';
+        ctx.lineWidth = 0.5;
+        for (let c = 0; c < 3; c++) {
+          const ca = c * 2.1;
+          ctx.beginPath();
+          ctx.moveTo(mx + Math.cos(ca) * 3, my + Math.sin(ca) * 3);
+          ctx.lineTo(mx + Math.cos(ca + 1) * 6, my + Math.sin(ca + 1) * 5);
+          ctx.stroke();
+        }
+      }
+
+      // Moon label
+      ctx.fillStyle = moon.active ? '#64FFC8' : 'rgba(200, 200, 220, 0.6)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(moon.name, mx, my + moon.r + 12);
+    }
+
+    // Orbit sub-zone: small stations near Jupiter if in orbit
+    if (subZone === '6_orbit') {
+      for (let i = 0; i < 3; i++) {
+        const stA = time * 0.4 + i * 2.1;
+        const stD = jR + 8 + i * 5;
+        const stx = jX + Math.cos(stA) * stD;
+        const sty = jY + Math.sin(stA) * stD * 0.3;
+        ctx.fillStyle = '#C0D0E0';
+        ctx.fillRect(stx - 2, sty - 1, 4, 2);
+        ctx.fillStyle = '#6688FF';
+        ctx.fillRect(stx - 3, sty, 1, 1);
+      }
     }
   }
 
   function drawInterstellar(w, h) {
-    ctx.fillStyle = '#1A0533';
+    // Deep purple-black space with nebula tint
+    const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+    bgGrad.addColorStop(0, '#1A0533');
+    bgGrad.addColorStop(0.3, '#120428');
+    bgGrad.addColorStop(0.6, '#0A021A');
+    bgGrad.addColorStop(1, '#06010F');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
+
+    // Nebula clouds — soft colorful wisps in background
+    const nebulaColors = [
+      { x: 0.15, y: 0.3, r: 0.25, c: 'rgba(100, 20, 140, 0.06)' },
+      { x: 0.7, y: 0.2, r: 0.2, c: 'rgba(40, 80, 160, 0.05)' },
+      { x: 0.5, y: 0.7, r: 0.3, c: 'rgba(140, 40, 80, 0.04)' },
+      { x: 0.85, y: 0.6, r: 0.15, c: 'rgba(60, 120, 100, 0.05)' }
+    ];
+    for (const nb of nebulaColors) {
+      const nbGrad = ctx.createRadialGradient(
+        nb.x * w, nb.y * h, 0,
+        nb.x * w, nb.y * h, nb.r * Math.max(w, h)
+      );
+      nbGrad.addColorStop(0, nb.c);
+      nbGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = nbGrad;
+      ctx.beginPath();
+      ctx.arc(nb.x * w, nb.y * h, nb.r * Math.max(w, h), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     drawStarfield(w, h, 1.5);
 
-    // Twin suns
-    ctx.fillStyle = '#FFE4B5';
+    // Binary star system — two suns orbiting each other
+    const starCX = w * 0.4;
+    const starCY = h * 0.18;
+    const orbitR = 18;
+    const starAngle = time * 0.4;
+
+    // Primary star — warm yellow-white
+    const s1x = starCX + Math.cos(starAngle) * orbitR;
+    const s1y = starCY + Math.sin(starAngle) * orbitR * 0.4;
+    // Secondary star — gold-orange
+    const s2x = starCX - Math.cos(starAngle) * orbitR;
+    const s2y = starCY - Math.sin(starAngle) * orbitR * 0.4;
+
+    // Combined glow from both
+    const dualGlow = ctx.createRadialGradient(starCX, starCY, 0, starCX, starCY, 80);
+    dualGlow.addColorStop(0, 'rgba(255, 240, 200, 0.2)');
+    dualGlow.addColorStop(0.3, 'rgba(255, 220, 150, 0.1)');
+    dualGlow.addColorStop(0.6, 'rgba(255, 200, 100, 0.03)');
+    dualGlow.addColorStop(1, 'rgba(255, 200, 100, 0)');
+    ctx.fillStyle = dualGlow;
     ctx.beginPath();
-    ctx.arc(w * 0.35, h * 0.2, 20, 0, Math.PI * 2);
+    ctx.arc(starCX, starCY, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Primary star corona
+    const s1Glow = ctx.createRadialGradient(s1x, s1y, 0, s1x, s1y, 35);
+    s1Glow.addColorStop(0, 'rgba(255, 255, 240, 0.8)');
+    s1Glow.addColorStop(0.3, 'rgba(255, 240, 200, 0.3)');
+    s1Glow.addColorStop(0.7, 'rgba(255, 220, 150, 0.08)');
+    s1Glow.addColorStop(1, 'rgba(255, 200, 100, 0)');
+    ctx.fillStyle = s1Glow;
+    ctx.beginPath();
+    ctx.arc(s1x, s1y, 35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFF0';
+    ctx.beginPath();
+    ctx.arc(s1x, s1y, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Secondary star corona
+    const s2Glow = ctx.createRadialGradient(s2x, s2y, 0, s2x, s2y, 25);
+    s2Glow.addColorStop(0, 'rgba(255, 215, 0, 0.7)');
+    s2Glow.addColorStop(0.3, 'rgba(255, 200, 50, 0.25)');
+    s2Glow.addColorStop(0.7, 'rgba(255, 180, 30, 0.06)');
+    s2Glow.addColorStop(1, 'rgba(255, 180, 30, 0)');
+    ctx.fillStyle = s2Glow;
+    ctx.beginPath();
+    ctx.arc(s2x, s2y, 25, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#FFD700';
     ctx.beginPath();
-    ctx.arc(w * 0.45, h * 0.22, 15, 0, Math.PI * 2);
+    ctx.arc(s2x, s2y, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    // Glow
-    ctx.fillStyle = 'rgba(255, 228, 181, 0.1)';
-    ctx.beginPath();
-    ctx.arc(w * 0.4, h * 0.21, 60, 0, Math.PI * 2);
-    ctx.fill();
+    // Three exoplanets — Haven (green), Ferrum (iron-red), Nebula (blue-purple)
+    const st = GameState.getState();
+    const subZone = st.currentSubZone || '7_haven';
 
-    // Planet
-    ctx.fillStyle = '#50C878';
-    ctx.beginPath();
-    ctx.arc(w * 0.7, h * 0.6, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#228B22';
-    ctx.beginPath();
-    ctx.arc(w * 0.72, h * 0.58, 25, 0.5, 2);
-    ctx.fill();
+    const planets = [
+      {
+        name: 'Haven', key: '7_haven', x: 0.18, y: 0.55, r: 22,
+        colors: ['#50C878', '#228B22', '#0A5015'], ringColor: null,
+        features: 'lush' // green continents, clouds
+      },
+      {
+        name: 'Ferrum', key: '7_ferrum', x: 0.65, y: 0.45, r: 18,
+        colors: ['#CC6633', '#8B4513', '#4A2008'], ringColor: 'rgba(180, 120, 60, 0.25)',
+        features: 'rocky' // cratered, iron-red
+      },
+      {
+        name: 'Nebula', key: '7_nebula', x: 0.82, y: 0.72, r: 26,
+        colors: ['#6A5ACD', '#483D8B', '#2A1B5B'], ringColor: 'rgba(120, 100, 200, 0.2)',
+        features: 'gas' // gas giant, atmospheric bands
+      }
+    ];
+
+    for (const planet of planets) {
+      const px = planet.x * w;
+      const py = planet.y * h;
+      const pr = planet.r;
+      const isActive = subZone === planet.key;
+
+      // Active planet glow
+      if (isActive) {
+        const actGlow = ctx.createRadialGradient(px, py, pr, px, py, pr + 15);
+        actGlow.addColorStop(0, 'rgba(100, 255, 200, 0.2)');
+        actGlow.addColorStop(1, 'rgba(100, 255, 200, 0)');
+        ctx.fillStyle = actGlow;
+        ctx.beginPath();
+        ctx.arc(px, py, pr + 15, 0, Math.PI * 2);
+        ctx.fill();
+        // Selection ring
+        ctx.strokeStyle = `rgba(100, 255, 200, ${0.4 + Math.sin(time * 3) * 0.2})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(px, py, pr + 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Ring system (for Ferrum and Nebula)
+      if (planet.ringColor) {
+        ctx.save();
+        ctx.strokeStyle = planet.ringColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(px, py, pr * 1.8, pr * 0.35, 0.2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Planet sphere
+      const pGrad = ctx.createRadialGradient(px - pr * 0.3, py - pr * 0.3, 0, px, py, pr);
+      pGrad.addColorStop(0, planet.colors[0]);
+      pGrad.addColorStop(0.5, planet.colors[1]);
+      pGrad.addColorStop(1, planet.colors[2]);
+      ctx.fillStyle = pGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Planet-specific features
+      if (planet.features === 'lush') {
+        // Continents — green patches
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.fillStyle = 'rgba(34, 139, 34, 0.4)';
+        ctx.beginPath();
+        ctx.arc(px - 5, py - 3, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px + 7, py + 4, 6, 0, Math.PI * 2);
+        ctx.fill();
+        // Clouds
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        const cloudX = (time * 5) % (pr * 4) - pr * 2;
+        ctx.beginPath();
+        ctx.ellipse(px + cloudX, py - 5, 10, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(px + cloudX + 12, py + 6, 8, 3, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else if (planet.features === 'rocky') {
+        // Craters
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.fillStyle = 'rgba(100, 50, 20, 0.3)';
+        ctx.beginPath();
+        ctx.arc(px + 3, py - 5, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px - 6, py + 3, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(px + 8, py + 6, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      } else if (planet.features === 'gas') {
+        // Atmospheric bands
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.clip();
+        for (let b = -3; b <= 3; b++) {
+          ctx.fillStyle = b % 2 === 0 ? 'rgba(80, 60, 140, 0.25)' : 'rgba(140, 120, 200, 0.15)';
+          ctx.fillRect(px - pr, py + b * (pr * 0.22) - 3, pr * 2, 6);
+        }
+        ctx.restore();
+      }
+
+      // Terminator shadow
+      const tGrad = ctx.createLinearGradient(px - pr, py, px + pr, py);
+      tGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      tGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+      tGrad.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+      ctx.fillStyle = tGrad;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Planet label
+      ctx.fillStyle = isActive ? '#64FFC8' : 'rgba(200, 200, 220, 0.5)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(planet.name, px, py + pr + 14);
+    }
+
+    // Colony ships / warp trails between planets (if generators owned)
+    const totalGens = GameData.getTotalGenerators(st);
+    if (totalGens > 0) {
+      // Warp trail: a fading line between active planet and stars
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      ctx.strokeStyle = '#88DDFF';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 8]);
+      const activeP = planets.find(p => p.key === subZone) || planets[0];
+      ctx.beginPath();
+      ctx.moveTo(activeP.x * w, activeP.y * h);
+      ctx.lineTo(starCX, starCY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      // Colony ships traveling
+      const shipCount = Math.min(4, Math.floor(Math.sqrt(totalGens) / 2));
+      for (let i = 0; i < shipCount; i++) {
+        const t = ((time * 0.1 + i * 0.25) % 1);
+        const ax = activeP.x * w;
+        const ay = activeP.y * h;
+        const sx = ax + (starCX - ax) * t;
+        const sy = ay + (starCY - ay) * t;
+        ctx.fillStyle = '#C0D8E8';
+        ctx.beginPath();
+        ctx.moveTo(sx + 3, sy);
+        ctx.lineTo(sx - 3, sy - 2);
+        ctx.lineTo(sx - 3, sy + 2);
+        ctx.closePath();
+        ctx.fill();
+        // Tiny engine glow
+        ctx.fillStyle = 'rgba(100, 200, 255, 0.4)';
+        ctx.beginPath();
+        ctx.arc(sx - 4, sy, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
   function drawGalaxy(w, h) {
-    ctx.fillStyle = '#050510';
+    // Very deep black with faint blue-purple cosmic tint
+    const bgGrad = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.7);
+    bgGrad.addColorStop(0, '#0A0818');
+    bgGrad.addColorStop(0.4, '#060510');
+    bgGrad.addColorStop(1, '#020208');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Galaxy spiral
     const cx = w * 0.5;
     const cy = h * 0.5;
-    ctx.strokeStyle = 'rgba(200, 200, 255, 0.2)';
-    ctx.lineWidth = 2;
+    const maxR = Math.min(w, h) * 0.42;
 
-    for (let arm = 0; arm < 4; arm++) {
+    // Distant background stars (not in galaxy plane)
+    for (const star of stars) {
+      const twinkle = (Math.sin(time * star.twinkleSpeed) + 1) / 2;
+      const alpha = star.brightness * (0.2 + twinkle * 0.15);
+      ctx.fillStyle = `rgba(180, 180, 220, ${alpha})`;
       ctx.beginPath();
-      for (let i = 0; i < 100; i++) {
-        const angle = (i / 100) * Math.PI * 4 + arm * Math.PI * 0.5 + time * 0.05;
-        const r = (i / 100) * Math.min(w, h) * 0.4;
+      ctx.arc(star.x * w, star.y * h, star.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Galaxy dust lanes — soft gradient ellipses along spiral arms
+    ctx.save();
+    ctx.globalAlpha = 0.03;
+    for (let arm = 0; arm < 4; arm++) {
+      for (let seg = 0; seg < 8; seg++) {
+        const angle = (seg / 8) * Math.PI * 3.5 + arm * Math.PI * 0.5 + time * 0.02;
+        const r = (seg / 8) * maxR * 0.9 + 15;
+        const dx = cx + Math.cos(angle) * r;
+        const dy = cy + Math.sin(angle) * r * 0.5;
+        const dustGrad = ctx.createRadialGradient(dx, dy, 0, dx, dy, 15 + seg * 2);
+        const hue = arm === 0 ? '200, 180, 255' : arm === 1 ? '255, 200, 180' : arm === 2 ? '180, 220, 255' : '255, 220, 200';
+        dustGrad.addColorStop(0, `rgba(${hue}, 1)`);
+        dustGrad.addColorStop(1, `rgba(${hue}, 0)`);
+        ctx.fillStyle = dustGrad;
+        ctx.beginPath();
+        ctx.arc(dx, dy, 15 + seg * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    // Spiral arms — thick glowing strokes with star density
+    for (let arm = 0; arm < 4; arm++) {
+      // Arm glow (wide, soft)
+      ctx.strokeStyle = 'rgba(150, 150, 200, 0.08)';
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      for (let i = 0; i < 120; i++) {
+        const angle = (i / 120) * Math.PI * 4 + arm * Math.PI * 0.5 + time * 0.02;
+        const r = (i / 120) * maxR;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r * 0.5;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Arm bright center
+      ctx.strokeStyle = 'rgba(200, 200, 255, 0.12)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i < 120; i++) {
+        const angle = (i / 120) * Math.PI * 4 + arm * Math.PI * 0.5 + time * 0.02;
+        const r = (i / 120) * maxR;
         const x = cx + Math.cos(angle) * r;
         const y = cy + Math.sin(angle) * r * 0.5;
         if (i === 0) ctx.moveTo(x, y);
@@ -1311,68 +1930,274 @@ const SceneRenderer = (() => {
       ctx.stroke();
     }
 
-    // Stars in spiral
-    for (let i = 0; i < 50; i++) {
-      const angle = (i / 50) * Math.PI * 4 + time * 0.05;
-      const r = (i / 50) * Math.min(w, h) * 0.38;
-      const x = cx + Math.cos(angle) * r + Math.random() * 10 - 5;
-      const y = cy + Math.sin(angle) * r * 0.5 + Math.random() * 5 - 2.5;
-      ctx.fillStyle = `rgba(255, 255, 200, ${0.3 + Math.random() * 0.5})`;
+    // Stars along spiral arms — deterministic positions (seeded by index)
+    for (let i = 0; i < 80; i++) {
+      const arm = i % 4;
+      const t = (Math.floor(i / 4) / 20);
+      const angle = t * Math.PI * 4 + arm * Math.PI * 0.5 + time * 0.02;
+      const r = t * maxR * 0.95;
+      // Scatter perpendicular to arm direction
+      const seed = Math.sin(i * 127.1 + 311.7);
+      const seed2 = Math.sin(i * 269.5 + 183.3);
+      const scatter = seed * 15;
+      const perpAngle = angle + Math.PI * 0.5;
+      const x = cx + Math.cos(angle) * r + Math.cos(perpAngle) * scatter;
+      const y = cy + Math.sin(angle) * r * 0.5 + Math.sin(perpAngle) * scatter * 0.5;
+
+      // Star color variety — blue-white, yellow, orange
+      const colorRoll = ((i * 37) % 10);
+      let starColor;
+      if (colorRoll < 4) starColor = `rgba(200, 210, 255, ${0.4 + seed2 * 0.3})`;
+      else if (colorRoll < 7) starColor = `rgba(255, 255, 200, ${0.4 + seed2 * 0.3})`;
+      else if (colorRoll < 9) starColor = `rgba(255, 200, 150, ${0.4 + seed2 * 0.3})`;
+      else starColor = `rgba(255, 150, 150, ${0.3 + seed2 * 0.2})`; // Red giant
+
+      ctx.fillStyle = starColor;
       ctx.beginPath();
-      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+      ctx.arc(x, y, 0.8 + (colorRoll >= 9 ? 1 : 0), 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Galactic core
-    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
-    coreGrad.addColorStop(0, 'rgba(255, 255, 200, 0.8)');
-    coreGrad.addColorStop(1, 'rgba(255, 255, 200, 0)');
+    // Galactic core — bright, multi-layered
+    const coreR = Math.min(w, h) * 0.08;
+    // Outer halo
+    const coreHalo = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 3);
+    coreHalo.addColorStop(0, 'rgba(255, 255, 220, 0.15)');
+    coreHalo.addColorStop(0.3, 'rgba(255, 240, 200, 0.06)');
+    coreHalo.addColorStop(1, 'rgba(255, 220, 150, 0)');
+    ctx.fillStyle = coreHalo;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreR * 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Dense core
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+    coreGrad.addColorStop(0, 'rgba(255, 255, 230, 0.9)');
+    coreGrad.addColorStop(0.3, 'rgba(255, 240, 180, 0.5)');
+    coreGrad.addColorStop(0.7, 'rgba(255, 220, 150, 0.15)');
+    coreGrad.addColorStop(1, 'rgba(255, 200, 100, 0)');
     ctx.fillStyle = coreGrad;
     ctx.beginPath();
-    ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+    ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Colonized systems markers
+    // Colonized systems — with type-based coloring and connections
     const s = GameState.getState();
-    ctx.fillStyle = '#00FF88';
-    for (let i = 0; i < s.starSystems.totalSystems; i++) {
-      const sysAngle = (i / 50) * Math.PI * 4 + Math.PI * 0.7;
-      const sysR = 20 + (i / 50) * Math.min(w, h) * 0.35;
+    const colonized = s.starSystems.colonized || [];
+    const totalSystems = s.starSystems.totalSystems || 0;
+    const systemPositions = [];
+
+    // System type colors
+    const typeColors = {
+      lush: '#00FF88', barren: '#CC8844', gas: '#8888FF',
+      frozen: '#88DDFF', anomaly: '#FF44FF', ancient: '#FFD700',
+      blackHole: '#AA00FF', nebula: '#4488FF', ancientRuins: '#FFD700', galacticCore: '#FFAA00'
+    };
+
+    for (let i = 0; i < totalSystems; i++) {
+      const sysAngle = (i / 50) * Math.PI * 4 + Math.PI * 0.7 + time * 0.02;
+      const sysR = 20 + (i / 50) * maxR * 0.85;
       const sx = cx + Math.cos(sysAngle) * sysR;
       const sy = cy + Math.sin(sysAngle) * sysR * 0.5;
+      systemPositions.push({ x: sx, y: sy, index: i });
+
+      // Get type for this system
+      const sysData = colonized[i];
+      const sysType = sysData ? sysData.type : 'lush';
+      const color = typeColors[sysType] || '#00FF88';
+
+      // System glow
+      ctx.fillStyle = color.replace(')', ', 0.15)').replace('rgb', 'rgba').replace('#', '');
+      const sGlow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 8);
+      sGlow.addColorStop(0, color + '44');
+      sGlow.addColorStop(1, color + '00');
+      ctx.fillStyle = sGlow;
       ctx.beginPath();
-      ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
       ctx.fill();
+
+      // System dot
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Special system indicator — larger, pulsing
+      if (sysType === 'blackHole' || sysType === 'galacticCore' || sysType === 'ancientRuins') {
+        const pulse = 0.3 + Math.sin(time * 2 + i) * 0.2;
+        ctx.strokeStyle = `${color}`;
+        ctx.globalAlpha = pulse;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Warp gate connections — faint lines between adjacent systems
+    if (systemPositions.length > 1) {
+      ctx.strokeStyle = 'rgba(0, 255, 136, 0.06)';
+      ctx.lineWidth = 0.5;
+      for (let i = 1; i < systemPositions.length; i++) {
+        const a = systemPositions[i - 1];
+        const b = systemPositions[i];
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
+
+    // System count label
+    if (totalSystems > 0) {
+      ctx.fillStyle = 'rgba(200, 200, 220, 0.4)';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(totalSystems + '/50 systems', cx, h - 8);
     }
   }
 
   function drawMultiverse(w, h) {
-    ctx.fillStyle = '#000';
+    // Pure void — deep black with shifting color hints
+    ctx.fillStyle = '#010005';
     ctx.fillRect(0, 0, w, h);
 
-    // Swirling portals
-    for (let i = 0; i < 5; i++) {
-      const px = w * (0.2 + i * 0.15);
-      const py = h * 0.4 + Math.sin(time + i * 1.5) * 20;
-      const r = 20 + Math.sin(time * 2 + i) * 5;
-
-      const hue = (time * 50 + i * 72) % 360;
-      ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
-      ctx.lineWidth = 2;
-
-      for (let ring = 0; ring < 3; ring++) {
-        ctx.beginPath();
-        ctx.arc(px, py, r + ring * 5, time + ring, time + ring + Math.PI * 1.5);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = `hsla(${hue}, 80%, 40%, 0.3)`;
+    // Reality fracture lines — faint cracks across the void
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 8; i++) {
+      const seed = i * 73.7;
       ctx.beginPath();
-      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.moveTo(
+        (Math.sin(seed) * 0.5 + 0.5) * w,
+        (Math.cos(seed * 1.3) * 0.5 + 0.5) * h
+      );
+      for (let seg = 0; seg < 5; seg++) {
+        ctx.lineTo(
+          (Math.sin(seed + seg * 2.3 + time * 0.1) * 0.5 + 0.5) * w,
+          (Math.cos(seed * 1.3 + seg * 1.7 + time * 0.08) * 0.5 + 0.5) * h
+        );
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Dim warped starfield — stars appear distorted near portals
+    for (const star of stars) {
+      const twinkle = (Math.sin(time * star.twinkleSpeed * 1.5) + 1) / 2;
+      const alpha = star.brightness * (0.15 + twinkle * 0.15);
+      // Color-shift stars in multiverse
+      const hueShift = (star.x * 360 + time * 20) % 360;
+      ctx.fillStyle = `hsla(${hueShift}, 30%, 80%, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(star.x * w, star.y * h, star.size * 0.6, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    drawStarfield(w, h, 0.5);
+    // Central nexus point — where all universes converge
+    const nxX = w * 0.5;
+    const nxY = h * 0.48;
+
+    // Nexus energy field
+    const nxGlow = ctx.createRadialGradient(nxX, nxY, 0, nxX, nxY, 30);
+    nxGlow.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    nxGlow.addColorStop(0.3, 'rgba(200, 180, 255, 0.08)');
+    nxGlow.addColorStop(1, 'rgba(100, 80, 200, 0)');
+    ctx.fillStyle = nxGlow;
+    ctx.beginPath();
+    ctx.arc(nxX, nxY, 30, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Nexus core — bright pulsing dot
+    const nxPulse = 0.5 + Math.sin(time * 2) * 0.3;
+    ctx.fillStyle = `rgba(255, 255, 255, ${nxPulse})`;
+    ctx.beginPath();
+    ctx.arc(nxX, nxY, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Universe portals — arranged in a ring around nexus
+    const s = GameState.getState();
+    const universes = GameData.UNIVERSES || [];
+    const portalCount = Math.min(universes.length, 13);
+    const ringR = Math.min(w, h) * 0.32;
+
+    for (let i = 0; i < portalCount; i++) {
+      const angle = (i / portalCount) * Math.PI * 2 - Math.PI * 0.5 + time * 0.03;
+      const px = nxX + Math.cos(angle) * ringR;
+      const py = nxY + Math.sin(angle) * ringR * 0.55;
+      const portalR = 12 + Math.sin(time * 1.5 + i * 1.2) * 3;
+
+      // Each universe gets a distinct hue
+      const hue = (i * (360 / portalCount) + 15) % 360;
+      const completed = s.multiverse.completedUniverses && s.multiverse.completedUniverses.includes(universes[i]?.id);
+
+      // Connection line from nexus to portal
+      ctx.strokeStyle = `hsla(${hue}, 60%, 50%, 0.06)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(nxX, nxY);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+
+      // Portal outer glow
+      const pGlow = ctx.createRadialGradient(px, py, portalR * 0.3, px, py, portalR * 2);
+      pGlow.addColorStop(0, `hsla(${hue}, 80%, 50%, 0.15)`);
+      pGlow.addColorStop(0.5, `hsla(${hue}, 70%, 40%, 0.05)`);
+      pGlow.addColorStop(1, `hsla(${hue}, 60%, 30%, 0)`);
+      ctx.fillStyle = pGlow;
+      ctx.beginPath();
+      ctx.arc(px, py, portalR * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Swirling rings — 4 concentric partial arcs
+      for (let ring = 0; ring < 4; ring++) {
+        const ringAlpha = 0.4 - ring * 0.08;
+        ctx.strokeStyle = `hsla(${hue}, 80%, ${55 + ring * 5}%, ${ringAlpha})`;
+        ctx.lineWidth = 2 - ring * 0.3;
+        ctx.beginPath();
+        const startA = time * (1.5 - ring * 0.3) + ring * Math.PI * 0.4 + i;
+        ctx.arc(px, py, portalR + ring * 4, startA, startA + Math.PI * 1.3);
+        ctx.stroke();
+      }
+
+      // Portal center — dark void with color rim
+      const pCenter = ctx.createRadialGradient(px, py, 0, px, py, portalR);
+      pCenter.addColorStop(0, `hsla(${hue}, 40%, 5%, 0.8)`);
+      pCenter.addColorStop(0.6, `hsla(${hue}, 60%, 15%, 0.5)`);
+      pCenter.addColorStop(1, `hsla(${hue}, 80%, 40%, 0.3)`);
+      ctx.fillStyle = pCenter;
+      ctx.beginPath();
+      ctx.arc(px, py, portalR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Completed universe checkmark glow
+      if (completed) {
+        ctx.fillStyle = `hsla(${hue}, 80%, 70%, 0.6)`;
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('✓', px, py + 3);
+      }
+
+      // Universe label
+      if (universes[i]) {
+        const label = universes[i].name.replace(/Universe-/, '');
+        ctx.fillStyle = `hsla(${hue}, 60%, 70%, 0.5)`;
+        ctx.font = '7px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, px, py + portalR + 14);
+      }
+    }
+
+    // Infinity Token counter display
+    const itCount = s.infinityTokens || 0;
+    if (itCount > 0) {
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('∞ ' + itCount + ' IT', nxX, h - 8);
+    }
   }
 
   function drawStarfield(w, h, density = 1) {

@@ -708,24 +708,82 @@ const UI = (() => {
       return;
     }
 
-    let totalShips = 0;
     const gens = GameData.GENERATORS[5] || [];
-    let html = '<h3>Fleet</h3>';
+    let totalShips = 0;
+    let totalCreditsPerSec = 0;
+    let totalRMPerSec = 0;
 
     for (const gen of gens) {
       const count = s.generators[gen.id] || 0;
       totalShips += count;
+      if (gen.output.credits) totalCreditsPerSec += gen.output.credits * count;
+      if (gen.output.rm) totalRMPerSec += gen.output.rm * count;
     }
 
-    html += `<div class="fleet-summary">Total Ships: ${totalShips}</div>`;
+    // Fleet power rating based on total ships and their tier
+    let fleetPower = 0;
+    for (let i = 0; i < gens.length; i++) {
+      const count = s.generators[gens[i].id] || 0;
+      fleetPower += count * (i + 1);
+    }
+
+    const fleetRank = fleetPower < 10 ? 'Scout Fleet' :
+      fleetPower < 50 ? 'Patrol Fleet' :
+      fleetPower < 200 ? 'Strike Force' :
+      fleetPower < 1000 ? 'Battle Group' :
+      fleetPower < 5000 ? 'Armada' : 'Stellar Armada';
+
+    let html = '<h3>Fleet Command</h3>';
+
+    // Fleet summary card
+    html += `<div class="fleet-summary">
+      <div class="fleet-stat-row">
+        <span>Total Ships</span><span>${totalShips}</span>
+      </div>
+      <div class="fleet-stat-row">
+        <span>Fleet Rating</span><span>${fleetRank}</span>
+      </div>
+      <div class="fleet-stat-row">
+        <span>Fleet Power</span><span>${NumberFormatter.formatSmart(fleetPower)}</span>
+      </div>
+      <div class="fleet-stat-row">
+        <span>Fleet Credits/s</span><span>${NumberFormatter.formatSmart(totalCreditsPerSec)}</span>
+      </div>
+      <div class="fleet-stat-row">
+        <span>Fleet RM/s</span><span>${NumberFormatter.formatSmart(totalRMPerSec)}</span>
+      </div>
+    </div>`;
+
+    // Ship roster grouped by role
+    const roles = [
+      { name: 'Scouts & Miners', ids: ['p5g1', 'p5g2', 'p5g3'] },
+      { name: 'Industrial', ids: ['p5g4', 'p5g5'] },
+      { name: 'Military', ids: ['p5g6', 'p5g7'] },
+      { name: 'Capital & Exotic', ids: ['p5g8', 'p5g9', 'p5g10'] }
+    ];
+
     html += '<div class="fleet-list">';
-    for (const gen of gens) {
-      const count = s.generators[gen.id] || 0;
-      html += `<div class="fleet-row">
-        <span class="fleet-icon">${gen.icon}</span>
-        <span class="fleet-name">${gen.name}</span>
-        <span class="fleet-count">x${count}</span>
-      </div>`;
+    for (const role of roles) {
+      const roleShips = role.ids.map(id => gens.find(g => g.id === id)).filter(Boolean);
+      const roleCount = roleShips.reduce((sum, g) => sum + (s.generators[g.id] || 0), 0);
+      if (roleCount === 0 && !roleShips.some(g => s.generators[g.id] > 0)) {
+        // Show locked role
+        html += `<div class="fleet-role-header fleet-locked">${role.name}</div>`;
+        continue;
+      }
+      html += `<div class="fleet-role-header">${role.name} (${roleCount})</div>`;
+      for (const gen of roleShips) {
+        const count = s.generators[gen.id] || 0;
+        if (count === 0) continue;
+        const genCredits = gen.output.credits ? NumberFormatter.formatSmart(gen.output.credits * count) : '—';
+        const genRM = gen.output.rm ? NumberFormatter.formatSmart(gen.output.rm * count) : '—';
+        html += `<div class="fleet-row">
+          <span class="fleet-icon">${gen.icon}</span>
+          <span class="fleet-name">${gen.name}</span>
+          <span class="fleet-count">x${count}</span>
+          <span class="fleet-output">${genCredits}/s</span>
+        </div>`;
+      }
     }
     html += '</div>';
     panel.innerHTML = html;
@@ -1282,10 +1340,53 @@ const UI = (() => {
   // ===== GALAXY MAP (Phase 8) =====
 
   function updateGalaxyMap() {
-    // Updates handled in generators panel for phase 8
-    if (GameState.getState().currentPhase === 8) {
+    const s = GameState.getState();
+    // Always update generators for Phase 8
+    if (s.currentPhase === 8) {
       updateGenerators();
     }
+
+    // Update galaxy info in the zones panel or wherever galaxy-info exists
+    const galaxyInfo = document.getElementById('galaxy-info');
+    if (!galaxyInfo) return;
+
+    const total = s.starSystems.totalSystems || 0;
+    const colonized = s.starSystems.colonized || [];
+
+    // Count by type
+    const typeCounts = {};
+    for (const sys of colonized) {
+      typeCounts[sys.type] = (typeCounts[sys.type] || 0) + 1;
+    }
+
+    const typeLabels = {
+      lush: 'Lush', barren: 'Barren', gas: 'Gas Giant', frozen: 'Frozen',
+      anomaly: 'Anomaly', ancient: 'Ancient Ruins',
+      blackHole: 'Black Hole', nebula: 'Nebula', ancientRuins: 'Ancient Ruins', galacticCore: 'Galactic Core'
+    };
+
+    let html = `<div class="galaxy-stat-row">
+      <span>Colonized Systems</span><span>${total}/50</span>
+    </div>`;
+
+    if (total > 0) {
+      html += '<div class="galaxy-types">';
+      for (const [type, count] of Object.entries(typeCounts)) {
+        const label = typeLabels[type] || type;
+        html += `<span class="galaxy-type-badge type-${type}">${label}: ${count}</span>`;
+      }
+      html += '</div>';
+    }
+
+    // Next system cost
+    const nextCost = Engine.getStarSystemCost ? Engine.getStarSystemCost(total + 1) : 0;
+    if (nextCost > 0 && total < 50) {
+      html += `<div class="galaxy-stat-row">
+        <span>Next System</span><span>${NumberFormatter.formatSmart(nextCost)} SD</span>
+      </div>`;
+    }
+
+    galaxyInfo.innerHTML = html;
   }
 
   // ===== FLOATING NUMBERS =====
