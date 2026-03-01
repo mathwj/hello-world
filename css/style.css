@@ -221,7 +221,18 @@ html, body {
   letter-spacing: 1px;
 }
 
-#tap-btn:active, #tap-btn.tap-active {
+#tap-btn.tap-active {
+  animation: tapBounce 150ms ease-out;
+}
+
+@keyframes tapBounce {
+  0%   { transform: translateX(-50%) scale(1); }
+  40%  { transform: translateX(-50%) scale(0.90); box-shadow: 0 0 30px rgba(74, 144, 217, 0.6), 0 2px 8px rgba(0,0,0,0.5); }
+  70%  { transform: translateX(-50%) scale(1.05); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+#tap-btn:active {
   transform: translateX(-50%) scale(0.92);
   box-shadow: 0 0 30px rgba(74, 144, 217, 0.6), 0 2px 8px rgba(0,0,0,0.5);
 }
@@ -244,6 +255,45 @@ html, body {
   padding: 2px 5px;
   border-radius: 8px;
   font-weight: 700;
+}
+
+#tap-btn.auto-tapping {
+  animation: autoPulse 1s ease-in-out infinite;
+}
+
+@keyframes autoPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(74, 144, 217, 0.4), 0 4px 15px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.3); }
+  50%      { box-shadow: 0 0 35px rgba(74, 144, 217, 0.7), 0 4px 15px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.3); }
+}
+
+/* Number Tooltip */
+.num-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 26, 0.95);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.has-tooltip {
+  position: relative;
+  cursor: default;
+}
+
+.has-tooltip:hover .num-tooltip,
+.has-tooltip.tooltip-active .num-tooltip {
+  display: block;
 }
 
 /* ===== MAIN CONTENT ===== */

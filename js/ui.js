@@ -12,6 +12,7 @@ const UI = (() => {
     setupBuyToggle();
     setupTapButton();
     setupMenuButtons();
+    setupTooltipLongPress();
     updateAll();
   }
 
@@ -107,8 +108,38 @@ const UI = (() => {
   }
 
   function animateTapButton(btn) {
+    btn.classList.remove('tap-active');
+    // Force reflow so animation restarts even on rapid taps
+    void btn.offsetWidth;
     btn.classList.add('tap-active');
     setTimeout(() => btn.classList.remove('tap-active'), 150);
+  }
+
+  function setupTooltipLongPress() {
+    // Long-press support for tooltips on touch devices
+    let longPressTimer = null;
+    let activeTooltip = null;
+
+    document.addEventListener('touchstart', (e) => {
+      const target = e.target.closest('.has-tooltip');
+      if (!target) return;
+      longPressTimer = setTimeout(() => {
+        target.classList.add('tooltip-active');
+        activeTooltip = target;
+      }, 400);
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      clearTimeout(longPressTimer);
+      if (activeTooltip) {
+        activeTooltip.classList.remove('tooltip-active');
+        activeTooltip = null;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', () => {
+      clearTimeout(longPressTimer);
+    }, { passive: true });
   }
 
   function setupMenuButtons() {
@@ -155,67 +186,73 @@ const UI = (() => {
       'PHASE ' + s.currentPhase + ': ' + (phaseData ? phaseData.name : '');
   }
 
+  function ttip(value) {
+    // Wrap a formatted number with a tooltip showing the full unabbreviated value
+    if (value < 1000) return NumberFormatter.format(value);
+    return `<span class="has-tooltip">${NumberFormatter.format(value)}<span class="num-tooltip">${NumberFormatter.formatFull(value)}</span></span>`;
+  }
+
   function updateCurrencyBar() {
     const s = GameState.getState();
     const bar = document.getElementById('currency-bar');
     const fmt = NumberFormatter.format;
-    const fps = NumberFormatter.formatPerSec;
 
     let html = `<div class="currency credits">
       <span class="cur-icon" style="color:#FFD700">\u20A1</span>
-      <span class="cur-val">${fmt(s.credits)}</span>
-      <span class="cur-rate">${fps(s.creditsPerSecond, '\u20A1')}</span>
+      <span class="cur-val">${ttip(s.credits)}</span>
+      <span class="cur-rate">\u20A1${fmt(s.creditsPerSecond)}/sec</span>
     </div>`;
 
     if (s.highestPhaseReached >= 2) {
       html += `<div class="currency rp">
         <span class="cur-icon" style="color:#4A90D9">RP</span>
-        <span class="cur-val">${fmt(s.researchPoints)}</span>
-        ${s.rpPerSecond > 0 ? `<span class="cur-rate">${fps(s.rpPerSecond, '')}</span>` : ''}
+        <span class="cur-val">${ttip(s.researchPoints)}</span>
+        ${s.rpPerSecond > 0 ? `<span class="cur-rate">${fmt(s.rpPerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
     if (s.highestPhaseReached >= 3) {
       html += `<div class="currency ore">
         <span class="cur-icon" style="color:#A8A8A8">Ore</span>
-        <span class="cur-val">${fmt(s.lunarOre)}</span>
-        ${s.orePerSecond > 0 ? `<span class="cur-rate">${fps(s.orePerSecond, '')}</span>` : ''}
+        <span class="cur-val">${ttip(s.lunarOre)}</span>
+        ${s.orePerSecond > 0 ? `<span class="cur-rate">${fmt(s.orePerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
     if (s.highestPhaseReached >= 5) {
       html += `<div class="currency rm">
         <span class="cur-icon" style="color:#9B59B6">RM</span>
-        <span class="cur-val">${fmt(s.rareMinerals)}</span>
+        <span class="cur-val">${ttip(s.rareMinerals)}</span>
+        ${s.rmPerSecond > 0 ? `<span class="cur-rate">${fmt(s.rmPerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
     if (s.highestPhaseReached >= 6) {
       html += `<div class="currency as">
         <span class="cur-icon" style="color:#2ECC71">AS</span>
-        <span class="cur-val">${Math.floor(s.alienSignals)}</span>
+        <span class="cur-val">${ttip(s.alienSignals)}</span>
       </div>`;
     }
 
     if (s.highestPhaseReached >= 7) {
       html += `<div class="currency sd">
         <span class="cur-icon" style="color:#F0E6FF">SD</span>
-        <span class="cur-val">${fmt(s.stardust)}</span>
-        ${s.sdPerSecond > 0 ? `<span class="cur-rate">${fps(s.sdPerSecond, '')}</span>` : ''}
+        <span class="cur-val">${ttip(s.stardust)}</span>
+        ${s.sdPerSecond > 0 ? `<span class="cur-rate">${fmt(s.sdPerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
     if (s.cosmicDust > 0) {
       html += `<div class="currency cd">
         <span class="cur-icon cd-icon">CD</span>
-        <span class="cur-val">${fmt(s.cosmicDust)}</span>
+        <span class="cur-val">${ttip(s.cosmicDust)}</span>
       </div>`;
     }
 
     if (s.infinityTokens > 0) {
       html += `<div class="currency it">
         <span class="cur-icon" style="color:#FFD700">IT</span>
-        <span class="cur-val">${fmt(s.infinityTokens)}</span>
+        <span class="cur-val">${ttip(s.infinityTokens)}</span>
       </div>`;
     }
 
@@ -230,8 +267,14 @@ const UI = (() => {
       document.getElementById('tap-icon').textContent = phaseData.tapIcon;
     }
     const badge = document.getElementById('auto-tap-badge');
-    if (s.autoTapPerSecond > 0) badge.classList.remove('hidden');
-    else badge.classList.add('hidden');
+    const tapBtn = document.getElementById('tap-btn');
+    if (s.autoTapPerSecond > 0) {
+      badge.classList.remove('hidden');
+      tapBtn.classList.add('auto-tapping');
+    } else {
+      badge.classList.add('hidden');
+      tapBtn.classList.remove('auto-tapping');
+    }
   }
 
   function updateTabVisibility() {
@@ -404,7 +447,7 @@ const UI = (() => {
         </div>
       </div>
       <button class="gen-buy-btn ${canAfford ? '' : 'disabled'}" data-genid="${gen.id}">
-        <div class="gen-cost">${currencySymbol}${NumberFormatter.format(cost)}</div>
+        <div class="gen-cost">${currencySymbol}${ttip(cost)}</div>
         <div class="gen-buy-label">BUY${amt > 1 ? ' x' + amt : ''}</div>
       </button>
     </div>`;
@@ -977,29 +1020,100 @@ const UI = (() => {
 
   // ===== FLOATING NUMBERS =====
 
+  let rapidTapAccum = 0;
+  let rapidTapTimer = null;
+  let rapidTapEl = null;
+  let lastTapTimestamps = [];
+
   function showFloatingNumber(amount, tapResult) {
     const container = document.getElementById('floating-numbers');
-    const el = document.createElement('div');
-    el.className = 'floating-num';
+    const now = Date.now();
 
+    // Track tap rate for rapid-tap combining
+    lastTapTimestamps.push(now);
+    lastTapTimestamps = lastTapTimestamps.filter(t => now - t < 1000);
+    const tapsPerSec = lastTapTimestamps.length;
+
+    // Trigger particle burst on tap
+    const tapBtn = document.getElementById('tap-btn');
+    if (tapBtn) {
+      const rect = tapBtn.getBoundingClientRect();
+      const sceneArea = document.getElementById('scene-area');
+      const sceneRect = sceneArea.getBoundingClientRect();
+      const px = rect.left + rect.width / 2 - sceneRect.left;
+      const py = rect.top + rect.height / 2 - sceneRect.top;
+      const particleCount = tapsPerSec > 5 ? 8 : 6;
+      const color = (tapResult && tapResult.type === 'critical') ? '#E74C3C' :
+                    (tapResult && tapResult.type === 'super') ? '#FF69B4' : '#FFD700';
+      SceneRenderer.addParticleBurst(px, py, color, particleCount);
+    }
+
+    // Handle drop-type floaters (no combining)
     if (tapResult && tapResult.type === 'drop') {
+      const el = document.createElement('div');
+      el.className = 'floating-num';
       el.textContent = tapResult.dropName + '!';
       el.style.color = tapResult.dropColor;
       el.style.fontSize = '18px';
-    } else if (tapResult && tapResult.type === 'super') {
-      el.textContent = 'SUPER! +' + NumberFormatter.format(amount);
-      el.style.color = '#FF69B4';
-      el.style.fontSize = '22px';
-      el.classList.add('critical-float');
-    } else if (tapResult && tapResult.type === 'critical') {
-      el.textContent = 'CRIT! +' + NumberFormatter.format(amount);
-      el.style.color = '#E74C3C';
-      el.style.fontSize = '20px';
-      el.classList.add('critical-float');
-    } else {
-      el.textContent = '+\u20A1' + NumberFormatter.format(amount);
+      el.style.left = (40 + Math.random() * 20) + '%';
+      el.style.bottom = '120px';
+      container.appendChild(el);
+      requestAnimationFrame(() => { el.style.transform = 'translateY(-80px)'; el.style.opacity = '0'; });
+      setTimeout(() => el.remove(), 800);
+      return;
     }
 
+    // Special floaters for crits/supers (no combining)
+    if (tapResult && (tapResult.type === 'super' || tapResult.type === 'critical')) {
+      const el = document.createElement('div');
+      el.className = 'floating-num critical-float';
+      if (tapResult.type === 'super') {
+        el.textContent = 'SUPER! +\u20A1' + NumberFormatter.format(amount);
+        el.style.color = '#FF69B4';
+        el.style.fontSize = '22px';
+      } else {
+        el.textContent = 'CRIT! +\u20A1' + NumberFormatter.format(amount);
+        el.style.color = '#E74C3C';
+        el.style.fontSize = '20px';
+      }
+      el.style.left = (40 + Math.random() * 20) + '%';
+      el.style.bottom = '120px';
+      container.appendChild(el);
+      requestAnimationFrame(() => { el.style.transform = 'translateY(-80px)'; el.style.opacity = '0'; });
+      setTimeout(() => el.remove(), 800);
+      return;
+    }
+
+    // Rapid tap combining: if >5 taps/sec, accumulate into one larger floater
+    if (tapsPerSec > 5) {
+      rapidTapAccum += amount;
+      if (rapidTapEl && rapidTapEl.parentNode) {
+        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.format(rapidTapAccum);
+        rapidTapEl.style.fontSize = Math.min(24, 16 + tapsPerSec * 0.5) + 'px';
+      } else {
+        rapidTapEl = document.createElement('div');
+        rapidTapEl.className = 'floating-num';
+        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.format(rapidTapAccum);
+        rapidTapEl.style.left = '45%';
+        rapidTapEl.style.bottom = '120px';
+        container.appendChild(rapidTapEl);
+      }
+      clearTimeout(rapidTapTimer);
+      rapidTapTimer = setTimeout(() => {
+        if (rapidTapEl) {
+          requestAnimationFrame(() => { rapidTapEl.style.transform = 'translateY(-80px)'; rapidTapEl.style.opacity = '0'; });
+          setTimeout(() => { if (rapidTapEl) { rapidTapEl.remove(); rapidTapEl = null; } }, 800);
+        }
+        rapidTapAccum = 0;
+      }, 200);
+      return;
+    }
+
+    // Normal single floater
+    rapidTapAccum = 0;
+    const el = document.createElement('div');
+    el.className = 'floating-num';
+    el.textContent = '+\u20A1' + NumberFormatter.format(amount);
     el.style.left = (40 + Math.random() * 20) + '%';
     el.style.bottom = '120px';
     container.appendChild(el);
@@ -1333,7 +1447,7 @@ const UI = (() => {
             <div class="egg-progress-inner" style="width:${progress * 100}%;background:${egg.color}"></div>
           </div>
           <div class="egg-status">${ready ? 'READY!' : Math.floor(progress * 100) + '%'}</div>
-          ${ready ? `<button class="egg-hatch-btn" onclick="(function(){ const s=GameState.getState(); const r=Expansion.Eggs.hatch(s,${i}); if(r){ UI.showModal('Hatched!','<p>${'\\'' + egg.name + '\\''} hatched!</p>',[{label:'OK',action:UI.hideModal}]); } UI.updateEggs(); })()">HATCH</button>` : ''}
+          ${ready ? '<button class="egg-hatch-btn" data-slot="' + i + '">HATCH</button>' : ''}
         </div>`;
       } else {
         html += `<div class="egg-slot empty">
@@ -1344,6 +1458,21 @@ const UI = (() => {
     }
     html += '</div>';
     panel.innerHTML = html;
+
+    // Attach hatch button handlers
+    panel.querySelectorAll('.egg-hatch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slot = parseInt(btn.dataset.slot);
+        const s = GameState.getState();
+        const egg = s.eggs.slots[slot];
+        const result = Expansion.Eggs.hatch(s, slot);
+        if (result) {
+          const name = egg ? egg.name : 'Egg';
+          showModal('Hatched!', '<p>' + name + ' hatched!</p>', [{ label: 'OK', action: hideModal }]);
+        }
+        updateEggs();
+      });
+    });
   }
 
   function updateEggProgress() {
