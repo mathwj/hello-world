@@ -724,6 +724,18 @@ const Expansion = (() => {
       return slots;
     },
 
+    tapToWarm(s, slotIndex) {
+      const egg = s.eggs.slots[slotIndex];
+      if (!egg || this.isReady(egg)) return false;
+      // Each tap shaves off 0.5% of total duration (diminishing: min 0.1%)
+      const tapCount = egg._tapWarmCount || 0;
+      const reduction = Math.max(0.001, 0.005 - tapCount * 0.0002);
+      const shaved = egg.duration * reduction;
+      egg.startTime -= shaved; // Move start time back to reduce remaining
+      egg._tapWarmCount = tapCount + 1;
+      return true;
+    },
+
     speedHatch(s, slotIndex) {
       const egg = s.eggs.slots[slotIndex];
       if (!egg) return false;

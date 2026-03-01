@@ -508,6 +508,155 @@ const AdaptiveAudio = (() => {
     }
   }
 
+  // ========== EXPANSION B: Additional Sound Effects ==========
+
+  function playContractCompleteSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Ascending arpeggio: task done feeling
+    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.06, now + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.08);
+      osc.stop(now + i * 0.08 + 0.25);
+    });
+  }
+
+  function playCollectionUnlockSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Shimmering resonant chord
+    [440, 554.37, 659.25].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.02);
+      osc.stop(now + 0.7);
+    });
+  }
+
+  function playChallengeStartSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Dramatic low horn + rising sweep
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.linearRampToValueAtTime(220, now + 0.4);
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.55);
+  }
+
+  function playChallengeCompleteSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Triumphant fanfare
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.04, now + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.1);
+      osc.stop(now + i * 0.1 + 0.4);
+    });
+  }
+
+  function playMiniGameStartSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Quick 8-bit style ascending beeps
+    [330, 440, 550, 660].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.04, now + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.08);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(now + i * 0.06);
+      osc.stop(now + i * 0.06 + 0.1);
+    });
+  }
+
+  function playBoosterActivateSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Power-up whoosh
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.35);
+    gain.gain.setValueAtTime(0.07, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.45);
+  }
+
+  function playComboSound(level) {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    // Higher pitch for higher combos
+    const baseFreq = 300 + Math.min(level, 100) * 5;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = baseFreq;
+    gain.gain.setValueAtTime(0.03 + Math.min(level, 50) * 0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
+
+  function playEggWarmSound() {
+    if (!audioCtx || !sfxGain) return;
+    resume();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 600;
+    gain.gain.setValueAtTime(0.03, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.connect(gain);
+    gain.connect(sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
+
   return {
     init, update, setVolumes, setPhase, resume, onTap,
     playTapSound, playPurchaseSound, playCriticalSound,
@@ -515,6 +664,10 @@ const AdaptiveAudio = (() => {
     playMilestoneSound, playPrestigeSound, playErrorSound,
     playEggHatchSound, playLaunchSound, playRadarPingSound,
     playAlienSignalSound, playDailyRewardSound, playEventAlertSound,
+    playContractCompleteSound, playCollectionUnlockSound,
+    playChallengeStartSound, playChallengeCompleteSound,
+    playMiniGameStartSound, playBoosterActivateSound,
+    playComboSound, playEggWarmSound,
     startEventMusic, stopEventMusic,
     getActivityState, getTapRate,
     PHASE_MUSIC, AMBIENT_SOUNDS, GEN_SOUND_TYPES

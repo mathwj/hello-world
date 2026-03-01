@@ -519,6 +519,100 @@ const Juice = (() => {
     ScreenShake.update(dt);
   }
 
+  // ==================== EXPANSION B: Egg Hatch Animation ====================
+  const EggHatchAnim = {
+    play(color) {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      // Create crack overlay
+      const crack = document.createElement('div');
+      crack.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        width:80px;height:100px;border-radius:50% 50% 45% 45%;
+        border:3px solid ${color || '#FFD700'};
+        animation:eggCrack 0.8s ease-out forwards;
+        pointer-events:none;z-index:100;`;
+      container.appendChild(crack);
+
+      // Burst particles
+      for (let i = 0; i < 12; i++) {
+        const p = document.createElement('div');
+        const angle = (i / 12) * Math.PI * 2;
+        const dist = 50 + Math.random() * 40;
+        p.style.cssText = `position:absolute;top:50%;left:50%;width:6px;height:6px;
+          border-radius:50%;background:${color || '#FFD700'};
+          pointer-events:none;z-index:100;
+          transition:all 0.6s ease-out;opacity:1;`;
+        container.appendChild(p);
+        requestAnimationFrame(() => {
+          p.style.transform = `translate(${Math.cos(angle) * dist}px, ${Math.sin(angle) * dist}px)`;
+          p.style.opacity = '0';
+        });
+        setTimeout(() => p.remove(), 700);
+      }
+
+      setTimeout(() => crack.remove(), 900);
+      ScreenFlash.flash(color || '#FFD700', 0.3);
+    }
+  };
+
+  // ==================== EXPANSION B: Contract Complete Animation ====================
+  const ContractAnim = {
+    play() {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+
+      const stamp = document.createElement('div');
+      stamp.textContent = 'COMPLETE';
+      stamp.style.cssText = `position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) scale(3) rotate(-15deg);
+        font-size:24px;font-weight:bold;color:rgba(0,255,136,0.8);
+        letter-spacing:4px;border:3px solid rgba(0,255,136,0.8);padding:8px 16px;
+        pointer-events:none;z-index:100;
+        transition:all 0.5s ease-out;`;
+      container.appendChild(stamp);
+
+      requestAnimationFrame(() => {
+        stamp.style.transform = 'translate(-50%,-50%) scale(1) rotate(-15deg)';
+        stamp.style.opacity = '0.9';
+      });
+
+      setTimeout(() => {
+        stamp.style.opacity = '0';
+        setTimeout(() => stamp.remove(), 300);
+      }, 1200);
+
+      Confetti.burst();
+    }
+  };
+
+  // ==================== EXPANSION B: Challenge Animation ====================
+  const ChallengeAnim = {
+    playStart() {
+      ScreenFlash.flash('#FF4444', 0.4);
+      ScreenShake.shake(6, 500);
+    },
+
+    playComplete() {
+      ScreenFlash.flash('#FFD700', 0.5);
+      ScreenShake.shake(4, 300);
+      Confetti.burst();
+      Confetti.burst(); // Double confetti for challenge complete
+    }
+  };
+
+  // ==================== EXPANSION B: Combo Flame Effect ====================
+  const ComboFlame = {
+    show(level) {
+      const tapBtn = document.getElementById('tap-btn');
+      if (!tapBtn) return;
+      const intensity = Math.min(level / 100, 1);
+      const r = Math.floor(255 * intensity);
+      const g = Math.floor(165 * (1 - intensity));
+      tapBtn.style.boxShadow = `0 0 ${10 + intensity * 30}px rgba(${r}, ${g}, 0, ${0.3 + intensity * 0.5})`;
+      if (level <= 0) tapBtn.style.boxShadow = '';
+    }
+  };
+
   // ==================== INIT ====================
   function init() {
     Confetti.init();
@@ -554,6 +648,7 @@ const Juice = (() => {
     Haptics, ScreenShake, ScreenFlash, Confetti, CurrencyAnims,
     NumberMilestones, GenAnims, ButtonAnims, TeaserSystem,
     ProgressShimmer, ToastAnims,
+    EggHatchAnim, ContractAnim, ChallengeAnim, ComboFlame,
     update, init
   };
 })();

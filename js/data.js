@@ -289,13 +289,33 @@ const GameData = (() => {
       { id: 'u7_4', name: 'Dyson Sphere Complete', cost: 1000, currency: 'sd', effect: { globalCreditMultiplier: 100 }, desc: 'Energy production x100' },
       { id: 'u7_5', name: 'Galactic Beacon', cost: 2500, currency: 'sd', effect: { revealSystems: true }, desc: 'Reveals nearby star systems' },
       { id: 'u7_6', name: 'Terraforming Nanobots', cost: 5000, currency: 'sd', effect: { autoTerraform: true }, desc: 'Barren worlds auto-terraform' },
-      { id: 'u7_7', name: 'FTL Drive Mk.II', cost: 10000, currency: 'sd', effect: { unlockPhase: 8 }, desc: 'UNLOCK Phase 8: Galaxy Map' }
+      { id: 'u7_7', name: 'FTL Drive Mk.II', cost: 10000, currency: 'sd', effect: { unlockPhase: 8 }, desc: 'UNLOCK Phase 8: Galaxy Map' },
+      // Expansion B upgrades
+      { id: 'u7_8', name: 'Colony Ship Refit', cost: 50, currency: 'sd', effect: { generatorMultiplier: { target: 'p7hg1', mult: 3 } }, desc: 'Colony Ship Landing x3', req: { generator: 'p7hg1', count: 10 } },
+      { id: 'u7_9', name: 'Bio-Dome Network', cost: 150, currency: 'sd', effect: { generatorMultiplier: { target: 'p7hg2', mult: 2 }, autoCrewBoost: 2 }, desc: 'Bio-Habitat x2 + auto-crew x2', req: { generator: 'p7hg2', count: 10 } },
+      { id: 'u7_10', name: 'Neutronium Drill', cost: 300, currency: 'sd', effect: { generatorMultiplier: { target: 'p7fg3', mult: 3 } }, desc: 'Planet Cracker x3', req: { generator: 'p7fg3', count: 5 } },
+      { id: 'u7_11', name: 'Nebula Harvesting', cost: 500, currency: 'sd', effect: { generatorMultiplier: { target: 'p7ng3', mult: 2 }, phaseMultiplier: { phase: '7_nebula', mult: 1.5 } }, desc: 'Dyson Fragment x2 + Nebula x1.5', req: { generator: 'p7ng3', count: 5 } },
+      { id: 'u7_12', name: 'Interstellar Census', cost: 750, currency: 'sd', effect: { crewCapacityMultiplier: 3 }, desc: 'All crew capacity x3', req: { crewHired: 200 } },
+      { id: 'u7_13', name: 'World Mind Amplifier', cost: 1500, currency: 'sd', effect: { generatorMultiplier: { target: 'p7hg6', mult: 3 } }, desc: 'World Mind x3', req: { generator: 'p7hg6', count: 5 } },
+      { id: 'u7_14', name: 'Dimensional Mining Patent', cost: 2000, currency: 'sd', effect: { generatorMultiplier: { target: 'p7fg5', mult: 3 }, globalOreMultiplier: 5 }, desc: 'Dimensional Drill x3 + Ore x5', req: { generator: 'p7fg5', count: 5 } },
+      { id: 'u7_15', name: 'Star Forge Ignition', cost: 3000, currency: 'sd', effect: { generatorMultiplier: { target: 'p7ng4', mult: 3 }, phaseMultiplier: { phase: 7, mult: 2 } }, desc: 'Star Forge x3 + all Phase 7 x2', req: { generator: 'p7ng4', count: 5 } },
+      { id: 'u7_16', name: 'Antimatter Containment', cost: 5000, currency: 'sd', effect: { generatorMultiplier: { target: 'p7ng5', mult: 3 } }, desc: 'Antimatter Collector x3', req: { generator: 'p7ng5', count: 5 } },
+      { id: 'u7_17', name: 'Genetic Memory Banks', cost: 7500, currency: 'sd', effect: { crewStartTier: 2, autoCrewPerHour: 50 }, desc: 'New crew start as Veteran + 50 crew/hr', req: { generator: 'p7hg5', count: 10 } },
+      { id: 'u7_18', name: 'Complete Dyson Sphere', cost: 15000, currency: 'sd', effect: { generatorMultiplier: { target: 'p7ng6', mult: 5 }, phaseMultiplier: { phase: 7, mult: 3 } }, desc: 'Dyson Sphere x5 + all Phase 7 x3', req: { generator: 'p7ng6', count: 3 } }
     ],
     8: [
       { id: 'u8_1', name: 'Long-Range Scanners', cost: 50000, currency: 'sd', effect: { revealSystemTypes: true }, desc: 'Reveal system types before buying' },
       { id: 'u8_2', name: 'Warp Gate Network', cost: 200000, currency: 'sd', effect: { systemCostReduction: 0.25 }, desc: 'System costs -25%' },
       { id: 'u8_3', name: 'Galactic Federation', cost: 500000, currency: 'sd', effect: { allSystemsMultiplier: 2 }, desc: 'All systems produce x2' },
-      { id: 'u8_4', name: 'Multiversal Sensors', cost: 1000000, currency: 'sd', effect: { revealMultiverse: true }, desc: 'Reveal Phase 9 portal' }
+      { id: 'u8_4', name: 'Multiversal Sensors', cost: 1000000, currency: 'sd', effect: { revealMultiverse: true }, desc: 'Reveal Phase 9 portal' },
+      // Expansion B upgrades
+      { id: 'u8_5', name: 'Colony Ship Mk.II', cost: 100000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g1', mult: 3 } }, desc: 'Star System Colony x3', req: { generator: 'p8g1', count: 10 } },
+      { id: 'u8_6', name: 'Warp Gate Amplifier', cost: 300000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g2', mult: 3 }, systemCostReduction: 0.15 }, desc: 'Warp Gate x3 + system costs -15%', req: { generator: 'p8g2', count: 10 } },
+      { id: 'u8_7', name: 'Galactic Trade Agreement', cost: 750000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g3', mult: 5 } }, desc: 'Trade Hub x5', req: { generator: 'p8g3', count: 5 } },
+      { id: 'u8_8', name: 'Anomaly Scanner Mk.II', cost: 500000, currency: 'sd', effect: { anomalyChanceMultiplier: 3 }, desc: 'Anomaly system chance x3', req: { totalStarSystems: 20 } },
+      { id: 'u8_9', name: 'Galactic Highway', cost: 1500000, currency: 'sd', effect: { phaseMultiplier: { phase: 8, mult: 3 } }, desc: 'All galaxy generators x3', req: { totalStarSystems: 30 } },
+      { id: 'u8_10', name: 'Ancient Tech Integration', cost: 2000000, currency: 'sd', effect: { previousZoneMultiplier: 5 }, desc: 'All previous zones income x5 in Galaxy phase', req: { totalStarSystems: 40 } },
+      { id: 'u8_11', name: 'Galactic Megastructure Mk.II', cost: 5000000, currency: 'sd', effect: { generatorMultiplier: { target: 'p8g4', mult: 10 }, phaseMultiplier: { phase: 8, mult: 5 } }, desc: 'Megastructure x10 + Galaxy x5', req: { generator: 'p8g4', count: 10 } }
     ]
   };
 

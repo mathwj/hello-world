@@ -196,7 +196,18 @@ const GameState = (() => {
         failedPurchases: 0,
         returnedToP1AfterP8: false,
         challengesCompleted: 0,
-        goldenRushCount: 0
+        goldenRushCount: 0,
+        // Expansion B: Mini-game stats
+        miniGamesPlayed: 0,
+        miniGameHighScores: {},
+        miniGamesWon: 0,
+        // Expansion B: Egg warm taps
+        eggWarmTaps: 0,
+        // Expansion B: Booster tracking
+        boostersCollected: 0,
+        legendaryBoostersCollected: 0,
+        // Expansion B: Synergy tracking
+        synergiesActivated: 0
       },
 
       // ===== EXPANSION v2.0 FIELDS =====
