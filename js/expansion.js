@@ -695,12 +695,43 @@ const Expansion = (() => {
       return egg && this.getProgress(egg) >= 1;
     },
 
+    getMaxSlots(s) {
+      let slots = 1;
+      if (s.currentPhase >= 3) slots = 2;
+      if (s.currentPhase >= 5) slots = 3;
+      return slots;
+    },
+
+    speedHatch(s, slotIndex) {
+      const egg = s.eggs.slots[slotIndex];
+      if (!egg) return false;
+      const remaining = egg.duration - (Date.now() - egg.startTime);
+      if (remaining <= 0) return false;
+      const minutesLeft = Math.ceil(remaining / 60000);
+      const rmCost = minutesLeft; // 1 RM per minute
+      if (!GameState.canAfford('rm', rmCost)) return false;
+      GameState.spendCurrency('rm', rmCost);
+      egg.startTime = Date.now() - egg.duration; // Force ready
+      return true;
+    },
+
     hatch(s, slotIndex) {
       const egg = s.eggs.slots[slotIndex];
       if (!egg || !this.isReady(egg)) return null;
       s.eggs.slots[slotIndex] = null;
       s.eggs.totalHatched++;
+      s.stats.eggsHatched = (s.stats.eggsHatched || 0) + 1;
+
       const eggType = EGG_TYPES.find(e => e.id === egg.type);
+      // Track specific egg type hatches
+      if (eggType.id === 'egg_cosmic') s.stats.cosmicEggsHatched = (s.stats.cosmicEggsHatched || 0) + 1;
+      if (eggType.id === 'egg_void') s.stats.voidEggsHatched = (s.stats.voidEggsHatched || 0) + 1;
+
+      // Log entries
+      if (s.stats.eggsHatched === 1) Engine.addLogEntry('log36');
+      if (eggType.id === 'egg_void') Engine.addLogEntry('log37');
+      if (eggType.id === 'egg_cosmic' && s.stats.cosmicEggsHatched === 1) Engine.addLogEntry('log56');
+
       // Generate reward based on egg type
       const reward = this.generateReward(s, eggType);
       return { eggType, reward };
@@ -1266,13 +1297,94 @@ const Expansion = (() => {
     }
   }
 
+  // ==================== CHALLENGE RUNS ====================
+  const CHALLENGE_TYPES = [
+    { id: 'speed_run', name: 'Speed Run', desc: 'Reach Phase 4 ASAP. No CD bonuses.', goal: { phase: 4 }, noCDBonus: true, duration: 604800, rewards: { top10: 50, top50: 20, all: 5 } },
+    { id: 'no_tap', name: 'No-Tap Challenge', desc: 'Reach Phase 3 without manual tapping.', goal: { phase: 3 }, noManualTap: true, duration: 604800, reward: 30 },
+    { id: 'one_gen', name: 'One Generator Only', desc: 'Reach Phase 5 buying only 1 gen type per phase.', goal: { phase: 5 }, oneGenPerPhase: true, duration: 604800, reward: 50 },
+    { id: 'minimalist', name: 'Minimalist', desc: 'Reach Phase 3 with no more than 50 generators.', goal: { phase: 3, maxGens: 50 }, duration: 604800, reward: 40 },
+    { id: 'no_upgrades', name: 'No Upgrades', desc: 'Reach Phase 4 without buying upgrades.', goal: { phase: 4 }, noUpgrades: true, duration: 604800, reward: 75 },
+    { id: 'prestige_sprint', name: 'Prestige Sprint', desc: 'Full prestige cycle, fastest time.', goal: { prestige: true }, duration: 604800, rewards: { under24h: 100, under48h: 50, all: 25 } }
+  ];
+
+  const Challenges = {
+    getActiveChallenge(s) {
+      if (!s.challenge || !s.challenge.active) return null;
+      return CHALLENGE_TYPES.find(c => c.id === s.challenge.typeId);
+    },
+
+    startChallenge(s, typeId) {
+      const challenge = CHALLENGE_TYPES.find(c => c.id === typeId);
+      if (!challenge) return false;
+
+      // Save current game state as backup (separate slot)
+      s.challenge = {
+        active: true,
+        typeId: typeId,
+        startTime: Date.now(),
+        elapsed: 0,
+        completed: false
+      };
+      return true;
+    },
+
+    updateChallenge(s, dt) {
+      if (!s.challenge || !s.challenge.active) return;
+      s.challenge.elapsed += dt;
+
+      const challenge = this.getActiveChallenge(s);
+      if (!challenge) return;
+
+      // Check completion
+      if (challenge.goal.phase && s.currentPhase >= challenge.goal.phase) {
+        this.completeChallenge(s);
+      }
+      if (challenge.goal.prestige && s.totalPrestigeCount > (s.challenge.startPrestigeCount || 0)) {
+        this.completeChallenge(s);
+      }
+    },
+
+    completeChallenge(s) {
+      if (!s.challenge || s.challenge.completed) return;
+      s.challenge.completed = true;
+      s.challenge.active = false;
+      s.stats.challengesCompleted = (s.stats.challengesCompleted || 0) + 1;
+
+      const challenge = this.getActiveChallenge(s);
+      let cdReward = 0;
+      if (challenge && challenge.rewards) {
+        cdReward = challenge.rewards.all || 0;
+        // Time-based rewards for sprint
+        if (challenge.rewards.under24h && s.challenge.elapsed < 86400) {
+          cdReward = challenge.rewards.under24h;
+        } else if (challenge.rewards.under48h && s.challenge.elapsed < 172800) {
+          cdReward = challenge.rewards.under48h;
+        }
+      } else if (challenge && challenge.reward) {
+        cdReward = challenge.reward;
+      }
+
+      if (cdReward > 0) {
+        GameState.addCurrency('cosmicDust', cdReward);
+      }
+
+      Engine.addLogEntry('log49');
+    },
+
+    abandonChallenge(s) {
+      if (!s.challenge) return;
+      s.challenge.active = false;
+    }
+  };
+
   return {
     Combo, CriticalTap, LuckyDrops, GoldenRush, Milestones, Synergies,
     Collections, Contracts, Boosters, Eggs, Weather, IdleStreak,
-    PurchaseStreak, NextUnlock, TieredUpgrades, RocketSkins,
+    PurchaseStreak, NextUnlock, TieredUpgrades, RocketSkins, Challenges,
     COLLECTIONS, SYNERGIES, BOOSTER_TYPES, EGG_TYPES, MILESTONES,
     EXPANSION_ACHIEVEMENTS, EXPANSION_CD_SHOP, EXPANSION_LOG,
     WEATHER_BY_PHASE, DROP_TYPES, UPGRADE_TIERS, ROCKET_SKINS,
+    CHALLENGE_TYPES,
     update, onTap, onGeneratorBuy,
     getBoosterCreditMult, getBoosterRPMult, getBoosterOreMult,
     getBoosterTapMult, getBoosterTerraformMult,

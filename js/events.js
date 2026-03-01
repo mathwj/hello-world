@@ -262,14 +262,27 @@ const GameEvents = (() => {
     // Choose which mini-game based on current phase and randomness
     const available = ['asteroid_dodger'];
     if (s.currentPhase >= 3) available.push('gravity_slingshot');
-    // Signal Decoder triggers specifically from alien signals, not from timer
+    if (s.currentPhase >= 3) available.push('meteor_defense');
+    if (s.currentPhase >= 4) available.push('constellation_connect');
+    if (s.currentPhase >= 6) available.push('wormhole_runner');
+    // Signal Decoder triggers from alien signals
+    // Alien Language triggers from artifact finds
+    // Black Hole Orbit triggers from visiting black hole in Phase 8
 
     const type = available[Math.floor(Math.random() * available.length)];
+
+    const descriptions = {
+      asteroid_dodger: 'Dodge asteroids for credits!',
+      gravity_slingshot: 'Slingshot a probe for RP!',
+      meteor_defense: 'Destroy the incoming meteor!',
+      constellation_connect: 'Connect the stars!',
+      wormhole_runner: 'Navigate the wormhole!'
+    };
 
     // Show offer banner instead of auto-starting
     UI.showEventBanner({
       name: 'Mini-Game Available!',
-      desc: type === 'asteroid_dodger' ? 'Dodge asteroids for credits!' : 'Slingshot a probe for RP!',
+      desc: descriptions[type] || 'A new challenge!',
       icon: '\uD83C\uDFAE',
       type: 'positive'
     });
@@ -299,12 +312,23 @@ const GameEvents = (() => {
     MiniGames.startGame('signal_decoder');
   }
 
+  function triggerAlienLanguage() {
+    if (MiniGames.isActive()) return;
+    MiniGames.startGame('alien_language');
+  }
+
+  function triggerBlackHoleOrbit() {
+    if (MiniGames.isActive()) return;
+    MiniGames.startGame('black_hole_orbit');
+  }
+
   function isAsteroidActive() { return asteroidActive; }
   function isArtifactVisible() { return artifactVisible; }
 
   return {
     processTick, tapRareAsteroid, collectArtifactFragment,
     isAsteroidActive, isArtifactVisible,
-    acceptMiniGame, triggerSignalDecoder
+    acceptMiniGame, triggerSignalDecoder,
+    triggerAlienLanguage, triggerBlackHoleOrbit
   };
 })();

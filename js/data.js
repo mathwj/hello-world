@@ -35,7 +35,9 @@ const GameData = (() => {
       { id: 'p1g4', name: 'Junkyard Crane', baseCost: 12000, growth: 1.15, output: { credits: 120 }, icon: '\u{1F3D7}', desc: 'A rusty but functional crane' },
       { id: 'p1g5', name: 'Metal Detector Drone', baseCost: 60000, growth: 1.15, output: { credits: 600 }, icon: '\u{1F681}', desc: 'An autonomous drone scanning for metals' },
       { id: 'p1g6', name: 'Scrap Processing Plant', baseCost: 300000, growth: 1.15, output: { credits: 3000 }, icon: '\u{1F3ED}', desc: 'A mini-factory refining scrap' },
-      { id: 'p1g7', name: 'Rocket Part Fabricator', baseCost: 1500000, growth: 1.15, output: { credits: 15000 }, icon: '\u{1F5A8}', desc: 'Turns raw scrap into rocket-grade parts' }
+      { id: 'p1g7', name: 'Rocket Part Fabricator', baseCost: 1500000, growth: 1.15, output: { credits: 15000 }, icon: '\u{1F5A8}', desc: 'Turns raw scrap into rocket-grade parts' },
+      { id: 'p1g8', name: 'Junkyard Negotiator', baseCost: 8000000, growth: 1.15, output: { credits: 75000 }, icon: '\u{1F4DE}', desc: 'Sells scrap at premium prices' },
+      { id: 'p1g9', name: 'Satellite Dish Scavenger', baseCost: 40000000, growth: 1.15, output: { credits: 400000 }, icon: '\u{1F4E1}', desc: 'Intercepts valuable satellite data' }
     ],
     2: [
       { id: 'p2g1', name: 'Solar Panel Array', baseCost: 5000, growth: 1.15, output: { credits: 50 }, icon: '\u2600', desc: 'Converts sunlight into energy credits' },
@@ -44,7 +46,9 @@ const GameData = (() => {
       { id: 'p2g4', name: 'Space Tourism Module', baseCost: 500000, growth: 1.15, output: { credits: 4000, rp: 5 }, icon: '\u{1F680}', desc: 'Wealthy tourists see Earth from space' },
       { id: 'p2g5', name: 'Orbital Lab', baseCost: 2500000, growth: 1.15, output: { credits: 20000, rp: 20 }, icon: '\u{1F52C}', desc: 'Zero-gravity research facility' },
       { id: 'p2g6', name: 'Space Hotel', baseCost: 12000000, growth: 1.15, output: { credits: 100000, rp: 50 }, icon: '\u{1F3E8}', desc: 'A luxury orbital hotel' },
-      { id: 'p2g7', name: 'Orbital Megastructure', baseCost: 60000000, growth: 1.15, output: { credits: 500000, rp: 200 }, icon: '\u{1F3D7}', desc: 'Massive modular platform' }
+      { id: 'p2g7', name: 'Orbital Megastructure', baseCost: 60000000, growth: 1.15, output: { credits: 500000, rp: 200 }, icon: '\u{1F3D7}', desc: 'Massive modular platform' },
+      { id: 'p2g8', name: 'Debris Recycler', baseCost: 300000000, growth: 1.15, output: { credits: 2500000, rp: 500 }, icon: '\u{1F9F2}', desc: 'Captures and recycles orbital debris' },
+      { id: 'p2g9', name: 'Zero-G Crystal Farm', baseCost: 1500000000, growth: 1.15, output: { credits: 12000000, rp: 2000 }, icon: '\u{1F48E}', desc: 'Grows perfect crystals in microgravity' }
     ],
     3: [
       { id: 'p3g1', name: 'Lunar Drill', baseCost: 1e6, growth: 1.15, output: { credits: 50000, ore: 1 }, icon: '\u26CF', desc: 'Basic lunar drill rig' },
@@ -54,7 +58,9 @@ const GameData = (() => {
       { id: 'p3g5', name: 'Lunar Rover Fleet', baseCost: 500e6, growth: 1.15, output: { credits: 30e6, ore: 60, rp: 20 }, icon: '\u{1F697}', desc: 'Group of rovers' },
       { id: 'p3g6', name: 'Mass Driver', baseCost: 2.5e9, growth: 1.15, output: { credits: 150e6, ore: 150, rp: 50 }, icon: '\u{1F4A5}', desc: 'Electromagnetic launcher' },
       { id: 'p3g7', name: 'Lunar Megafactory', baseCost: 12e9, growth: 1.15, output: { credits: 750e6, ore: 400, rp: 150 }, icon: '\u{1F3ED}', desc: 'Large factory complex' },
-      { id: 'p3g8', name: 'Space Elevator (Moon)', baseCost: 60e9, growth: 1.15, output: { credits: 3.5e9, ore: 1000, rp: 500 }, icon: '\u2195', desc: 'Tether extending upward' }
+      { id: 'p3g8', name: 'Space Elevator (Moon)', baseCost: 60e9, growth: 1.15, output: { credits: 3.5e9, ore: 1000, rp: 500 }, icon: '\u2195', desc: 'Tether extending upward' },
+      { id: 'p3g9', name: 'Lunar Observatory', baseCost: 300e9, growth: 1.15, output: { credits: 15e9, ore: 2500, rp: 1000 }, icon: '\u{1F52D}', desc: 'Telescope dome on the lunar surface' },
+      { id: 'p3g10', name: 'Dark Side Mining Complex', baseCost: 1.5e12, growth: 1.15, output: { credits: 80e9, ore: 7000, rp: 3000 }, icon: '\u26CF', desc: 'Underground complex on far side of Moon' }
     ],
     4: [
       { id: 'p4g1', name: 'Dust Collector', baseCost: 100e9, growth: 1.15, output: { credits: 1e9 }, terraform: 0, icon: '\u{1F32A}', desc: 'Collects Martian dust' },
@@ -64,7 +70,9 @@ const GameData = (() => {
       { id: 'p4g5', name: 'Biodome', baseCost: 60e12, growth: 1.15, output: { credits: 600e9 }, terraform: 0.25, icon: '\u{1F333}', desc: 'Protected ecosystems' },
       { id: 'p4g6', name: 'Gene Lab', baseCost: 300e12, growth: 1.15, output: { credits: 3e12 }, terraform: 0.5, icon: '\u{1F9EC}', desc: 'Engineers organisms for Mars' },
       { id: 'p4g7', name: 'Colony Hub', baseCost: 1.5e15, growth: 1.15, output: { credits: 15e12 }, terraform: 1.0, icon: '\u{1F3D9}', desc: 'Full city module' },
-      { id: 'p4g8', name: 'Terraform Engine', baseCost: 7.5e15, growth: 1.15, output: { credits: 75e12 }, terraform: 2.5, icon: '\u2699', desc: 'Planetary-scale machine' }
+      { id: 'p4g8', name: 'Terraform Engine', baseCost: 7.5e15, growth: 1.15, output: { credits: 75e12 }, terraform: 2.5, icon: '\u2699', desc: 'Planetary-scale machine' },
+      { id: 'p4g9', name: 'Orbital Mirror Network', baseCost: 40e15, growth: 1.15, output: { credits: 400e12 }, terraform: 5.0, icon: '\u{1F58C}', desc: 'Array of mirrors warming Mars from orbit' },
+      { id: 'p4g10', name: 'Planetary AI', baseCost: 200e15, growth: 1.15, output: { credits: 2e15 }, terraform: 10.0, icon: '\u{1F916}', desc: 'AI managing all terraforming simultaneously' }
     ],
     5: [
       { id: 'p5g1', name: 'Scout Probe', baseCost: 1e15, growth: 1.15, output: { credits: 100e12, rm: 0.5 }, icon: '\u{1F6F8}', desc: 'Small scout drone' },
@@ -74,7 +82,9 @@ const GameData = (() => {
       { id: 'p5g5', name: 'Heavy Freighter', baseCost: 10e18, growth: 1.15, output: { credits: 1e18, rm: 200 }, icon: '\u{1F69A}', desc: 'Massive cargo hauler' },
       { id: 'p5g6', name: 'Destroyer Escort', baseCost: 100e18, growth: 1.15, output: { credits: 10e18, rm: 500 }, icon: '\u2694', desc: 'Armed escort ship' },
       { id: 'p5g7', name: 'Capital Ship', baseCost: 1e21, growth: 1.15, output: { credits: 100e18, rm: 2000 }, icon: '\u{1F680}', desc: 'Enormous flagship' },
-      { id: 'p5g8', name: 'Dyson Collector', baseCost: 10e21, growth: 1.15, output: { credits: 1e21, rm: 10000 }, icon: '\u2600', desc: 'Energy collection sphere' }
+      { id: 'p5g8', name: 'Dyson Collector', baseCost: 10e21, growth: 1.15, output: { credits: 1e21, rm: 10000 }, icon: '\u2600', desc: 'Energy collection sphere' },
+      { id: 'p5g9', name: 'Warp Tug', baseCost: 100e21, growth: 1.15, output: { credits: 10e21, rm: 50000 }, icon: '\u{1F680}', desc: 'Ship with warp nacelles' },
+      { id: 'p5g10', name: 'Singularity Harvester', baseCost: 1e24, growth: 1.15, output: { credits: 100e21, rm: 250000 }, icon: '\u{1F573}', desc: 'Ship orbiting a micro black hole' }
     ],
     // Phase 6 sub-zones
     '6_orbit': [
@@ -83,49 +93,65 @@ const GameData = (() => {
       { id: 'p6og3', name: 'Gas Scoop Mk.II', baseCost: 100e21, growth: 1.15, output: { credits: 1e21 }, icon: '\u26FD', desc: 'Advanced gas scoop' },
       { id: 'p6og4', name: 'Hydrogen Refinery', baseCost: 1e24, growth: 1.15, output: { credits: 10e21, rp: 100 }, icon: '\u{1F3ED}', desc: 'Refines hydrogen fuel' },
       { id: 'p6og5', name: 'Fusion Harvester', baseCost: 10e24, growth: 1.15, output: { credits: 100e21, rp: 500 }, icon: '\u2622', desc: 'Harvests fusion fuel' },
-      { id: 'p6og6', name: 'Jupiter Orbital Station', baseCost: 100e24, growth: 1.15, output: { credits: 1e24, rp: 2000, rm: 50 }, icon: '\u{1F6F8}', desc: 'Massive orbital platform' }
+      { id: 'p6og6', name: 'Jupiter Orbital Station', baseCost: 100e24, growth: 1.15, output: { credits: 1e24, rp: 2000, rm: 50 }, icon: '\u{1F6F8}', desc: 'Massive orbital platform' },
+      { id: 'p6og7', name: 'Metallic Hydrogen Extractor', baseCost: 1e27, growth: 1.15, output: { credits: 100e24, rp: 5000 }, icon: '\u269B', desc: 'Extracts metallic hydrogen from deep atmosphere' },
+      { id: 'p6og8', name: 'Jovian Energy Siphon', baseCost: 10e27, growth: 1.15, output: { credits: 1e27, rp: 20000, rm: 200 }, icon: '\u26A1', desc: 'Siphons energy from Jupiter storms' }
     ],
     '6_io': [
       { id: 'p6ig1', name: 'Lava Skimmer', baseCost: 5000, growth: 1.15, output: { ore: 50 }, costCurrency: 'ore', icon: '\u{1F30B}', desc: 'Skims lava flows', degrades: true, degradeRate: 0.01 },
       { id: 'p6ig2', name: 'Heat-Resistant Drill', baseCost: 20000, growth: 1.15, output: { ore: 200 }, costCurrency: 'ore', icon: '\u26CF', desc: 'Drills volcanic rock', degrades: true, degradeRate: 0.01 },
       { id: 'p6ig3', name: 'Volcanic Tap', baseCost: 100000, growth: 1.15, output: { ore: 1000 }, costCurrency: 'ore', icon: '\u{1F525}', desc: 'Taps into volcanic vents', degrades: true, degradeRate: 0.005 },
-      { id: 'p6ig4', name: 'Magma Refinery', baseCost: 500000, growth: 1.15, output: { ore: 5000 }, costCurrency: 'ore', icon: '\u{1F3ED}', desc: 'Refines magma into ore', degrades: true, degradeRate: 0.005 }
+      { id: 'p6ig4', name: 'Magma Refinery', baseCost: 500000, growth: 1.15, output: { ore: 5000 }, costCurrency: 'ore', icon: '\u{1F3ED}', desc: 'Refines magma into ore', degrades: true, degradeRate: 0.005 },
+      { id: 'p6ig5', name: 'Core Tapper', baseCost: 2000000, growth: 1.15, output: { ore: 25000 }, costCurrency: 'ore', icon: '\u{1F4A7}', desc: 'Taps into Io\'s molten core', degrades: true, degradeRate: 0.0042 },
+      { id: 'p6ig6', name: 'Lava Forge', baseCost: 10000000, growth: 1.15, output: { ore: 100000 }, costCurrency: 'ore', icon: '\u{1F525}', desc: 'Forges materials in volcanic heat', degrades: true, degradeRate: 0.0042 }
     ],
     '6_europa': [
       { id: 'p6eg1', name: 'Ice Breaker', baseCost: 10e21, growth: 1.15, output: { credits: 50e18 }, asChance: 0.01, icon: '\u2744', desc: 'Breaks through ice crust' },
       { id: 'p6eg2', name: 'Submarine Drone', baseCost: 100e21, growth: 1.15, output: { credits: 500e18 }, asChance: 0.03, icon: '\u{1F6A4}', desc: 'Explores subsurface ocean' },
       { id: 'p6eg3', name: 'Deep Ocean Lab', baseCost: 1e24, growth: 1.15, output: { credits: 5e21 }, asChance: 0.08, icon: '\u{1F52C}', desc: 'Researches alien life' },
-      { id: 'p6eg4', name: 'Alien Signal Decoder', baseCost: 10e24, growth: 1.15, output: { credits: 50e21 }, asChance: 0.20, icon: '\u{1F4E1}', desc: 'Decodes alien signals' }
+      { id: 'p6eg4', name: 'Alien Signal Decoder', baseCost: 10e24, growth: 1.15, output: { credits: 50e21 }, asChance: 0.20, icon: '\u{1F4E1}', desc: 'Decodes alien signals' },
+      { id: 'p6eg5', name: 'Hydrothermal Station', baseCost: 100e24, growth: 1.15, output: { credits: 500e21 }, asChance: 0.35, icon: '\u2668', desc: 'Studies hydrothermal vents' },
+      { id: 'p6eg6', name: 'Alien Archaeology Lab', baseCost: 1e27, growth: 1.15, output: { credits: 5e24 }, asChance: 0.60, icon: '\u{1F52C}', desc: 'Excavates alien artifacts' }
     ],
     '6_ganymede': [
       { id: 'p6gg1', name: 'Ganymede Outpost', baseCost: 5e21, growth: 1.15, output: { credits: 20e18 }, crewCapacity: 5, icon: '\u{1F3E0}', desc: 'Basic outpost' },
       { id: 'p6gg2', name: 'Underground City', baseCost: 50e21, growth: 1.15, output: { credits: 200e18 }, crewCapacity: 20, icon: '\u{1F3D9}', desc: 'Subterranean city' },
       { id: 'p6gg3', name: 'Mega Habitat', baseCost: 500e21, growth: 1.15, output: { credits: 2e21 }, crewCapacity: 100, icon: '\u{1F3DF}', desc: 'Massive habitat complex' },
-      { id: 'p6gg4', name: 'Planetary Citadel', baseCost: 5e24, growth: 1.15, output: { credits: 20e21 }, crewCapacity: 500, icon: '\u{1F3F0}', desc: 'Moon-spanning fortress' }
+      { id: 'p6gg4', name: 'Planetary Citadel', baseCost: 5e24, growth: 1.15, output: { credits: 20e21 }, crewCapacity: 500, icon: '\u{1F3F0}', desc: 'Moon-spanning fortress' },
+      { id: 'p6gg5', name: 'Orbital Academy', baseCost: 50e24, growth: 1.15, output: { credits: 200e21 }, crewCapacity: 2000, icon: '\u{1F393}', desc: 'Auto-trains Rookies to Trained' },
+      { id: 'p6gg6', name: 'Dyson Habitat Ring', baseCost: 500e24, growth: 1.15, output: { credits: 2e24 }, crewCapacity: 10000, icon: '\u{1F300}', desc: 'Massive ring habitat' }
     ],
     '6_callisto': [
       { id: 'p6cg1', name: 'Signal Relay', baseCost: 20e21, growth: 1.15, output: {}, globalBoost: 0.02, icon: '\u{1F4E1}', desc: '+2% all income' },
       { id: 'p6cg2', name: 'Quantum Entanglement Hub', baseCost: 200e21, growth: 1.15, output: {}, globalBoost: 0.05, icon: '\u269B', desc: '+5% all income' },
       { id: 'p6cg3', name: 'Galactic Broadcast Array', baseCost: 2e24, growth: 1.15, output: {}, globalBoost: 0.15, icon: '\u{1F4E1}', desc: '+15% all income' },
-      { id: 'p6cg4', name: 'Omniscient Network', baseCost: 20e24, growth: 1.15, output: {}, globalBoost: 0.50, icon: '\u{1F310}', desc: '+50% all income' }
+      { id: 'p6cg4', name: 'Omniscient Network', baseCost: 20e24, growth: 1.15, output: {}, globalBoost: 0.50, icon: '\u{1F310}', desc: '+50% all income' },
+      { id: 'p6cg5', name: 'Ansible Array', baseCost: 200e24, growth: 1.15, output: {}, globalBoost: 1.00, icon: '\u{1F4E1}', desc: '+100% all income' },
+      { id: 'p6cg6', name: 'Reality Anchor', baseCost: 2e27, growth: 1.15, output: {}, globalBoost: 2.50, icon: '\u2693', desc: '+250% all income' }
     ],
     '7_haven': [
       { id: 'p7hg1', name: 'Colony Ship Landing', baseCost: 1e24, growth: 1.15, output: { credits: 10e21, sd: 1 }, icon: '\u{1F680}', desc: 'First colony on new world' },
       { id: 'p7hg2', name: 'Bio-Habitat Complex', baseCost: 10e24, growth: 1.15, output: { credits: 100e21, sd: 5 }, crewCapacity: 10, icon: '\u{1F33F}', desc: 'Growing habitats' },
       { id: 'p7hg3', name: 'Planetary Capital', baseCost: 100e24, growth: 1.15, output: { credits: 1e24, sd: 25 }, icon: '\u{1F3DB}', desc: 'Capital of the colony' },
-      { id: 'p7hg4', name: 'Dyson Tree Forest', baseCost: 1e27, growth: 1.15, output: { credits: 10e24, sd: 100 }, icon: '\u{1F332}', desc: 'Living megastructures' }
+      { id: 'p7hg4', name: 'Dyson Tree Forest', baseCost: 1e27, growth: 1.15, output: { credits: 10e24, sd: 100 }, icon: '\u{1F332}', desc: 'Living megastructures' },
+      { id: 'p7hg5', name: 'Genetic Archive', baseCost: 10e27, growth: 1.15, output: { credits: 100e24, sd: 500 }, icon: '\u{1F9EC}', desc: '+25 crew/hr, all crew start as Trained' },
+      { id: 'p7hg6', name: 'World Mind', baseCost: 100e27, growth: 1.15, output: { credits: 1e27, sd: 2500 }, icon: '\u{1F9E0}', desc: '+100 crew/hr, all crew bonuses x3' }
     ],
     '7_ferrum': [
       { id: 'p7fg1', name: 'Strip Mining Drones', baseCost: 5e24, growth: 1.15, output: { ore: 10000, rm: 100, sd: 0.5 }, icon: '\u26CF', desc: 'Automated mining drones' },
       { id: 'p7fg2', name: 'Core Extractor', baseCost: 50e24, growth: 1.15, output: { ore: 50000, rm: 500, sd: 2 }, icon: '\u{1F300}', desc: 'Extracts from planet core' },
       { id: 'p7fg3', name: 'Planet Cracker', baseCost: 500e24, growth: 1.15, output: { ore: 250000, rm: 2500, sd: 10 }, icon: '\u{1F4A5}', desc: 'Cracks planets for resources' },
-      { id: 'p7fg4', name: 'Matter Converter', baseCost: 5e27, growth: 1.15, output: { ore: 1000000, rm: 10000, sd: 50 }, icon: '\u269B', desc: 'Converts any matter' }
+      { id: 'p7fg4', name: 'Matter Converter', baseCost: 5e27, growth: 1.15, output: { ore: 1000000, rm: 10000, sd: 50 }, icon: '\u269B', desc: 'Converts any matter' },
+      { id: 'p7fg5', name: 'Dimensional Drill', baseCost: 50e27, growth: 1.15, output: { ore: 5000000, rm: 50000, sd: 250 }, icon: '\u{1F300}', desc: 'Drills through dimensional barriers' },
+      { id: 'p7fg6', name: 'Atomic Disassembler', baseCost: 500e27, growth: 1.15, output: { ore: 25000000, rm: 250000, sd: 1000 }, icon: '\u269B', desc: 'Disassembles matter at atomic level' }
     ],
     '7_nebula': [
       { id: 'p7ng1', name: 'Cloud City', baseCost: 10e24, growth: 1.15, output: { credits: 500e21, sd: 10 }, icon: '\u2601', desc: 'Floating city in gas giant' },
       { id: 'p7ng2', name: 'Fusion Core Harvester', baseCost: 100e24, growth: 1.15, output: { credits: 5e24, sd: 50 }, icon: '\u2622', desc: 'Harvests fusion energy' },
       { id: 'p7ng3', name: 'Dyson Sphere Fragment', baseCost: 1e27, growth: 1.15, output: { credits: 50e24, sd: 250 }, icon: '\u2600', desc: 'Partial Dyson sphere' },
-      { id: 'p7ng4', name: 'Star Forge', baseCost: 10e27, growth: 1.15, output: { credits: 500e24, sd: 1000 }, icon: '\u2B50', desc: 'Forges matter from starlight' }
+      { id: 'p7ng4', name: 'Star Forge', baseCost: 10e27, growth: 1.15, output: { credits: 500e24, sd: 1000 }, icon: '\u2B50', desc: 'Forges matter from starlight' },
+      { id: 'p7ng5', name: 'Antimatter Collector', baseCost: 100e27, growth: 1.15, output: { credits: 5e27, sd: 5000 }, icon: '\u2622', desc: 'Collects antimatter from nebula' },
+      { id: 'p7ng6', name: 'Dyson Sphere (Complete)', baseCost: 1e30, growth: 1.15, output: { credits: 50e27, sd: 25000 }, icon: '\u2600', desc: 'A complete Dyson sphere' }
     ],
     8: [
       { id: 'p8g1', name: 'Star System Colony', baseCost: 1e27, growth: 1.15, output: { credits: 100e24, sd: 100 }, icon: '\u2B50', desc: 'Colony in a new star system' },
@@ -147,7 +173,16 @@ const GameData = (() => {
       { id: 'u1_7', name: 'Blast Furnace', cost: 2000000, currency: 'credits', effect: { generatorMultiplier: { target: 'p1g6', mult: 2 } }, desc: 'Processing Plant output x2', req: { generator: 'p1g6', count: 5 } },
       { id: 'u1_8', name: 'Quantum Printer', cost: 10000000, currency: 'credits', effect: { generatorMultiplier: { target: 'p1g7', mult: 3 } }, desc: 'Fabricator output x3', req: { generator: 'p1g7', count: 5 } },
       { id: 'u1_9', name: 'Lucky Find', cost: 50000, currency: 'credits', effect: { luckyTap: true }, desc: '10% chance per tap for x10 credits', req: { totalTaps: 500 } },
-      { id: 'u1_10', name: 'Junkyard Dog', cost: 250000, currency: 'credits', effect: { phaseMultiplier: { phase: 1, mult: 1.25 } }, desc: 'All Phase 1 generators +25%', req: { allGeneratorsPhase: 1 } }
+      { id: 'u1_10', name: 'Junkyard Dog', cost: 250000, currency: 'credits', effect: { phaseMultiplier: { phase: 1, mult: 1.25 } }, desc: 'All Phase 1 generators +25%', req: { allGeneratorsPhase: 1 } },
+      // Expansion B upgrades
+      { id: 'u1_11', name: 'Coffee for the Team', cost: 3000, currency: 'credits', effect: { tempBoost: { mult: 1.1, duration: 300 } }, desc: 'All generators +10% for 5 min (repeatable)', repeatable: true, cooldown: 300, req: { totalGenerators: 3 } },
+      { id: 'u1_12', name: 'Treasure Map', cost: 15000, currency: 'credits', effect: { luckyDropFrequency: 1.5 }, desc: 'Lucky Drops appear 50% more often', req: { totalGenerators: 20 } },
+      { id: 'u1_13', name: 'Night Vision Goggles', cost: 40000, currency: 'credits', effect: { nightTapMultiplier: 2 }, desc: 'Tap x2 during Night weather (instead of x1.5)', req: { weatherSeen: 'starry_night' } },
+      { id: 'u1_14', name: 'Scrapyard Expansion', cost: 150000, currency: 'credits', effect: { unlockGenerators: ['p1g8', 'p1g9'] }, desc: 'Unlock generators #8 and #9', req: { totalGenerators: 50 } },
+      { id: 'u1_15', name: 'Blueprints Upgrade', cost: 500000, currency: 'credits', effect: { showProgress: true }, desc: 'Rocket parts show progress bars', req: { allRocketParts: true } },
+      { id: 'u1_16', name: 'Magnet Hands', cost: 1000000, currency: 'credits', effect: { luckyDropSlowdown: 0.5 }, desc: 'Lucky Drops travel 50% slower', req: { luckyDropsCaught: 100 } },
+      { id: 'u1_17', name: 'Junkyard Radio', cost: 3000000, currency: 'credits', effect: { goldenRushFrequency: 2 }, desc: 'Golden Rush happens 2x more often', req: { goldenRushCount: 3 } },
+      { id: 'u1_18', name: 'Rocket Paint Job', cost: 5000000, currency: 'credits', effect: { rocketPaint: true }, desc: 'Custom rocket paint scheme', req: { allRocketParts: true } }
     ],
     2: [
       { id: 'u2_1', name: 'Efficient Thrusters', cost: 10, currency: 'rp', effect: { phaseMultiplier: { phase: 2, mult: 2 } }, desc: 'All Phase 2 generators x2 credits' },
@@ -158,7 +193,16 @@ const GameData = (() => {
       { id: 'u2_6', name: 'Data Compression', cost: 200, currency: 'rp', effect: { globalRPMultiplier: 2 }, desc: 'All RP generation x2', req: { generator: 'p2g2', count: 10 } },
       { id: 'u2_7', name: 'Space Advertising', cost: 300, currency: 'rp', effect: { generatorMultiplier: { target: 'p2g4', mult: 5 } }, desc: 'Space Tourism x5', req: { generator: 'p2g4', count: 10 } },
       { id: 'u2_8', name: 'Zero-G Manufacturing', cost: 500, currency: 'rp', effect: { unlockBonusGenerator: true }, desc: 'Unlock Microgravity Factory', req: { generator: 'p2g7', count: 5 } },
-      { id: 'u2_9', name: 'Radiation Shielding', cost: 100, currency: 'rp', costSecondary: { credits: 50e6 }, effect: { unlockPhase: 3 }, desc: 'UNLOCK Phase 3: The Moon' }
+      { id: 'u2_9', name: 'Radiation Shielding', cost: 100, currency: 'rp', costSecondary: { credits: 50e6 }, effect: { unlockPhase: 3 }, desc: 'UNLOCK Phase 3: The Moon' },
+      // Expansion B upgrades
+      { id: 'u2_10', name: 'Orbital Mapping', cost: 30, currency: 'rp', effect: { previewPhase3: true }, desc: 'Preview Phase 3 generators' },
+      { id: 'u2_11', name: 'Signal Amplifier II', cost: 75, currency: 'rp', effect: { generatorMultiplier: { target: 'p2g2', mult: 2 } }, desc: 'Comm Relay output x2 AND RP x2', req: { generator: 'p2g2', count: 15 } },
+      { id: 'u2_12', name: 'Tourist Brochure', cost: 120, currency: 'rp', effect: { weatherGenBonus: { gen: 'p2g4', weather: 'aurora', mult: 3 } }, desc: 'Space Tourism x3 during Aurora', req: { generator: 'p2g4', count: 20 } },
+      { id: 'u2_13', name: 'Centrifuge Lab', cost: 250, currency: 'rp', effect: { weatherGenBonus: { gen: 'p2g5', weather: 'eclipse', mult: 2 } }, desc: 'Orbital Lab RP x2 during Eclipse', req: { generator: 'p2g5', count: 10 } },
+      { id: 'u2_14', name: 'Self-Replicating Panels', cost: 400, currency: 'rp', effect: { freeEvery: { gen: 'p2g1', interval: 100 } }, desc: 'Every 100th Solar Panel is free', req: { generator: 'p2g1', count: 50 } },
+      { id: 'u2_15', name: 'Space Billboard', cost: 600, currency: 'rp', effect: { tapMultiplier: 5 }, desc: 'Tap value in Phase 2 x5', req: { totalTaps: 10000 } },
+      { id: 'u2_16', name: 'Quantum Entanglement Comm', cost: 1000, currency: 'rp', effect: { previousZoneRate: 0.5 }, desc: 'Previous zone generators at 50% rate', req: { generator: 'p2g7', count: 5 } },
+      { id: 'u2_17', name: 'ISS Partnership', cost: 2000, currency: 'rp', effect: { skipProduction: 3600 }, desc: 'One-time: earn 1 hour of income', req: { totalPhaseGenerators: { phase: 2, count: 100 } } }
     ],
     3: [
       { id: 'u3_1', name: 'Diamond Drill Bits', cost: 50, currency: 'ore', effect: { generatorMultiplier: { target: 'p3g1', mult: 3 } }, desc: 'Lunar Drill output x3' },
@@ -171,7 +215,16 @@ const GameData = (() => {
       { id: 'u3_8', name: 'Carbon Nanotube Cable', cost: 2000, currency: 'ore', effect: { generatorMultiplier: { target: 'p3g8', mult: 3 } }, desc: 'Space Elevator x3' },
       { id: 'u3_9', name: 'Lunar Tunneling Network', cost: 500, currency: 'rp', effect: { phaseMultiplier: { phase: 3, mult: 1.5 } }, desc: 'All Moon generators x1.5' },
       { id: 'u3_10', name: 'Deep Core Mining', cost: 1000, currency: 'rp', effect: { globalOreMultiplier: 2 }, desc: 'Ore production globally x2' },
-      { id: 'u3_11', name: 'Deep Space Antenna', cost: 500, currency: 'ore', costSecondary: { credits: 10e9 }, effect: { unlockPhase: 4 }, desc: 'UNLOCK Phase 4: Mars' }
+      { id: 'u3_11', name: 'Deep Space Antenna', cost: 500, currency: 'ore', costSecondary: { credits: 10e9 }, effect: { unlockPhase: 4 }, desc: 'UNLOCK Phase 4: Mars' },
+      // Expansion B upgrades
+      { id: 'u3_12', name: 'Lunar GPS', cost: 100, currency: 'ore', effect: { generatorMultiplier: { target: 'p3g5', mult: 2 } }, desc: 'Rovers produce x2', req: { generator: 'p3g5', count: 10 } },
+      { id: 'u3_13', name: 'Underground Railroad', cost: 250, currency: 'ore', effect: { synergyBoost: { gens: ['p3g6', 'p3g8'], mult: 2 } }, desc: 'Mass Driver + Space Elevator both x2', req: { generator: 'p3g6', count: 5 } },
+      { id: 'u3_14', name: 'Astronaut Academy', cost: 400, currency: 'ore', effect: { crewCostReduction: 0.3 }, desc: 'Crew hiring cost -30%', req: { crewHired: 10 } },
+      { id: 'u3_15', name: 'Moonshine Distillery', cost: 750, currency: 'ore', effect: { phaseMultiplier: { phase: 3, mult: 1.25 } }, desc: 'All Moon credits +25%', req: { generator: 'p3g4', count: 50 } },
+      { id: 'u3_16', name: 'Lunar Olympiad', cost: 1500, currency: 'ore', effect: { crewUpgradeCostReduction: 0.2 }, desc: 'Crew upgrade costs -20%', req: { veteranCrew: 5 } },
+      { id: 'u3_17', name: 'Tidal Lock Advantage', cost: 3000, currency: 'ore', effect: { generatorMultiplier: { target: 'p3g10', mult: 3 } }, desc: 'Dark Side Mining Complex x3', req: { generator: 'p3g10', count: 10 } },
+      { id: 'u3_18', name: 'He-3 Fusion Reactor', cost: 2000, currency: 'rp', effect: { generatorMultiplier: { target: 'p3g3', mult: 3 }, phaseMultiplier: { phase: 3, mult: 1.15 } }, desc: 'He-3 Extractor x3 + Moon +15%', req: { generator: 'p3g3', count: 25 } },
+      { id: 'u3_19', name: 'Earth-Moon Laser Link', cost: 5000, currency: 'rp', effect: { previousZoneMultiplier: 2 }, desc: 'Previous zone income x2 on Moon', req: { generator: 'p3g8', count: 5 } }
     ],
     4: [
       { id: 'u4_1', name: 'Martian Soil Analysis', cost: 1000, currency: 'ore', effect: { generatorMultiplier: { target: 'p4g1', mult: 3 } }, desc: 'Dust Collector x3' },
@@ -181,7 +234,16 @@ const GameData = (() => {
       { id: 'u4_5', name: 'Extremophile Bacteria', cost: 10000, currency: 'rp', effect: { generatorMultiplier: { target: 'p4g5', mult: 3 }, terraformMultiplier: 2 }, desc: 'Biodome x3, terraform x2' },
       { id: 'u4_6', name: 'CRISPR Terraforming', cost: 10000, currency: 'ore', effect: { generatorMultiplier: { target: 'p4g6', mult: 2 } }, desc: 'Gene Lab x2' },
       { id: 'u4_7', name: 'Self-Expanding Colony', cost: 500e15, currency: 'credits', effect: { generatorMultiplier: { target: 'p4g7', mult: 3 } }, desc: 'Colony Hub x3' },
-      { id: 'u4_8', name: 'Planetary Core Tap', cost: 50000, currency: 'rp', costSecondary: { ore: 25000 }, effect: { generatorMultiplier: { target: 'p4g8', mult: 2 }, phaseMultiplier: { phase: 4, mult: 2 } }, desc: 'Terraform Engine x2 + Mars credits x2' }
+      { id: 'u4_8', name: 'Planetary Core Tap', cost: 50000, currency: 'rp', costSecondary: { ore: 25000 }, effect: { generatorMultiplier: { target: 'p4g8', mult: 2 }, phaseMultiplier: { phase: 4, mult: 2 } }, desc: 'Terraform Engine x2 + Mars credits x2' },
+      // Expansion B upgrades
+      { id: 'u4_9', name: 'Water Reclamation', cost: 3000, currency: 'ore', effect: { terraformMultiplier: 1.25 }, desc: 'Terraform speed +25%', req: { terraformPercent: 15 } },
+      { id: 'u4_10', name: 'Deimos Mining Station', cost: 8000, currency: 'ore', effect: { passiveOre: 500 }, desc: '+500 Ore/sec passive from Deimos', req: { terraformPercent: 30 } },
+      { id: 'u4_11', name: 'Olympus Mons Observatory', cost: 15000, currency: 'rp', effect: { phaseRPMultiplier: { phase: 4, mult: 3 } }, desc: 'All Mars RP x3', req: { terraformPercent: 40 } },
+      { id: 'u4_12', name: 'Valles Marineris Highway', cost: 20000, currency: 'ore', effect: { phaseCostReduction: { phase: 4, reduction: 0.2 } }, desc: 'Mars generator costs -20%', req: { terraformPercent: 50 } },
+      { id: 'u4_13', name: 'Mars Internet', cost: 30000, currency: 'rp', effect: { generatorMultiplier: { target: 'p4g7', mult: 3 }, phaseMultiplier: { phase: 4, mult: 1.5 } }, desc: 'Colony Hub x3, Mars credits x1.5', req: { terraformPercent: 60 } },
+      { id: 'u4_14', name: 'Phobos Space Dock', cost: 50000, currency: 'rp', effect: { phase5CostReduction: 0.1 }, desc: 'Phase 5 ships 10% cheaper', req: { terraformPercent: 70 } },
+      { id: 'u4_15', name: 'Mars Parliament', cost: 5e15, currency: 'credits', effect: { generatorMultiplier: { target: 'p4g7', mult: 5 } }, desc: 'Colony Hub x5 + Governor title', req: { terraformPercent: 80 } },
+      { id: 'u4_16', name: 'World Tree', cost: 100000, currency: 'ore', costSecondary: { rp: 100000 }, effect: { terraformMultiplier: 3, phaseMultiplier: { phase: 4, mult: 2 } }, desc: 'Terraform x3 + Mars generators x2', req: { terraformPercent: 90 } }
     ],
     5: [
       { id: 'u5_1', name: 'Advanced Scanners', cost: 50, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g1', mult: 3 } }, desc: 'Scout Probe x3' },
@@ -193,7 +255,16 @@ const GameData = (() => {
       { id: 'u5_7', name: "Admiral's Command", cost: 5000, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g7', mult: 3 }, phaseMultiplier: { phase: 5, mult: 1.5 } }, desc: 'Capital Ship x3 + all ships x1.5' },
       { id: 'u5_8', name: 'Quantum Computers', cost: 10000, currency: 'rm', effect: { globalRPMultiplier: 10 }, desc: 'All RP generation x10' },
       { id: 'u5_9', name: 'Anti-Gravity Engines', cost: 25000, currency: 'rm', effect: { phaseMultiplier: { phase: 5, mult: 5 } }, desc: 'All ship output x5' },
-      { id: 'u5_10', name: 'Warp Theory Research', cost: 50000, currency: 'rm', effect: { unlockPhase: 6 }, desc: 'UNLOCK Phase 6: Jupiter' }
+      { id: 'u5_10', name: 'Warp Theory Research', cost: 50000, currency: 'rm', effect: { unlockPhase: 6 }, desc: 'UNLOCK Phase 6: Jupiter' },
+      // Expansion B upgrades
+      { id: 'u5_11', name: 'Drone Swarm Protocol', cost: 200, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g1', mult: 3 } }, desc: 'Scout Probes x3 + produce 0.1 RM each', req: { generator: 'p5g1', count: 50 } },
+      { id: 'u5_12', name: 'Magnetic Grapple', cost: 500, currency: 'rm', effect: { multiGenMultiplier: { targets: ['p5g2', 'p5g3'], mult: 2 } }, desc: 'Mining Shuttle x2, Mining Barge x2', req: { generator: 'p5g2', count: 25 } },
+      { id: 'u5_13', name: 'Forge Ship', cost: 1000, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g4', mult: 3 } }, desc: 'Refinery Ship x3', req: { generator: 'p5g4', count: 25 } },
+      { id: 'u5_14', name: 'Convoy Formation', cost: 2500, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g5', mult: 2 }, phaseMultiplier: { phase: 5, mult: 1.05 } }, desc: 'Freighter x2 + all ships +5%', req: { generator: 'p5g5', count: 15 } },
+      { id: 'u5_15', name: 'Battlegroup Tactics', cost: 5000, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g6', mult: 3 } }, desc: 'Destroyer x3 + fleet immunity', req: { generator: 'p5g6', count: 10 } },
+      { id: 'u5_16', name: "Admiral's Bridge", cost: 10000, currency: 'rm', effect: { capitalShipBoost: 1.1 }, desc: 'Capital Ship boosts all ships x1.1 each', req: { generator: 'p5g7', count: 5 } },
+      { id: 'u5_17', name: 'Micro Black Hole Engine', cost: 25000, currency: 'rm', effect: { generatorMultiplier: { target: 'p5g10', mult: 3 } }, desc: 'Singularity Harvester x3', req: { generator: 'p5g10', count: 5 } },
+      { id: 'u5_18', name: 'Belt Monopoly', cost: 50000, currency: 'rm', effect: { phaseMultiplier: { phase: 5, mult: 2 } }, desc: 'ALL ships x2 + asteroids x3 freq', req: { totalPhaseGenerators: { phase: 5, count: 500 } } }
     ],
     6: [
       { id: 'u6_1', name: 'Volcanic Shielding', cost: 10000, currency: 'ore', effect: { reduceDegradation: 0.5 }, desc: 'Io degradation -50%' },
@@ -326,7 +397,84 @@ const GameData = (() => {
     { id: 'ach_secret_first_contact', name: 'First Contact', desc: 'Collect first Alien Signal', reward: { rp: 1000 }, check: s => s.alienSignals >= 1, secret: true, category: 'secret' },
     { id: 'ach_first_legend', name: 'First Legend', desc: 'Upgrade an astronaut to Legendary', reward: { ore: 50000 }, check: s => s.crew.astronauts.some(a => a.tier >= 4), secret: false, category: 'crew' },
     { id: 'ach_completionist', name: 'Completionist', desc: 'Own all generator types across all phases', reward: { cosmicDust: 1000 }, check: s => checkAllGeneratorTypesOwned(s), secret: true, category: 'secret' },
-    { id: 'ach_lucky_find', name: 'Lucky Find', desc: 'Find 3 Rare Asteroids in a row', reward: { rm: 500 }, check: s => (s.stats.consecutiveAsteroids || 0) >= 3, secret: true, category: 'secret' }
+    { id: 'ach_lucky_find', name: 'Lucky Find', desc: 'Find 3 Rare Asteroids in a row', reward: { rm: 500 }, check: s => (s.stats.consecutiveAsteroids || 0) >= 3, secret: true, category: 'secret' },
+    // ===== EXPANSION B: Speed Achievements =====
+    { id: 'ach_speed_rocket', name: 'Quick Builder', desc: 'Complete rocket in under 5 min', reward: { credits: 25000 }, check: s => s.stats.rocketBuildTime > 0 && s.stats.rocketBuildTime < 300, category: 'speed' },
+    { id: 'ach_speed_p2', name: 'Escape Velocity', desc: 'Reach Phase 2 in under 15 min', reward: { rp: 25 }, check: s => s.stats.phaseReachTime && s.stats.phaseReachTime[2] > 0 && s.stats.phaseReachTime[2] < 900, category: 'speed' },
+    { id: 'ach_speed_p3', name: 'Lunar Express', desc: 'Reach Phase 3 in under 30 min', reward: { ore: 100 }, check: s => s.stats.phaseReachTime && s.stats.phaseReachTime[3] > 0 && s.stats.phaseReachTime[3] < 1800, category: 'speed' },
+    { id: 'ach_speed_p4', name: 'Mars or Bust', desc: 'Reach Phase 4 in under 2 hours', reward: { ore: 1000 }, check: s => s.stats.phaseReachTime && s.stats.phaseReachTime[4] > 0 && s.stats.phaseReachTime[4] < 7200, category: 'speed' },
+    { id: 'ach_speed_p7', name: 'Light Speed', desc: 'Reach Phase 7 in under 24 hours', reward: { sd: 500 }, check: s => s.stats.phaseReachTime && s.stats.phaseReachTime[7] > 0 && s.stats.phaseReachTime[7] < 86400, category: 'speed' },
+    // ===== Combo Achievements =====
+    { id: 'ach_combo10', name: 'Combo Starter', desc: 'Reach a x10 combo', reward: { credits: 5000 }, check: s => s.combo.bestAllTime >= 10, category: 'combo' },
+    { id: 'ach_combo25', name: 'Combo Adept', desc: 'Reach a x25 combo', reward: { credits: 100000 }, check: s => s.combo.bestAllTime >= 25, category: 'combo' },
+    { id: 'ach_combo50', name: 'Combo Master', desc: 'Reach a x50 combo', reward: { credits: 10e6 }, check: s => s.combo.bestAllTime >= 50, category: 'combo' },
+    { id: 'ach_combo75', name: 'Combo Legend', desc: 'Reach a x75 combo', reward: { credits: 1e9 }, check: s => s.combo.bestAllTime >= 75, category: 'combo' },
+    { id: 'ach_combo100', name: 'MEGA FRENZY', desc: 'Reach a x100 combo', reward: { cosmicDust: 10 }, check: s => s.combo.bestAllTime >= 100, category: 'combo' },
+    // ===== Critical Tap Achievements =====
+    { id: 'ach_crit1', name: 'Lucky Strike', desc: 'Land first critical tap', reward: { credits: 1000 }, check: s => (s.stats.totalCritTaps || 0) >= 1, category: 'critical' },
+    { id: 'ach_crit50', name: 'Critical Thinking', desc: 'Land 50 critical taps', reward: { credits: 500000 }, check: s => (s.stats.totalCritTaps || 0) >= 50, category: 'critical' },
+    { id: 'ach_crit500', name: 'Critical Mass', desc: 'Land 500 critical taps', reward: { credits: 500e6 }, check: s => (s.stats.totalCritTaps || 0) >= 500, category: 'critical' },
+    { id: 'ach_supercrit1', name: 'Super Critical', desc: 'Land first Super Critical tap', reward: { cosmicDust: 5 }, check: s => (s.stats.totalSuperCritTaps || 0) >= 1, category: 'critical' },
+    { id: 'ach_supercrit3', name: 'Lightning Rod', desc: 'Land 3 Super Criticals', reward: { cosmicDust: 25 }, check: s => (s.stats.totalSuperCritTaps || 0) >= 3, category: 'critical' },
+    // ===== Collection Achievements =====
+    { id: 'ach_coll_rocks', name: 'Rock Collector', desc: 'Complete Space Rocks set', reward: { cosmicDust: 25 }, check: s => s.collections && s.collections.completedSets && s.collections.completedSets.includes('space_rocks'), category: 'collection' },
+    { id: 'ach_coll_badges', name: 'Badge Hunter', desc: 'Complete Crew Badges set', reward: { cosmicDust: 25 }, check: s => s.collections && s.collections.completedSets && s.collections.completedSets.includes('crew_badges'), category: 'collection' },
+    { id: 'ach_coll_relics', name: 'Alien Archaeologist', desc: 'Complete Alien Relics set', reward: { cosmicDust: 50 }, check: s => s.collections && s.collections.completedSets && s.collections.completedSets.includes('alien_relics'), category: 'collection' },
+    { id: 'ach_coll_ships', name: 'Fleet Museum', desc: 'Complete Ship Models set', reward: { cosmicDust: 25 }, check: s => s.collections && s.collections.completedSets && s.collections.completedSets.includes('ship_models'), category: 'collection' },
+    { id: 'ach_coll_wonders', name: 'Cosmic Tourist', desc: 'Complete Cosmic Wonders set', reward: { cosmicDust: 50 }, check: s => s.collections && s.collections.completedSets && s.collections.completedSets.includes('cosmic_wonders'), category: 'collection' },
+    { id: 'ach_coll_all', name: 'Completionist Supreme', desc: 'Complete ALL collection sets', reward: { cosmicDust: 200 }, check: s => s.collections && s.collections.completedSets && s.collections.completedSets.length >= 5, category: 'collection' },
+    // ===== Lucky Drop Achievements =====
+    { id: 'ach_drop1', name: 'Eagle Eye', desc: 'Tap first Lucky Drop', reward: { credits: 500 }, check: s => (s.stats.luckyDropsCaught || 0) >= 1, category: 'luckyDrop' },
+    { id: 'ach_drop50', name: 'Quick Hands', desc: 'Tap 50 Lucky Drops', reward: { credits: 1e6 }, check: s => (s.stats.luckyDropsCaught || 0) >= 50, category: 'luckyDrop' },
+    { id: 'ach_drop200', name: 'Drop Hunter', desc: 'Tap 200 Lucky Drops', reward: { credits: 1e9 }, check: s => (s.stats.luckyDropsCaught || 0) >= 200, category: 'luckyDrop' },
+    { id: 'ach_cdFragment', name: 'Cosmic Fragment Finder', desc: 'Catch a Cosmic Fragment (CD drop)', reward: { cosmicDust: 5 }, check: s => (s.stats.cosmicFragmentsCaught || 0) >= 1, category: 'luckyDrop' },
+    { id: 'ach_rain10', name: 'Rain Dancer', desc: 'Tap 10 items during a Currency Rain', reward: { credits: 0, special: 'minuteCredits' }, check: s => (s.stats.maxRainCatch || 0) >= 10, category: 'luckyDrop' },
+    // ===== Egg Achievements =====
+    { id: 'ach_egg1', name: 'First Hatch', desc: 'Hatch first egg', reward: { credits: 0, special: 'bronzeEgg' }, check: s => (s.stats.eggsHatched || 0) >= 1, category: 'egg' },
+    { id: 'ach_egg10', name: 'Egg Collector', desc: 'Hatch 10 eggs', reward: { credits: 0, special: 'silverEgg' }, check: s => (s.stats.eggsHatched || 0) >= 10, category: 'egg' },
+    { id: 'ach_egg50', name: 'Egg Master', desc: 'Hatch 50 eggs', reward: { credits: 0, special: 'goldEgg' }, check: s => (s.stats.eggsHatched || 0) >= 50, category: 'egg' },
+    { id: 'ach_cosmic5', name: 'Cosmic Nursery', desc: 'Hatch 5 Cosmic Eggs', reward: { credits: 0, special: 'voidEgg' }, check: s => (s.stats.cosmicEggsHatched || 0) >= 5, category: 'egg' },
+    { id: 'ach_void1', name: 'Void Walker', desc: 'Hatch a Void Egg', reward: { cosmicDust: 50 }, check: s => (s.stats.voidEggsHatched || 0) >= 1, category: 'egg' },
+    // ===== Contract Achievements =====
+    { id: 'ach_contract1', name: 'Contractor', desc: 'Complete first contract', reward: { credits: 0, special: 'incomeBonus300' }, check: s => (s.stats.contractsCompleted || 0) >= 1, category: 'contract' },
+    { id: 'ach_contract10', name: 'Freelancer', desc: 'Complete 10 contracts', reward: { credits: 0, special: 'incomeBonus600' }, check: s => (s.stats.contractsCompleted || 0) >= 10, category: 'contract' },
+    { id: 'ach_contract50', name: 'Professional', desc: 'Complete 50 contracts', reward: { cosmicDust: 10 }, check: s => (s.stats.contractsCompleted || 0) >= 50, category: 'contract' },
+    { id: 'ach_contract100', name: 'Mogul', desc: 'Complete 100 contracts', reward: { cosmicDust: 50 }, check: s => (s.stats.contractsCompleted || 0) >= 100, category: 'contract' },
+    { id: 'ach_specialContract', name: 'Special Agent', desc: 'Complete a Special Contract', reward: { cosmicDust: 25 }, check: s => (s.stats.specialContractsCompleted || 0) >= 1, category: 'contract' },
+    // ===== Synergy Achievements =====
+    { id: 'ach_syn1', name: 'First Synergy', desc: 'Unlock first generator synergy', reward: { credits: 0, special: 'incomeBonus120' }, check: s => s.synergies && s.synergies.unlocked && s.synergies.unlocked.length >= 1, category: 'synergy' },
+    { id: 'ach_syn5', name: 'Synergy Network', desc: 'Unlock 5 synergies', reward: { credits: 0, special: 'synergyBoost1.5' }, check: s => s.synergies && s.synergies.unlocked && s.synergies.unlocked.length >= 5, category: 'synergy' },
+    { id: 'ach_syn10', name: 'Synergy Master', desc: 'Unlock 10 synergies', reward: { credits: 0, special: 'synergyBoost2' }, check: s => s.synergies && s.synergies.unlocked && s.synergies.unlocked.length >= 10, category: 'synergy' },
+    { id: 'ach_synCross', name: 'Cross-Phase Link', desc: 'Unlock first cross-phase synergy', reward: { cosmicDust: 10 }, check: s => s.synergies && s.synergies.unlocked && s.synergies.unlocked.some(id => id.startsWith('syn_cross')), category: 'synergy' },
+    { id: 'ach_synAll', name: 'Fully Connected', desc: 'Unlock all synergies', reward: { cosmicDust: 100 }, check: s => s.synergies && s.synergies.unlocked && s.synergies.unlocked.length >= 15, category: 'synergy' },
+    // ===== Weather Achievements =====
+    { id: 'ach_weather10', name: 'Storm Chaser', desc: 'Experience 10 different weather types', reward: { credits: 0, special: 'incomeBonus300' }, check: s => s.stats.weatherTypesExperienced && s.stats.weatherTypesExperienced.length >= 10, category: 'weather' },
+    { id: 'ach_weatherP1', name: 'Meteorologist', desc: 'Experience all weather in Phase 1', reward: { credits: 1e6 }, check: s => s.stats.p1WeatherComplete, category: 'weather' },
+    { id: 'ach_lightning100', name: 'Lightning Catcher', desc: 'Earn 100 free taps from lightning', reward: { credits: 10e6 }, check: s => (s.stats.lightningTaps || 0) >= 100, category: 'weather' },
+    { id: 'ach_marsSunset', name: 'Blue Sunset', desc: 'Witness a Mars sunset', reward: { ore: 500 }, check: s => s.stats.marsSunsetSeen, category: 'weather' },
+    { id: 'ach_eclipse3', name: 'Eclipse Watcher', desc: 'Experience eclipses in 3 phases', reward: { cosmicDust: 5 }, check: s => s.stats.eclipsePhases && s.stats.eclipsePhases.length >= 3, category: 'weather' },
+    // ===== Milestone Achievements =====
+    { id: 'ach_badge1', name: 'First Badge', desc: 'Earn first milestone badge', reward: { credits: 10000 }, check: s => (s.stats.totalMilestoneBadges || 0) >= 1, category: 'milestone' },
+    { id: 'ach_bronze10', name: 'Bronze Age', desc: '10 generators with Bronze badges', reward: { credits: 1e6 }, check: s => (s.stats.bronzeBadges || 0) >= 10, category: 'milestone' },
+    { id: 'ach_silver5', name: 'Silver Lining', desc: '5 generators with Silver badges', reward: { credits: 100e6 }, check: s => (s.stats.silverBadges || 0) >= 5, category: 'milestone' },
+    { id: 'ach_gold3', name: 'Golden Era', desc: '3 generators with Gold badges', reward: { credits: 10e9 }, check: s => (s.stats.goldBadges || 0) >= 3, category: 'milestone' },
+    { id: 'ach_diamond1', name: 'Diamond Standard', desc: '1 generator with Diamond badge', reward: { cosmicDust: 50 }, check: s => (s.stats.diamondBadges || 0) >= 1, category: 'milestone' },
+    { id: 'ach_gen500single', name: 'Cosmic Limit', desc: 'Reach 500 on any generator', reward: { cosmicDust: 200 }, check: s => { for (const k in s.generators) { if (s.generators[k] >= 500) return true; } return false; }, category: 'milestone' },
+    // ===== Booster Achievements =====
+    { id: 'ach_booster1', name: 'Power Up', desc: 'Activate first booster', reward: { credits: 0, special: 'creditSurge' }, check: s => (s.stats.boostersActivated || 0) >= 1, category: 'booster' },
+    { id: 'ach_booster2active', name: 'Double Boost', desc: '2 boosters active simultaneously', reward: { credits: 0, special: 'luckyStar' }, check: s => (s.stats.maxSimultaneousBoosters || 0) >= 2, category: 'booster' },
+    { id: 'ach_booster3active', name: 'Triple Stack', desc: '3 boosters active simultaneously', reward: { credits: 0, special: 'goldenTouch' }, check: s => (s.stats.maxSimultaneousBoosters || 0) >= 3, category: 'booster' },
+    { id: 'ach_legendaryBooster', name: 'Legendary Power', desc: 'Activate a Legendary booster', reward: { cosmicDust: 25 }, check: s => s.stats.legendaryBoosterUsed, category: 'booster' },
+    { id: 'ach_booster100', name: 'Boost Addict', desc: 'Activate 100 boosters total', reward: { cosmicDust: 10 }, check: s => (s.stats.boostersActivated || 0) >= 100, category: 'booster' },
+    // ===== Fun / Secret Achievements =====
+    { id: 'ach_nightowl', name: 'Night Owl', desc: 'Play 2+ hours after midnight', reward: { credits: 0, special: 'hourCredits7200' }, check: s => s.stats.nightOwlEarned, secret: true, category: 'secret' },
+    { id: 'ach_earlybird', name: 'Early Bird', desc: 'Play before 6 AM', reward: { credits: 0, special: 'hourCredits3600' }, check: s => s.stats.earlyBirdEarned, secret: true, category: 'secret' },
+    { id: 'ach_weekend', name: 'Weekend Warrior', desc: 'Play on Sat and Sun same weekend', reward: { credits: 0, special: 'goldEgg' }, check: s => s.stats.weekendWarriorEarned, secret: true, category: 'secret' },
+    { id: 'ach_maxstack', name: 'Max Stack', desc: 'Have 5 boosters in inventory', reward: { credits: 0, special: 'cosmicEgg' }, check: s => s.boosters && s.boosters.inventory && s.boosters.inventory.length >= 5, secret: true, category: 'secret' },
+    { id: 'ach_taptaptap', name: 'Tap Tap Tap', desc: 'Tap 50 times in 10 seconds', reward: { credits: 0, special: 'title_speedDemon' }, check: s => s.stats.fastTapRecord >= 50, secret: true, category: 'secret' },
+    { id: 'ach_wrongbutton', name: 'Wrong Button', desc: 'Try to buy unaffordable 20 times', reward: { credits: 0, special: 'title_dreamer' }, check: s => (s.stats.failedPurchases || 0) >= 20, secret: true, category: 'secret' },
+    { id: 'ach_backtobasics', name: 'Back to Basics', desc: 'Return to Phase 1 after Phase 8', reward: { credits: 0, special: 'p1x100' }, check: s => s.stats.returnedToP1AfterP8, secret: true, category: 'secret' },
+    { id: 'ach_theanswer', name: 'The Answer', desc: 'Own exactly 42 of any generator', reward: { rp: 42 }, check: s => { for (const k in s.generators) { if (s.generators[k] === 42) return true; } return false; }, secret: true, category: 'secret' }
   ];
 
   function getTotalGenerators(state) {
@@ -377,7 +525,59 @@ const GameData = (() => {
     { id: 'log27', trigger: 'artifact2', title: 'Ancient Records II', text: "The Architects built wonders beyond our comprehension. Dyson spheres were their smallest projects." },
     { id: 'log28', trigger: 'artifact3', title: 'Ancient Records III', text: "Something happened. A cataclysm that unmade their civilization in an instant. They left these beacons as warnings." },
     { id: 'log29', trigger: 'artifact4', title: 'Ancient Records IV', text: "The warning is clear: 'Do not open the door at the center of everything.' But what door? And what's behind it?" },
-    { id: 'log30', trigger: 'artifact5', title: 'Ancient Records V', text: "The final record: 'If you're reading this, you've already gone too far. But perhaps you'll succeed where we failed. Good luck, little ones.'" }
+    { id: 'log30', trigger: 'artifact5', title: 'Ancient Records V', text: "The final record: 'If you're reading this, you've already gone too far. But perhaps you'll succeed where we failed. Good luck, little ones.'" },
+    // ===== EXPANSION B: Log Entries 31-80 =====
+    { id: 'log31', trigger: 'gen100', title: 'The Machine', text: "It's no longer a scrappy operation. It's an empire of moving parts, each one humming with purpose." },
+    { id: 'log32', trigger: 'firstGoldenRush', title: 'Gold Fever', text: "Everything turned gold. For thirty beautiful seconds, the universe was generous beyond measure." },
+    { id: 'log33', trigger: 'combo50', title: 'The Flow', text: "My hands moved on their own. Tap after tap. I couldn't stop. I didn't want to." },
+    { id: 'log34', trigger: 'firstSuperCrit', title: 'Lightning', text: "It hit different. One tap, and the whole system lit up like a supernova. Power beyond measure." },
+    { id: 'log35', trigger: 'firstLuckyDrop', title: 'The Gift', text: "Something floated past. Instinct told me to grab it. Best instinct I ever had." },
+    { id: 'log36', trigger: 'firstEggHatch', title: 'The Egg', text: "We found it drifting. Nobody knew what it was. When it opened... wonder." },
+    { id: 'log37', trigger: 'voidEggHatch', title: 'The Void', text: "The black egg. It shouldn't exist. What came out of it... changed everything." },
+    { id: 'log38', trigger: 'firstContract', title: 'Working for Hire', text: "Took on a job today. Felt good to have a clear goal for once." },
+    { id: 'log39', trigger: 'firstBooster', title: 'Power Up', text: "It's like caffeine for the entire operation. Everything, faster, better, MORE." },
+    { id: 'log40', trigger: 'firstSynergy', title: 'Connection', text: "When the drill and the processor work together... it's more than the sum of parts." },
+    { id: 'log41', trigger: 'firstCollectionSet', title: 'The Set', text: "I looked at the collection. All of them, together. Something clicked. A resonance." },
+    { id: 'log42', trigger: 'gen1000', title: 'The Swarm', text: "A thousand machines. A thousand purposes. All humming in concert." },
+    { id: 'log43', trigger: 'earn1T', title: 'Trillionaire', text: "A number so large it lost meaning. But the machines still wanted more." },
+    { id: 'log44', trigger: 'nightOwl', title: 'Sleepless', text: "3 AM. The stars are brighter when everyone else is asleep." },
+    { id: 'log45', trigger: 'fullCollection', title: 'Everything', text: "I have it all. Every rock, every badge, every blueprint. And yet I want more." },
+    { id: 'log46', trigger: 'marsSnow', title: 'White Mars', text: "Snow on Mars. White on red. My crew stood in silence, catching flakes." },
+    { id: 'log47', trigger: 'tap10000', title: 'These Hands', text: "Ten thousand taps. My hands built an empire, one click at a time." },
+    { id: 'log48', trigger: 'anomalySystem', title: 'The Anomaly', text: "The instruments went haywire. Reality itself felt... thinner here." },
+    { id: 'log49', trigger: 'challengeComplete', title: 'The Test', text: "They said it couldn't be done. Constraints make you creative." },
+    { id: 'log50', trigger: 'allGoldMilestones', title: 'The Golden Age', text: "Every machine, perfected. Every system, optimized. This is peak." },
+    { id: 'log51', trigger: 'lightningFreeTaps', title: "Thor's Gift", text: "Lightning struck the antenna. Instead of damage... free energy." },
+    { id: 'log52', trigger: 'drops100', title: 'Fortune Favors', text: "I've learned to watch the skies. Not for danger \u2014 for gifts." },
+    { id: 'log53', trigger: 'crew100', title: 'The Hundred', text: "One hundred souls trust me with their lives. The weight of that..." },
+    { id: 'log54', trigger: 'allLegendaryCrew', title: 'Legends', text: "Every last one of them \u2014 Legendary. I'm surrounded by the best." },
+    { id: 'log55', trigger: 'boosters50', title: 'Addicted to Speed', text: "The boost wears off and everything feels... slow. Need another one." },
+    { id: 'log56', trigger: 'cosmicEggHatch', title: 'Cosmic Birth', text: "Twenty-four hours of waiting. When the cosmic egg opened... tears." },
+    { id: 'log57', trigger: 'gen500single', title: 'Obsession', text: "Five hundred. Of the same thing. Am I efficient or insane? Both." },
+    { id: 'log58', trigger: 'ioRepair50', title: 'Sisyphus', text: "Fix it. It breaks. Fix it again. But each time... a little more ore." },
+    { id: 'log59', trigger: 'mirrorComplete', title: 'Through the Mirror', text: "Everything backwards. Start from the stars, end in the junkyard. And somehow... it made sense." },
+    { id: 'log60', trigger: 'allWeather', title: 'Every Sky', text: "I've seen sunrises on six worlds. Lightning on Earth. Blue sunsets on Mars. Every sky tells a story." },
+    // Entries 61-80: Multiverse, mastery, and philosophical reflections
+    { id: 'log61', trigger: 'multiverse_alpha', title: 'Universe-\u03B1', text: "The first universe beyond our own. Same laws, different constants. Gravity pulls harder here." },
+    { id: 'log62', trigger: 'multiverse_beta', title: 'Universe-\u03B2', text: "In this universe, light moves slower. Everything has a dreamlike quality." },
+    { id: 'log63', trigger: 'multiverse_gamma', title: 'Universe-\u03B3', text: "Antimatter is the norm here. Our instruments screamed warnings, but beauty knows no polarity." },
+    { id: 'log64', trigger: 'multiverse_delta', title: 'Universe-\u03B4', text: "Time flows backwards. We watched stars un-die and planets un-form. It was deeply unsettling." },
+    { id: 'log65', trigger: 'multiverse_epsilon', title: 'Universe-\u03B5', text: "The mirror universe. Everything we built here, we built in reverse. End to beginning." },
+    { id: 'log66', trigger: 'prestige20', title: 'The Pattern', text: "Twenty cycles. I see the pattern now. The universe isn't random. It's a spiral, always returning, always ascending." },
+    { id: 'log67', trigger: 'prestige30', title: 'Memory', text: "Thirty rebirths. I remember every single one. Every first tap, every first launch, every first star." },
+    { id: 'log68', trigger: 'prestige40', title: 'Purpose', text: "Forty cycles in. The question changed from 'why?' to 'why not?' Build. Explore. Transcend. Repeat." },
+    { id: 'log69', trigger: 'galacticCore2', title: 'Return to the Core', text: "The core welcomed me back like an old friend. 'You again,' it seemed to say. 'Still searching?'" },
+    { id: 'log70', trigger: 'galacticCore5', title: 'The Core Knows', text: "Five visits. Each time the core reveals something new. A memory. A truth. A whisper of what lies beyond." },
+    { id: 'log71', trigger: 'allPhases1run', title: 'Full Journey', text: "Phase 1 to 8 in one run. The complete journey. Every step remembered, every phase cherished." },
+    { id: 'log72', trigger: 'totalGen10k', title: 'Ten Thousand', text: "Ten thousand generators. Each one a story. Each one a purpose. The hum is deafening and beautiful." },
+    { id: 'log73', trigger: 'allAchievements', title: 'Perfection', text: "Every achievement. Every challenge. Every secret. I've done it all. And yet... the universe still has more." },
+    { id: 'log74', trigger: 'trueEndgame', title: 'The Question', text: "At the end of everything, there's a question: 'Was it worth it?' The answer is always the same." },
+    { id: 'log75', trigger: 'infiniteLoop', title: 'Infinity', text: "The loop has no end. The junkyard has no end. The stars have no end. And neither do I." },
+    { id: 'log76', trigger: 'alienLegacy', title: 'The Architects', text: "We finally understand what the Architects were building. Not a machine. Not a weapon. A message: 'Keep going.'" },
+    { id: 'log77', trigger: 'cosmicHarmony', title: 'Harmony', text: "All systems in perfect balance. All phases producing. All crew legendary. This is what harmony looks like." },
+    { id: 'log78', trigger: 'lastSecret', title: 'The Last Secret', text: "There was one thing I never found. Hidden in the code of the universe itself. A name. My name." },
+    { id: 'log79', trigger: 'philosopherStone', title: 'Transmutation', text: "Turn scrap into gold. Turn gold into stars. Turn stars into meaning. The philosopher's stone was always just... effort." },
+    { id: 'log80', trigger: 'finalEntry', title: 'The End and the Beginning', text: "If anyone ever reads this log, know that it started with a junkyard. And a dream. And one tap." }
   ];
 
   // ========== EVENTS ==========
@@ -389,7 +589,28 @@ const GameData = (() => {
     { id: 'evt_radiation', name: 'Cosmic Radiation Burst', duration: 120, effect: { rpMultiplier: 5 }, desc: 'RP generation x5!', type: 'positive', icon: '\u2622' },
     { id: 'evt_goldRush', name: 'Gold Rush', duration: 180, effect: { creditMultiplier: 10 }, desc: 'Credits x10!', type: 'positive', icon: '\u{1F4B0}' },
     { id: 'evt_tax', name: 'Tax Collector', duration: 0, effect: { loseCreditPercent: 0.05 }, desc: 'Lost 5% of credits!', type: 'negative', icon: '\u{1F4DC}' },
-    { id: 'evt_wormhole', name: 'Wormhole Shortcut', duration: 10, effect: { skipProduction: 3600 }, desc: 'Tap for 1 hour of production!', type: 'positive', icon: '\u{1F300}' }
+    { id: 'evt_wormhole', name: 'Wormhole Shortcut', duration: 10, effect: { skipProduction: 3600 }, desc: 'Tap for 1 hour of production!', type: 'positive', icon: '\u{1F300}' },
+    // ===== EXPANSION B: 20 New Events =====
+    { id: 'evt_doubledown', name: 'Double Down', duration: 300, effect: { doublePurchaseChance: 0.5 }, desc: '50% chance of 2-for-1 on purchases!', type: 'positive', icon: '\u{1F3B2}' },
+    { id: 'evt_inspiration', name: 'Inspiration Wave', duration: 180, effect: { rpMultiplier: 10 }, desc: 'RP generation x10!', type: 'positive', icon: '\u{1F9E0}', phaseReq: 2 },
+    { id: 'evt_spacewhale', name: 'Space Whale', duration: 30, effect: { tappableBonus: 'whale' }, desc: 'Tap the whale for 5 min income!', type: 'positive', icon: '\u{1F40B}', phaseReq: 2 },
+    { id: 'evt_cometgift', name: "Comet's Gift", duration: 0, effect: { randomCurrencyBonus: 600 }, desc: 'Random currency +10 min income!', type: 'positive', icon: '\u2604', phaseReq: 3 },
+    { id: 'evt_moonquake', name: 'Moonquake', duration: 120, effect: { phaseMultiplierTemp: { phase: 3, mult: 5 } }, desc: 'Moon generators x5!', type: 'positive', icon: '\u{1F30D}', phaseReq: 3 },
+    { id: 'evt_timecrystal', name: 'Time Crystal Found', duration: 0, effect: { skipProduction: 3600 }, desc: '1 hour of all production!', type: 'positive', icon: '\u231B', phaseReq: 4 },
+    { id: 'evt_fleetrally', name: 'Fleet Rally', duration: 180, effect: { phaseMultiplierTemp: { phase: 5, mult: 5 } }, desc: 'All ships produce x5!', type: 'positive', icon: '\u{1F680}', phaseReq: 5 },
+    { id: 'evt_jupitereye', name: "Jupiter's Eye", duration: 60, effect: { tappableBonus: 'jupiterEye' }, desc: 'Tap the red eye for SD bonus!', type: 'positive', icon: '\u{1F441}', phaseReq: 6 },
+    { id: 'evt_alienbroadcast', name: 'Alien Broadcast', duration: 120, effect: { asMultiplier: 10 }, desc: 'AS detection rates x10!', type: 'positive', icon: '\u{1F4E1}', phaseReq: 6 },
+    { id: 'evt_warpsurge', name: 'Warp Surge', duration: 30, effect: { sdMultiplier: 20 }, desc: 'SD production x20!', type: 'positive', icon: '\u26A1', phaseReq: 7 },
+    { id: 'evt_dimensionalrift', name: 'Dimensional Rift', duration: 60, effect: { tappableBonus: 'rift' }, desc: 'Tap objects for bonus credits!', type: 'positive', icon: '\u{1F573}', phaseReq: 7 },
+    { id: 'evt_stellarnursery', name: 'Stellar Nursery', duration: 300, effect: { sdMultiplier: 3 }, desc: 'SD x3 + free star system chance!', type: 'positive', icon: '\u{1F31F}', phaseReq: 8 },
+    { id: 'evt_cosmiclottery', name: 'Cosmic Lottery', duration: 0, effect: { randomLotteryReward: true }, desc: 'Random reward!', type: 'positive', icon: '\u{1F3B0}' },
+    { id: 'evt_prestigepreview', name: 'Prestige Preview', duration: 10, effect: { prestigePreview: true }, desc: 'Shows potential prestige CD', type: 'neutral', icon: '\u{1F52E}', phaseReq: 5 },
+    { id: 'evt_quantumflux', name: 'Quantum Fluctuation', duration: 180, effect: { costFluctuation: true }, desc: 'Costs fluctuate 50%-150%!', type: 'neutral', icon: '\u269B' },
+    { id: 'evt_stardustshower', name: 'Stardust Shower', duration: 120, effect: { sdRain: true }, desc: 'Tap falling SD!', type: 'positive', icon: '\u2728', phaseReq: 7 },
+    { id: 'evt_alienaid', name: 'Alien Aid Package', duration: 0, effect: { alienCarePackage: true }, desc: '1 booster + 1 egg!', type: 'positive', icon: '\u{1F6F8}', phaseReq: 6 },
+    { id: 'evt_gravitywell', name: 'Gravity Well', duration: 300, effect: { dropAttraction: true }, desc: 'Drops attracted to center!', type: 'positive', icon: '\u{1F300}' },
+    { id: 'evt_ghostship', name: 'Ghost Ship', duration: 20, effect: { tappableBonus: 'ghostShip' }, desc: 'Tap 10x for rare collection item!', type: 'positive', icon: '\u{1F47B}', phaseReq: 5 },
+    { id: 'evt_solarsailrace', name: 'Solar Sail Race', duration: 60, effect: { tappableBonus: 'solarSail' }, desc: 'Tap for speed = credits + RP!', type: 'positive', icon: '\u26F5', phaseReq: 2 }
   ];
 
   // ========== DAILY REWARDS ==========

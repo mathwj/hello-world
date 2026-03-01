@@ -148,7 +148,41 @@ const GameState = (() => {
         fastestPhaseReach: {},
         lastTapTime: 0,
         noTapDuration: 0,
-        consecutiveAsteroids: 0
+        consecutiveAsteroids: 0,
+        // Expansion B stats
+        phaseReachTime: {},
+        rocketBuildTime: 0,
+        totalCritTaps: 0,
+        totalSuperCritTaps: 0,
+        luckyDropsCaught: 0,
+        cosmicFragmentsCaught: 0,
+        maxRainCatch: 0,
+        eggsHatched: 0,
+        cosmicEggsHatched: 0,
+        voidEggsHatched: 0,
+        contractsCompleted: 0,
+        specialContractsCompleted: 0,
+        weatherTypesExperienced: [],
+        p1WeatherComplete: false,
+        lightningTaps: 0,
+        marsSunsetSeen: false,
+        eclipsePhases: [],
+        totalMilestoneBadges: 0,
+        bronzeBadges: 0,
+        silverBadges: 0,
+        goldBadges: 0,
+        diamondBadges: 0,
+        boostersActivated: 0,
+        maxSimultaneousBoosters: 0,
+        legendaryBoosterUsed: false,
+        nightOwlEarned: false,
+        earlyBirdEarned: false,
+        weekendWarriorEarned: false,
+        fastTapRecord: 0,
+        failedPurchases: 0,
+        returnedToP1AfterP8: false,
+        challengesCompleted: 0,
+        goldenRushCount: 0
       },
 
       // ===== EXPANSION v2.0 FIELDS =====
@@ -239,6 +273,16 @@ const GameState = (() => {
         currentSkin: 'default',
         unlockedSkins: ['default'],
         paintColor: null
+      },
+
+      // Challenge Runs
+      challenge: {
+        active: false,
+        typeId: null,
+        startTime: 0,
+        elapsed: 0,
+        completed: false,
+        startPrestigeCount: 0
       },
 
       // Titles
