@@ -123,6 +123,11 @@ const GameState = (() => {
       alienArtifacts: 0,
       artifactDecoderPurchased: false,
 
+      // Anomaly state
+      _nextSystemDiscount: 0,
+      _tempSpeedMult: 1,
+      _tempSpeedEndTime: 0,
+
       settings: {
         musicVolume: 0.7,
         sfxVolume: 0.8,

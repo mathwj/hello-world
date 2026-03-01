@@ -1,4 +1,4 @@
-// events.js — Random events system, rare asteroids
+// events.js — Random events system, rare asteroids, artifact fragments
 'use strict';
 
 const GameEvents = (() => {
@@ -9,12 +9,29 @@ const GameEvents = (() => {
   let rareAsteroidTimer = 0;
   let nextRareAsteroidIn = getRandomAsteroidInterval();
 
+  // Rare asteroid state
+  let asteroidActive = false;
+  let asteroidTapsRemaining = 0;
+  let asteroidTimeLeft = 0;
+  let asteroidIsCritical = false;
+
+  // Alien artifact fragment state
+  let artifactTimer = 0;
+  let nextArtifactIn = getRandomArtifactInterval();
+  let artifactVisible = false;
+
   function getRandomEventInterval() {
     return 900 + Math.random() * 1800; // 15-45 min in seconds
   }
 
   function getRandomAsteroidInterval() {
-    return 180 + Math.random() * 120; // 3-5 min
+    const cfg = GameData.RARE_ASTEROID;
+    return cfg.spawnInterval[0] + Math.random() * (cfg.spawnInterval[1] - cfg.spawnInterval[0]);
+  }
+
+  function getRandomArtifactInterval() {
+    const cfg = GameData.ARTIFACT_FRAGMENTS;
+    return cfg.spawnInterval[0] + Math.random() * (cfg.spawnInterval[1] - cfg.spawnInterval[0]);
   }
 
   function processTick(dt) {
@@ -36,12 +53,33 @@ const GameEvents = (() => {
     }
 
     // Rare asteroid (Phase 5+)
-    if (s.currentPhase >= 5 && !s.rareAsteroidActive) {
-      rareAsteroidTimer += dt;
-      if (rareAsteroidTimer >= nextRareAsteroidIn) {
-        rareAsteroidTimer = 0;
-        nextRareAsteroidIn = getRandomAsteroidInterval();
-        // Optionally trigger rare asteroid mini-event
+    if (s.currentPhase >= 5) {
+      if (asteroidActive) {
+        asteroidTimeLeft -= dt;
+        UI.updateRareAsteroid(asteroidTapsRemaining, asteroidTimeLeft, asteroidIsCritical);
+        if (asteroidTimeLeft <= 0) {
+          dismissAsteroid(false);
+        }
+      } else {
+        rareAsteroidTimer += dt;
+        if (rareAsteroidTimer >= nextRareAsteroidIn) {
+          rareAsteroidTimer = 0;
+          nextRareAsteroidIn = getRandomAsteroidInterval();
+          spawnRareAsteroid();
+        }
+      }
+    }
+
+    // Alien artifact fragments (Phase 4+, terraform >= 50%)
+    if (s.currentPhase >= 4 && s.terraforming.marsPercent >= GameData.ARTIFACT_FRAGMENTS.minTerraform) {
+      if (!artifactVisible) {
+        artifactTimer += dt;
+        if (artifactTimer >= nextArtifactIn) {
+          artifactTimer = 0;
+          nextArtifactIn = getRandomArtifactInterval();
+          artifactVisible = true;
+          UI.showArtifactFragment();
+        }
       }
     }
   }
@@ -100,5 +138,105 @@ const GameEvents = (() => {
     UI.hideEventBanner();
   }
 
-  return { processTick };
+  // ========== RARE ASTEROID (Phase 5+) ==========
+  function spawnRareAsteroid() {
+    const cfg = GameData.RARE_ASTEROID;
+    asteroidActive = true;
+    asteroidTapsRemaining = cfg.tapsRequired;
+    asteroidTimeLeft = cfg.timeLimit;
+    asteroidIsCritical = Math.random() < cfg.criticalChance;
+    UI.showRareAsteroid(asteroidIsCritical);
+  }
+
+  function tapRareAsteroid() {
+    if (!asteroidActive) return;
+    asteroidTapsRemaining--;
+    UI.updateRareAsteroid(asteroidTapsRemaining, asteroidTimeLeft, asteroidIsCritical);
+
+    if (asteroidTapsRemaining <= 0) {
+      dismissAsteroid(true);
+    }
+  }
+
+  function dismissAsteroid(mined) {
+    asteroidActive = false;
+    UI.hideRareAsteroid();
+
+    if (mined) {
+      const cfg = GameData.RARE_ASTEROID;
+      const mult = asteroidIsCritical ? 3 : 1;
+      const oreReward = cfg.rewards.ore() * mult;
+      const rmReward = cfg.rewards.rm() * mult;
+      const creditReward = cfg.rewards.credits() * mult;
+
+      GameState.addCurrency('ore', oreReward);
+      GameState.addCurrency('rm', rmReward);
+      GameState.addCurrency('credits', creditReward);
+
+      UI.showEventBanner({
+        name: asteroidIsCritical ? 'CRITICAL Asteroid Mined!' : 'Rare Asteroid Mined!',
+        desc: 'Ore +' + NumberFormatter.format(oreReward) + ', RM +' + NumberFormatter.format(rmReward),
+        icon: '\u2604',
+        type: 'positive'
+      });
+      setTimeout(() => UI.hideEventBanner(), 3000);
+    } else {
+      UI.showEventBanner({
+        name: 'Asteroid Escaped!',
+        desc: 'The rare asteroid floated away...',
+        icon: '\u2604',
+        type: 'negative'
+      });
+      setTimeout(() => UI.hideEventBanner(), 2000);
+    }
+  }
+
+  // ========== ALIEN ARTIFACT FRAGMENTS (Phase 4) ==========
+  function collectArtifactFragment() {
+    if (!artifactVisible) return;
+    artifactVisible = false;
+    UI.hideArtifactFragment();
+
+    const s = GameState.getState();
+    s.alienArtifacts = (s.alienArtifacts || 0) + 1;
+
+    // Check milestones
+    const milestones = GameData.ARTIFACT_FRAGMENTS.decoderBonuses;
+    for (const m of milestones) {
+      if (s.alienArtifacts === m.fragments) {
+        if (m.logEntry) {
+          Engine.addLogEntry(m.logEntry);
+        }
+        if (m.effect) {
+          if (m.effect.phaseMultiplier) {
+            const pm = m.effect.phaseMultiplier;
+            s.phaseMultipliers[pm.phase] = (s.phaseMultipliers[pm.phase] || 1) * pm.mult;
+          }
+          if (m.effect.terraformMultiplier) {
+            s.terraformMultiplier = (s.terraformMultiplier || 1) * m.effect.terraformMultiplier;
+          }
+        }
+        if (m.creditBonus) {
+          GameState.addCurrency('credits', m.creditBonus);
+        }
+
+        UI.showEventBanner({
+          name: 'Artifact Milestone: ' + m.fragments,
+          desc: m.bonus,
+          icon: '\uD83D\uDD2E',
+          type: 'positive'
+        });
+        setTimeout(() => UI.hideEventBanner(), 4000);
+        break;
+      }
+    }
+  }
+
+  function isAsteroidActive() { return asteroidActive; }
+  function isArtifactVisible() { return artifactVisible; }
+
+  return {
+    processTick, tapRareAsteroid, collectArtifactFragment,
+    isAsteroidActive, isArtifactVisible
+  };
 })();

@@ -1501,6 +1501,57 @@ const UI = (() => {
     return `<span class="gen-milestone-badge">${badge}</span>`;
   }
 
+  // ===== RARE ASTEROID (Phase 5+) =====
+  function showRareAsteroid(isCritical) {
+    let el = document.getElementById('rare-asteroid');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'rare-asteroid';
+      document.getElementById('scene-area').appendChild(el);
+    }
+    el.className = 'rare-asteroid' + (isCritical ? ' critical' : '');
+    el.innerHTML = `<div class="asteroid-icon">${isCritical ? '\uD83C\uDF1F' : '\u2604\uFE0F'}</div>
+      <div class="asteroid-label">${isCritical ? 'CRITICAL!' : 'RARE ASTEROID'}</div>
+      <div class="asteroid-taps" id="asteroid-taps"></div>
+      <div class="asteroid-timer" id="asteroid-timer"></div>`;
+    el.classList.remove('hidden');
+    el.onclick = () => GameEvents.tapRareAsteroid();
+  }
+
+  function updateRareAsteroid(tapsLeft, timeLeft, isCritical) {
+    const tapsEl = document.getElementById('asteroid-taps');
+    const timerEl = document.getElementById('asteroid-timer');
+    if (tapsEl) tapsEl.textContent = tapsLeft + ' taps left';
+    if (timerEl) timerEl.textContent = Math.ceil(timeLeft) + 's';
+  }
+
+  function hideRareAsteroid() {
+    const el = document.getElementById('rare-asteroid');
+    if (el) el.classList.add('hidden');
+  }
+
+  // ===== ALIEN ARTIFACT FRAGMENT (Phase 4) =====
+  function showArtifactFragment() {
+    let el = document.getElementById('artifact-fragment');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'artifact-fragment';
+      document.getElementById('scene-area').appendChild(el);
+    }
+    el.className = 'artifact-fragment';
+    el.innerHTML = '<div class="artifact-icon">\uD83D\uDD2E</div><div class="artifact-label">ARTIFACT</div>';
+    el.classList.remove('hidden');
+    // Random position within scene
+    el.style.left = (20 + Math.random() * 60) + '%';
+    el.style.top = (30 + Math.random() * 40) + '%';
+    el.onclick = () => GameEvents.collectArtifactFragment();
+  }
+
+  function hideArtifactFragment() {
+    const el = document.getElementById('artifact-fragment');
+    if (el) el.classList.add('hidden');
+  }
+
   return {
     init, updateAll, updateTick, updateGenerators, updateUpgrades,
     updateCurrencyBar, updateRocketAssembly, updateCrew, updateFleet,
@@ -1509,6 +1560,8 @@ const UI = (() => {
     showEventBanner, hideEventBanner, updateEventTimer,
     playPhaseTransition, showWelcomeBack, showDailyReward,
     showAlienSignalPopup, switchTab, showTab, getBuyAmount, updateSettings,
-    updateCollection, updateContracts, updateBoosters, updateEggs
+    updateCollection, updateContracts, updateBoosters, updateEggs,
+    showRareAsteroid, updateRareAsteroid, hideRareAsteroid,
+    showArtifactFragment, hideArtifactFragment
   };
 })();

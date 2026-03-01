@@ -31,7 +31,15 @@ const Engine = (() => {
     calculateRates(s);
 
     // Apply production
-    const speedMult = GameState.getCDSpeedMultiplier();
+    let speedMult = GameState.getCDSpeedMultiplier();
+
+    // Temp speed from anomaly bonus
+    if (s._tempSpeedMult > 1 && Date.now() < s._tempSpeedEndTime) {
+      speedMult *= s._tempSpeedMult;
+    } else if (s._tempSpeedMult > 1 && Date.now() >= s._tempSpeedEndTime) {
+      s._tempSpeedMult = 1;
+    }
+
     const dt = deltaTime * speedMult;
 
     if (s.creditsPerSecond > 0) {
@@ -717,16 +725,111 @@ const Engine = (() => {
 
   function buyStarSystem(systemIndex) {
     const s = GameState.getState();
-    const cost = getStarSystemCost(systemIndex);
+    let cost = getStarSystemCost(systemIndex);
+
+    // Anomaly wormhole discount
+    if (s._nextSystemDiscount) {
+      cost *= (1 - s._nextSystemDiscount);
+      s._nextSystemDiscount = 0;
+    }
+
     if (!GameState.canAfford('sd', cost)) return false;
 
     GameState.spendCurrency('sd', cost);
     s.starSystems.totalSystems++;
-    s.starSystems.colonized.push('system_' + systemIndex);
+
+    // Roll for system type
+    const systemType = rollStarSystemType(s);
+    const systemData = {
+      id: 'system_' + systemIndex,
+      type: systemType.type,
+      name: systemType.name
+    };
+    s.starSystems.colonized.push(systemData);
     s.stats.totalStarSystemsColonized++;
+
+    // Apply system type effects
+    applyStarSystemEffect(systemType, s);
+
+    // Check for special system types
+    if (systemType.logEntry) {
+      addLogEntry(systemType.logEntry);
+    }
 
     UI.updateGalaxyMap();
     return true;
+  }
+
+  function rollStarSystemType(s) {
+    const totalSystems = s.starSystems.totalSystems;
+
+    // Check special systems first (unlock at certain thresholds)
+    const specials = GameData.SPECIAL_STAR_SYSTEMS;
+    for (const sp of specials) {
+      if (totalSystems >= sp.minSystems && Math.random() < sp.rarity) {
+        return sp;
+      }
+    }
+
+    // Normal system types - weighted random
+    const types = GameData.STAR_SYSTEM_TYPES;
+    const roll = Math.random();
+    let cumulative = 0;
+    for (const t of types) {
+      cumulative += t.rarity;
+      if (roll < cumulative) return t;
+    }
+    return types[0]; // fallback
+  }
+
+  function applyStarSystemEffect(systemType, s) {
+    // Special star systems
+    if (systemType.effect) {
+      if (systemType.effect.oneTimeCredits) {
+        GameState.addCurrency('credits', systemType.effect.oneTimeCredits);
+      }
+      if (systemType.effect.oneTimeRP) {
+        GameState.addCurrency('rp', systemType.effect.oneTimeRP);
+      }
+    }
+
+    // Anomaly system — roll a random anomaly bonus
+    if (systemType.type === 'anomaly') {
+      applyAnomalyBonus(s);
+    }
+  }
+
+  function applyAnomalyBonus(s) {
+    const bonuses = GameData.ANOMALY_BONUSES;
+    const bonus = bonuses[Math.floor(Math.random() * bonuses.length)];
+
+    if (bonus.effect.skipProduction) {
+      GameState.addCurrency('credits', s.creditsPerSecond * bonus.effect.skipProduction);
+      GameState.addCurrency('rp', s.rpPerSecond * bonus.effect.skipProduction);
+      GameState.addCurrency('ore', s.orePerSecond * bonus.effect.skipProduction);
+    }
+    if (bonus.effect.creditGift) {
+      GameState.addCurrency('credits', s.creditsPerSecond * 3600 * bonus.effect.creditGift);
+      GameState.addCurrency('rp', s.rpPerSecond * 3600 * bonus.effect.rpGift);
+    }
+    if (bonus.effect.nextSystemDiscount) {
+      s._nextSystemDiscount = bonus.effect.nextSystemDiscount;
+    }
+    if (bonus.effect.permanentCreditMult) {
+      s.globalCreditMultiplier *= bonus.effect.permanentCreditMult;
+    }
+    if (bonus.effect.tempSpeedMult) {
+      s._tempSpeedMult = bonus.effect.tempSpeedMult;
+      s._tempSpeedEndTime = Date.now() + bonus.effect.duration * 1000;
+    }
+
+    UI.showEventBanner({
+      name: 'Anomaly: ' + bonus.name,
+      desc: bonus.desc,
+      icon: '\uD83C\uDF00',
+      type: 'positive'
+    });
+    setTimeout(() => UI.hideEventBanner(), 4000);
   }
 
   function getStarSystemCost(index) {

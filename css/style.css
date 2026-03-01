@@ -2077,3 +2077,86 @@ html, body {
     font-size: 16px;
   }
 }
+
+/* ===== RARE ASTEROID (Phase 5+) ===== */
+.rare-asteroid {
+  position: absolute;
+  top: 20%;
+  right: 10%;
+  z-index: 15;
+  text-align: center;
+  cursor: pointer;
+  padding: 10px 16px;
+  background: rgba(100, 100, 100, 0.85);
+  border: 2px solid #C0C0C0;
+  border-radius: 12px;
+  animation: asteroidBob 1.5s ease-in-out infinite;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rare-asteroid.critical {
+  background: rgba(255, 200, 0, 0.25);
+  border-color: #FFD700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+.rare-asteroid.hidden { display: none; }
+.asteroid-icon { font-size: 32px; }
+.asteroid-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #FFD700;
+  margin-top: 2px;
+}
+.rare-asteroid.critical .asteroid-label { color: #FF4444; }
+.asteroid-taps { font-size: 12px; color: #DDD; margin-top: 4px; }
+.asteroid-timer { font-size: 11px; color: #FFA500; }
+
+@keyframes asteroidBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.rare-asteroid:active {
+  transform: scale(0.92);
+  animation: none;
+}
+
+/* ===== ALIEN ARTIFACT FRAGMENT (Phase 4) ===== */
+.artifact-fragment {
+  position: absolute;
+  z-index: 15;
+  text-align: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  background: rgba(75, 0, 130, 0.7);
+  border: 2px solid #9966FF;
+  border-radius: 50%;
+  animation: artifactPulse 2s ease-in-out infinite, artifactFloat 3s ease-in-out infinite;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.artifact-fragment.hidden { display: none; }
+.artifact-icon { font-size: 28px; }
+.artifact-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #CC99FF;
+  margin-top: 2px;
+}
+
+@keyframes artifactPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(153, 102, 255, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(153, 102, 255, 0.8); }
+}
+
+@keyframes artifactFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(5deg); }
+}
+
+.artifact-fragment:active {
+  transform: scale(0.85);
+  animation: none;
+}

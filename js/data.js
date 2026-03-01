@@ -401,6 +401,93 @@ const GameData = (() => {
     { type: 'ancient', name: 'Ancient Ruins', creditMult: 1, bonus: 'One-time massive bonus + lore', rarity: 0.05 }
   ];
 
+  // ========== SPECIAL STAR SYSTEMS (Phase 8) ==========
+  const SPECIAL_STAR_SYSTEMS = [
+    {
+      type: 'blackHole', name: 'Black Hole System', rarity: 0.05,
+      desc: 'Time dilates near the event horizon — generators run 3x while visiting.',
+      effect: { generatorSpeedMult: 3 },
+      minSystems: 10,
+      logEntry: 'log20'
+    },
+    {
+      type: 'nebula', name: 'Nebula System', rarity: 0.08,
+      desc: 'Dense gas clouds fuel SD production at 5x the normal rate.',
+      effect: { sdMultiplier: 5 },
+      minSystems: 5
+    },
+    {
+      type: 'ancientRuins', name: 'Ancient Civilization Ruins', rarity: 0.03,
+      desc: 'Remnants of the Architects — one-time massive resource cache and lore fragments.',
+      effect: { oneTimeCredits: 1e30, oneTimeRP: 1e6, loreFragments: 1 },
+      minSystems: 15,
+      logEntry: 'log26'
+    },
+    {
+      type: 'galacticCore', name: 'Galactic Core', rarity: 0.01,
+      desc: 'The blazing heart of the galaxy. All production x10 while stationed here.',
+      effect: { allProductionMult: 10 },
+      minSystems: 25,
+      logEntry: 'log21'
+    }
+  ];
+
+  // ========== ANOMALY BONUSES (Phase 8) ==========
+  const ANOMALY_BONUSES = [
+    {
+      id: 'anom_time_dilation', name: 'Time Dilation Field',
+      desc: '2x game speed for 10 minutes.',
+      effect: { tempSpeedMult: 2, duration: 600 }
+    },
+    {
+      id: 'anom_resource_cache', name: 'Resource Cache',
+      desc: '1 hour worth of all production instantly.',
+      effect: { skipProduction: 3600 }
+    },
+    {
+      id: 'anom_alien_benefactor', name: 'Alien Benefactor',
+      desc: 'Friendly aliens donate a large sum of credits and RP.',
+      effect: { creditGift: 0.5, rpGift: 0.5 } // 50% of current per-second * 3600
+    },
+    {
+      id: 'anom_wormhole', name: 'Wormhole',
+      desc: 'Instant travel — next star system costs 50% less.',
+      effect: { nextSystemDiscount: 0.5 }
+    },
+    {
+      id: 'anom_dark_matter', name: 'Dark Matter',
+      desc: 'Mysterious energy grants +50% to all production permanently for this run.',
+      effect: { permanentCreditMult: 1.5 }
+    }
+  ];
+
+  // ========== RARE ASTEROID CONFIG (Phase 5) ==========
+  const RARE_ASTEROID = {
+    tapsRequired: 100,
+    timeLimit: 15,           // seconds to mine before it floats away
+    spawnInterval: [180, 300], // 3-5 min
+    rewards: {
+      ore: () => GameState.getState().orePerSecond * 600,     // 10 min ore
+      rm: () => GameState.getState().rmPerSecond * 300,       // 5 min RM
+      credits: () => GameState.getState().creditsPerSecond * 300
+    },
+    criticalChance: 0.1 // 10% chance of a critical asteroid with 3x reward
+  };
+
+  // ========== ALIEN ARTIFACT FRAGMENTS (Phase 4 Mars) ==========
+  const ARTIFACT_FRAGMENTS = {
+    spawnInterval: [60, 120],   // 60-120s after 50% terraform
+    minTerraform: 50,
+    totalForDecoder: 10,        // collect 10 to decode
+    decoderBonuses: [
+      { fragments: 10, bonus: 'Unlock Ancient Records I lore entry', logEntry: 'log26' },
+      { fragments: 20, bonus: 'All Mars generators +50%', effect: { phaseMultiplier: { phase: '4', mult: 1.5 } } },
+      { fragments: 30, bonus: 'Unlock Ancient Records II lore entry', logEntry: 'log27' },
+      { fragments: 40, bonus: 'Terraform speed +100%', effect: { terraformMultiplier: 2 } },
+      { fragments: 50, bonus: 'Unlock Ancient Records III lore entry + massive credit bonus', logEntry: 'log28', creditBonus: 1e18 }
+    ]
+  };
+
   // ========== MULTIVERSE UNIVERSES (Phase 9) ==========
   const UNIVERSES = [
     { id: 'uni_speed', name: 'Universe-\u03B1 (Speed)', rules: 'Everything 10x faster but 10x more expensive', reward: 5 },
@@ -471,6 +558,7 @@ const GameData = (() => {
   return {
     PHASES, ROCKET_PARTS, GENERATORS, UPGRADES, CD_SHOP, RESEARCH,
     ACHIEVEMENTS, CAPTAINS_LOG, EVENTS, DAILY_REWARDS, STAR_SYSTEM_TYPES,
+    SPECIAL_STAR_SYSTEMS, ANOMALY_BONUSES, RARE_ASTEROID, ARTIFACT_FRAGMENTS,
     UNIVERSES, IT_SHOP, ASTRONAUT_NAMES, CREW_TIERS, getTotalGenerators,
     mergeExpansionData
   };
