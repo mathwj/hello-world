@@ -1210,6 +1210,7 @@ const UI = (() => {
     });
     document.getElementById('set-autosave')?.addEventListener('change', e => {
       s.settings.autoSaveInterval = parseInt(e.target.value);
+      Engine.resetSaveInterval();
     });
 
     document.getElementById('export-btn')?.addEventListener('click', () => {

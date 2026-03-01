@@ -19,6 +19,12 @@ const Engine = (() => {
     if (saveInterval) clearInterval(saveInterval);
   }
 
+  function resetSaveInterval() {
+    if (saveInterval) clearInterval(saveInterval);
+    const s = GameState.getState();
+    saveInterval = setInterval(() => GameState.save(), (s.settings.autoSaveInterval || 30) * 1000);
+  }
+
   function tick() {
     const now = Date.now();
     const deltaTime = (now - lastTickTime) / 1000;
@@ -1029,7 +1035,7 @@ const Engine = (() => {
   }
 
   return {
-    start, stop, tick, doTap, buyGenerator, buyRocketPart, launchRocket,
+    start, stop, resetSaveInterval, tick, doTap, buyGenerator, buyRocketPart, launchRocket,
     buyUpgrade, buyResearch, buyCDShopItem, hireCrew, upgradeCrewMember,
     upgradeAllCrew, getCrewBonus, repairIoGenerator, buyStarSystem,
     claimDailyReward, calculateRates, unlockAchievement, addLogEntry,

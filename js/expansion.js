@@ -260,7 +260,8 @@ const Expansion = (() => {
     // Cross-Phase Synergies
     { id: 'syn_cross_1', name: 'From Junk to Jupiter', gens: ['p1g1', 'p6g1'], minCount: 100, bonus: 3, crossPhase: true, applyToPhases: [1, 6] },
     { id: 'syn_cross_2', name: 'Full Spectrum Mining', gens: ['p3g1', 'p5g3'], minCount: 50, bonus: 5, crossPhase: true, target: 'ore_rm' },
-    { id: 'syn_cross_3', name: 'From Earth to Stars', gens: ['p1g1', 'p1g2', 'p1g3', 'p1g4', 'p1g5', 'p1g6', 'p1g7'], minCount: 25, bonusGens: ['p7g1', 'p7g2', 'p7g3'], bonusMinCount: 10, bonus: 2, crossPhase: true, target: 'global' }
+    { id: 'syn_cross_3', name: 'From Earth to Stars', gens: ['p1g1', 'p1g2', 'p1g3', 'p1g4', 'p1g5', 'p1g6', 'p1g7'], minCount: 25, bonusGens: ['p7g1', 'p7g2', 'p7g3'], bonusMinCount: 10, bonus: 2, crossPhase: true, target: 'global' },
+    { id: 'syn_cross_4', name: 'Connected Empire', gens: ['p6cg1', 'p6cg2', 'p6cg3', 'p6cg4', 'p2g2'], minCount: 1, bonus: 10, crossPhase: true, target: 'rp_global' }
   ];
 
   const Synergies = {
@@ -437,6 +438,12 @@ const Expansion = (() => {
       if ((s.generators['p5g6'] || 0) >= 10) this._tryUnlock(s, 'col_sm6', newItems);
       if ((s.generators['p5g7'] || 0) >= 5) this._tryUnlock(s, 'col_sm7', newItems);
       if ((s.generators['p5g8'] || 0) >= 5) this._tryUnlock(s, 'col_sm8', newItems);
+      // Cosmic Wonders triggers
+      if (s.stats.totalStarSystemsColonized >= 30) this._tryUnlock(s, 'col_cw3', newItems);
+      if (s.totalPrestigeCount >= 20) this._tryUnlock(s, 'col_cw4', newItems);
+      if (s.stats.totalStarSystemsColonized >= 50) this._tryUnlock(s, 'col_cw6', newItems);
+      // Crew Badge: 50 Legendary astronauts
+      if (s.crew.astronauts.filter(a => a.tier >= 4).length >= 50) this._tryUnlock(s, 'col_cb10', newItems);
       return newItems;
     },
 
@@ -469,7 +476,15 @@ const Expansion = (() => {
     { id: 'ct_taps1', name: 'Tap Frenzy', type: 'tap', target: 200, time: 300, reward: { credits: -1 } },
     { id: 'ct_combo1', name: 'Combo Master', type: 'combo', target: 50, time: 600, reward: { rp: 50, credits: -1 } },
     { id: 'ct_buy1', name: 'Expansion Plan I', type: 'buy', target: 20, time: 900, reward: { special: 'boost1h' } },
-    { id: 'ct_buy2', name: 'Expansion Plan II', type: 'buy', target: 50, time: 1800, reward: { special: 'boost1h_1.5' } }
+    { id: 'ct_buy2', name: 'Expansion Plan II', type: 'buy', target: 50, time: 1800, reward: { special: 'boost1h_1.5' } },
+    { id: 'ct_rp2', name: 'Research Grant II', type: 'earn', currency: 'rp', target: 500, time: 1800, reward: { rp: 1500 } },
+    { id: 'ct_ore2', name: 'Mining Contract II', type: 'earn', currency: 'ore', target: 5000, time: 3600, reward: { ore: 15000 } },
+    { id: 'ct_rm1', name: 'Mineral Survey', type: 'earn', currency: 'rm', target: 50, time: 1800, reward: { rm: 150 } },
+    { id: 'ct_sd1', name: 'Stardust Collector', type: 'earn', currency: 'sd', target: 100, time: 3600, reward: { sd: 300 } },
+    { id: 'ct_combo100', name: 'Mega Tap', type: 'combo', target: 100, time: 900, reward: { cosmicDust: 1 } },
+    { id: 'ct_crit5', name: 'Critical Streak', type: 'critical', target: 5, time: 600, reward: { special: 'collection_item' } },
+    { id: 'ct_daily', name: 'Daily Challenge', type: 'earn', currency: 'credits', target: 1e12, time: 7200, reward: { cosmicDust: 10 }, special: true },
+    { id: 'ct_terraform', name: 'Speed Terraform', type: 'terraform', target: 10, time: 3600, reward: { special: 'terraform_perm_1.5' } }
   ];
 
   const Contracts = {
@@ -813,7 +828,8 @@ const Expansion = (() => {
       { id: 'clear_red', name: 'Clear Red Sky', effect: null, duration: [600, 1200] },
       { id: 'dust_storm', name: 'Dust Storm', effect: { creditMult: 0.8, terraformMult: 1.5 }, duration: [300, 900] },
       { id: 'blue_sunset', name: 'Blue Sunset', effect: { creditMult: 1.15 }, duration: [180, 420] },
-      { id: 'first_rain', name: 'First Rain', effect: { terraformMult: 2 }, duration: [300, 600], minTerraform: 25 }
+      { id: 'first_rain', name: 'First Rain', effect: { terraformMult: 2 }, duration: [300, 600], minTerraform: 25 },
+      { id: 'snow', name: 'Martian Snow', effect: { creditMult: 1.1 }, duration: [300, 600], minTerraform: 60 }
     ],
     5: [
       { id: 'calm', name: 'Calm Belt', effect: null, duration: [600, 1200] },
