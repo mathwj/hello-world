@@ -289,6 +289,14 @@ const Engine = (() => {
 
       // Contract earn progress
       Expansion.Contracts.addProgress(s, 'earn', amount);
+
+      // Track tap rate for achievements and fast-tap records
+      const now = Date.now();
+      if (s.stats._recentTaps === undefined) s.stats._recentTaps = [];
+      s.stats._recentTaps.push(now);
+      s.stats._recentTaps = s.stats._recentTaps.filter(t => now - t < 1000);
+      const tapsPerSec = s.stats._recentTaps.length;
+      if (tapsPerSec > s.stats.fastTapRecord) s.stats.fastTapRecord = tapsPerSec;
     }
 
     // Moon phase: also earn ore from tapping
@@ -297,10 +305,15 @@ const Engine = (() => {
       GameState.addCurrency('ore', orePerTap);
     }
 
-    if (!isAuto) {
+    // Show floating number — auto-taps get lighter/smaller visuals
+    if (isAuto) {
+      UI.showFloatingNumber(amount, { ...tapResult, isAuto: true });
+    } else {
       UI.showFloatingNumber(amount, tapResult);
+    }
 
-      // Audio & haptic feedback
+    // Audio & haptic feedback (manual taps only for haptics, auto-taps get softer audio)
+    if (!isAuto) {
       if (typeof AdaptiveAudio !== 'undefined') {
         AdaptiveAudio.onTap();
         if (tapResult.type === 'super') {
@@ -318,9 +331,12 @@ const Engine = (() => {
           Juice.ScreenFlash.superCritical();
         } else if (tapResult.type === 'critical') {
           Juice.Haptics.medium();
+          Juice.ScreenShake.purchase();
         } else {
           Juice.Haptics.light();
         }
+        // Tap burst effect on scene canvas
+        Juice.MicroInteractions.tapBurst(tapResult.type || 'normal');
       }
     }
 

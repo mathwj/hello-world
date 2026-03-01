@@ -317,13 +317,16 @@ const AdaptiveAudio = (() => {
     const gain = audioCtx.createGain();
 
     // Pitch rises with combo, snappier attack
-    const basePitch = 400 + Math.min(comboLevel, 100) * 8;
+    // Per spec: "pitch varies ±5% randomly for variety"
+    const pitchVariation = 1 + (Math.random() * 0.10 - 0.05); // ±5%
+    const basePitch = (400 + Math.min(comboLevel, 100) * 8) * pitchVariation;
     const reverbAmount = Math.max(0.01, 0.1 - comboLevel * 0.001);
     osc.frequency.value = basePitch;
     osc.type = comboLevel >= 100 ? 'sawtooth' : 'sine';
 
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialDecayTo = 0.001;
+    // Volume also slightly varies for organic feel
+    const volumeVariation = 0.12 + Math.random() * 0.06; // 0.12 to 0.18
+    gain.gain.setValueAtTime(volumeVariation, now);
     gain.gain.setTargetAtTime(0.001, now + 0.02, reverbAmount);
 
     osc.connect(gain);

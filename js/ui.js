@@ -209,63 +209,71 @@ const UI = (() => {
   function updateCurrencyBar() {
     const s = GameState.getState();
     const bar = document.getElementById('currency-bar');
-    const fmt = NumberFormatter.format;
+    const fmt = NumberFormatter.formatSmart;
 
-    let html = `<div class="currency credits">
-      <span class="cur-icon" style="color:#FFD700">\u20A1</span>
+    // Credits — always visible (₡ gold coin with rocket silhouette)
+    let html = `<div class="currency credits" title="Credits — Main currency">
+      <span class="cur-icon" style="color:#FFD700">\u{1FA99}</span>
       <span class="cur-val">${ttip(s.credits)}</span>
       <span class="cur-rate">\u20A1${fmt(s.creditsPerSecond)}/sec</span>
     </div>`;
 
+    // Research Points — Phase 2+ (blue flask)
     if (s.highestPhaseReached >= 2) {
-      html += `<div class="currency rp">
-        <span class="cur-icon" style="color:#4A90D9">RP</span>
+      html += `<div class="currency rp" title="Research Points">
+        <span class="cur-icon" style="color:#4A90D9">\u{1F9EA}</span>
         <span class="cur-val">${ttip(s.researchPoints)}</span>
         ${s.rpPerSecond > 0 ? `<span class="cur-rate">${fmt(s.rpPerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
+    // Lunar Ore — Phase 3+ (gray crystal)
     if (s.highestPhaseReached >= 3) {
-      html += `<div class="currency ore">
-        <span class="cur-icon" style="color:#A8A8A8">Ore</span>
+      html += `<div class="currency ore" title="Lunar Ore">
+        <span class="cur-icon" style="color:#A8A8A8">\u{1FAA8}</span>
         <span class="cur-val">${ttip(s.lunarOre)}</span>
         ${s.orePerSecond > 0 ? `<span class="cur-rate">${fmt(s.orePerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
+    // Rare Minerals — Phase 5+ (purple gem)
     if (s.highestPhaseReached >= 5) {
-      html += `<div class="currency rm">
-        <span class="cur-icon" style="color:#9B59B6">RM</span>
+      html += `<div class="currency rm" title="Rare Minerals">
+        <span class="cur-icon" style="color:#9B59B6">\u{1F48E}</span>
         <span class="cur-val">${ttip(s.rareMinerals)}</span>
         ${s.rmPerSecond > 0 ? `<span class="cur-rate">${fmt(s.rmPerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
+    // Alien Signals — Phase 6+ (green waveform)
     if (s.highestPhaseReached >= 6) {
-      html += `<div class="currency as">
-        <span class="cur-icon" style="color:#2ECC71">AS</span>
+      html += `<div class="currency as" title="Alien Signals">
+        <span class="cur-icon" style="color:#2ECC71">\u{1F4E1}</span>
         <span class="cur-val">${ttip(s.alienSignals)}</span>
       </div>`;
     }
 
+    // Stardust — Phase 7+ (sparkling dust)
     if (s.highestPhaseReached >= 7) {
-      html += `<div class="currency sd">
-        <span class="cur-icon" style="color:#F0E6FF">SD</span>
+      html += `<div class="currency sd" title="Stardust">
+        <span class="cur-icon" style="color:#F0E6FF">\u2728</span>
         <span class="cur-val">${ttip(s.stardust)}</span>
         ${s.sdPerSecond > 0 ? `<span class="cur-rate">${fmt(s.sdPerSecond)}/sec</span>` : ''}
       </div>`;
     }
 
+    // Cosmic Dust — prestige currency (prismatic orb)
     if (s.cosmicDust > 0) {
-      html += `<div class="currency cd">
-        <span class="cur-icon cd-icon">CD</span>
+      html += `<div class="currency cd" title="Cosmic Dust — Prestige Currency (permanent)">
+        <span class="cur-icon cd-icon">\u{1F300}</span>
         <span class="cur-val">${ttip(s.cosmicDust)}</span>
       </div>`;
     }
 
+    // Infinity Tokens — post-prestige endgame (infinity symbol)
     if (s.infinityTokens > 0) {
-      html += `<div class="currency it">
-        <span class="cur-icon" style="color:#FFD700">IT</span>
+      html += `<div class="currency it" title="Infinity Tokens (permanent)">
+        <span class="cur-icon it-icon">\u221E</span>
         <span class="cur-val">${ttip(s.infinityTokens)}</span>
       </div>`;
     }
@@ -424,6 +432,7 @@ const UI = (() => {
   function renderGenerator(gen, s) {
     const owned = s.generators[gen.id] || 0;
     const currency = gen.costCurrency || 'credits';
+    const fmt = NumberFormatter.formatSmart;
     const amt = buyAmount === 'max' ?
       NumberFormatter.maxAffordable(gen.baseCost, gen.growth, owned, GameState.getCurrency(currency)).count :
       buyAmount;
@@ -434,13 +443,13 @@ const UI = (() => {
     const canAfford = GameState.canAfford(currency, cost) && amt > 0;
     const currencySymbol = currency === 'credits' ? '\u20A1' : currency === 'ore' ? 'Ore ' : currency.toUpperCase() + ' ';
 
-    // Output description
+    // Output description — uses smart format respecting user's number format preference
     let outputDesc = '';
-    if (gen.output.credits) outputDesc += '\u20A1' + NumberFormatter.format(gen.output.credits) + '/s ';
-    if (gen.output.rp) outputDesc += NumberFormatter.format(gen.output.rp) + ' RP/s ';
-    if (gen.output.ore) outputDesc += NumberFormatter.format(gen.output.ore) + ' Ore/s ';
-    if (gen.output.rm) outputDesc += NumberFormatter.format(gen.output.rm) + ' RM/s ';
-    if (gen.output.sd) outputDesc += NumberFormatter.format(gen.output.sd) + ' SD/s ';
+    if (gen.output.credits) outputDesc += '\u20A1' + fmt(gen.output.credits) + '/s ';
+    if (gen.output.rp) outputDesc += fmt(gen.output.rp) + ' RP/s ';
+    if (gen.output.ore) outputDesc += fmt(gen.output.ore) + ' Ore/s ';
+    if (gen.output.rm) outputDesc += fmt(gen.output.rm) + ' RM/s ';
+    if (gen.output.sd) outputDesc += fmt(gen.output.sd) + ' SD/s ';
     if (gen.terraform) outputDesc += '+' + gen.terraform + '%/s terraform ';
     if (gen.globalBoost) outputDesc += '+' + (gen.globalBoost * 100) + '% all income ';
     if (gen.crewCapacity) outputDesc += '+' + gen.crewCapacity + ' crew ';
@@ -1196,9 +1205,11 @@ const UI = (() => {
     // Event listeners
     document.getElementById('set-music')?.addEventListener('input', e => {
       s.settings.musicVolume = e.target.value / 100;
+      if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setVolumes(s.settings.musicVolume, s.settings.sfxVolume);
     });
     document.getElementById('set-sfx')?.addEventListener('input', e => {
       s.settings.sfxVolume = e.target.value / 100;
+      if (typeof AdaptiveAudio !== 'undefined') AdaptiveAudio.setVolumes(s.settings.musicVolume, s.settings.sfxVolume);
     });
     document.getElementById('set-numformat')?.addEventListener('change', e => {
       s.settings.numberFormat = e.target.value;
@@ -1287,21 +1298,25 @@ const UI = (() => {
   function showFloatingNumber(amount, tapResult) {
     const container = document.getElementById('floating-numbers');
     const now = Date.now();
+    const isAuto = tapResult && tapResult.isAuto;
 
-    // Track tap rate for rapid-tap combining
-    lastTapTimestamps.push(now);
-    lastTapTimestamps = lastTapTimestamps.filter(t => now - t < 1000);
-    const tapsPerSec = lastTapTimestamps.length;
+    // Track tap rate for rapid-tap combining (manual taps only)
+    if (!isAuto) {
+      lastTapTimestamps.push(now);
+      lastTapTimestamps = lastTapTimestamps.filter(t => now - t < 1000);
+    }
+    const tapsPerSec = lastTapTimestamps.filter(t => now - t < 1000).length;
 
-    // Trigger particle burst on tap
+    // Trigger particle burst on tap (manual taps get bigger bursts at high speed)
     const tapBtn = document.getElementById('tap-btn');
-    if (tapBtn) {
+    if (tapBtn && !isAuto) {
       const rect = tapBtn.getBoundingClientRect();
       const sceneArea = document.getElementById('scene-area');
       const sceneRect = sceneArea.getBoundingClientRect();
       const px = rect.left + rect.width / 2 - sceneRect.left;
       const py = rect.top + rect.height / 2 - sceneRect.top;
-      const particleCount = tapsPerSec > 5 ? 8 : 6;
+      // Particles scale up with rapid tapping (spec: particles get bigger at >5/sec)
+      const particleCount = tapsPerSec > 5 ? Math.min(12, 6 + tapsPerSec) : 6;
       const color = (tapResult && tapResult.type === 'critical') ? '#E74C3C' :
                     (tapResult && tapResult.type === 'super') ? '#FF69B4' : '#FFD700';
       SceneRenderer.addParticleBurst(px, py, color, particleCount);
@@ -1310,7 +1325,7 @@ const UI = (() => {
     // Handle drop-type floaters (no combining)
     if (tapResult && tapResult.type === 'drop') {
       const el = document.createElement('div');
-      el.className = 'floating-num';
+      el.className = 'floating-num drop-float';
       el.textContent = tapResult.dropName + '!';
       el.style.color = tapResult.dropColor;
       el.style.fontSize = '18px';
@@ -1322,18 +1337,20 @@ const UI = (() => {
       return;
     }
 
-    // Special floaters for crits/supers (no combining)
+    // Special floaters for crits/supers (no combining, always full size)
     if (tapResult && (tapResult.type === 'super' || tapResult.type === 'critical')) {
       const el = document.createElement('div');
       el.className = 'floating-num critical-float';
       if (tapResult.type === 'super') {
-        el.textContent = 'SUPER! +\u20A1' + NumberFormatter.format(amount);
+        el.textContent = 'SUPER! +\u20A1' + NumberFormatter.formatSmart(amount);
         el.style.color = '#FF69B4';
         el.style.fontSize = '22px';
+        el.style.textShadow = '0 0 12px rgba(255,105,180,0.8)';
       } else {
-        el.textContent = 'CRIT! +\u20A1' + NumberFormatter.format(amount);
+        el.textContent = 'CRIT! +\u20A1' + NumberFormatter.formatSmart(amount);
         el.style.color = '#E74C3C';
         el.style.fontSize = '20px';
+        el.style.textShadow = '0 0 8px rgba(231,76,60,0.6)';
       }
       el.style.left = (40 + Math.random() * 20) + '%';
       el.style.bottom = '120px';
@@ -1343,18 +1360,35 @@ const UI = (() => {
       return;
     }
 
+    // Auto-tap floaters: smaller, lighter, no combining
+    if (isAuto) {
+      const el = document.createElement('div');
+      el.className = 'floating-num auto-tap-float';
+      el.textContent = '+\u20A1' + NumberFormatter.formatSmart(amount);
+      el.style.left = (42 + Math.random() * 16) + '%';
+      el.style.bottom = '110px';
+      el.style.fontSize = '12px';
+      el.style.color = 'rgba(255,215,0,0.55)';
+      container.appendChild(el);
+      requestAnimationFrame(() => { el.style.transform = 'translateY(-60px)'; el.style.opacity = '0'; });
+      setTimeout(() => el.remove(), 600);
+      return;
+    }
+
     // Rapid tap combining: if >5 taps/sec, accumulate into one larger floater
     if (tapsPerSec > 5) {
       rapidTapAccum += amount;
       if (rapidTapEl && rapidTapEl.parentNode) {
-        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.format(rapidTapAccum);
-        rapidTapEl.style.fontSize = Math.min(24, 16 + tapsPerSec * 0.5) + 'px';
+        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.formatSmart(rapidTapAccum);
+        rapidTapEl.style.fontSize = Math.min(28, 16 + tapsPerSec * 0.7) + 'px';
+        rapidTapEl.style.textShadow = '0 0 ' + Math.min(16, tapsPerSec * 2) + 'px rgba(255,215,0,0.6)';
       } else {
         rapidTapEl = document.createElement('div');
-        rapidTapEl.className = 'floating-num';
-        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.format(rapidTapAccum);
+        rapidTapEl.className = 'floating-num rapid-float';
+        rapidTapEl.textContent = '+\u20A1' + NumberFormatter.formatSmart(rapidTapAccum);
         rapidTapEl.style.left = '45%';
         rapidTapEl.style.bottom = '120px';
+        rapidTapEl.style.fontWeight = '700';
         container.appendChild(rapidTapEl);
       }
       clearTimeout(rapidTapTimer);
@@ -1372,7 +1406,7 @@ const UI = (() => {
     rapidTapAccum = 0;
     const el = document.createElement('div');
     el.className = 'floating-num';
-    el.textContent = '+\u20A1' + NumberFormatter.format(amount);
+    el.textContent = '+\u20A1' + NumberFormatter.formatSmart(amount);
     el.style.left = (40 + Math.random() * 20) + '%';
     el.style.bottom = '120px';
     container.appendChild(el);

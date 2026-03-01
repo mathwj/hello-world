@@ -48,6 +48,21 @@ const NumberFormatter = (() => {
     return symbol + format(num);
   }
 
+  // Smart format: uses abbreviated or scientific notation based on game settings
+  function formatSmart(num, decimals = 2) {
+    if (typeof GameState !== 'undefined') {
+      const s = GameState.getState();
+      if (s.settings && s.settings.numberFormat === 'scientific') {
+        return formatSci(num, decimals);
+      }
+    }
+    return format(num, decimals);
+  }
+
+  function formatPerSecSmart(num, symbol = '') {
+    return symbol + formatSmart(num) + '/sec';
+  }
+
   function formatTime(seconds) {
     if (seconds < 60) return Math.floor(seconds) + 's';
     if (seconds < 3600) {
@@ -105,5 +120,5 @@ const NumberFormatter = (() => {
     return suffixIndex < SUFFIXES.length ? SUFFIXES[suffixIndex] : 'e' + exp;
   }
 
-  return { format, formatSci, formatFull, formatPerSec, formatCurrency, formatTime, bulkCost, maxAffordable, nextCost, getSuffix };
+  return { format, formatSci, formatFull, formatPerSec, formatPerSecSmart, formatCurrency, formatSmart, formatTime, bulkCost, maxAffordable, nextCost, getSuffix };
 })();
