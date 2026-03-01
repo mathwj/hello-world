@@ -147,7 +147,8 @@ const GameState = (() => {
         totalStarSystemsColonized: 1,
         fastestPhaseReach: {},
         lastTapTime: 0,
-        noTapDuration: 0
+        noTapDuration: 0,
+        consecutiveAsteroids: 0
       },
 
       // ===== EXPANSION v2.0 FIELDS =====

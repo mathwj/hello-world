@@ -850,18 +850,175 @@ const UI = (() => {
 
   function doPrestige() {
     const cdEarned = GameState.performPrestige();
-    if (cdEarned > 0) {
-      showModal('Big Bang Complete!',
-        `<div class="prestige-result">
-          <p>A new universe begins...</p>
-          <p class="cd-earned">+${NumberFormatter.format(cdEarned)} Cosmic Dust</p>
-        </div>`,
-        [{ label: 'Continue', action: () => { hideModal(); updateAll(); switchTab('generators'); } }]);
+    if (cdEarned <= 0) return;
 
-      Engine.addLogEntry('log22');
-      const s = GameState.getState();
-      if (s.totalPrestigeCount === 1) Engine.unlockAchievement('ach_prestige');
+    Engine.addLogEntry('log22');
+    const s = GameState.getState();
+    if (s.totalPrestigeCount === 1) Engine.unlockAchievement('ach_prestige');
+    if (s.totalPrestigeCount >= 5) Engine.addLogEntry('log23');
+    if (s.totalPrestigeCount >= 10) Engine.addLogEntry('log24');
+
+    playBigBangAnimation(cdEarned);
+  }
+
+  function playBigBangAnimation(cdEarned) {
+    const overlay = document.getElementById('big-bang-overlay');
+    const canvas = document.getElementById('big-bang-canvas');
+    const textEl = document.getElementById('big-bang-text');
+    overlay.classList.remove('hidden');
+    textEl.classList.add('hidden');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const startTime = Date.now();
+    const totalDuration = 8000;
+
+    // Starfield for collapse
+    const bbStars = [];
+    for (let i = 0; i < 200; i++) {
+      bbStars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 0.5
+      });
     }
+    // Explosion particles
+    const bbParticles = [];
+
+    function animate() {
+      const elapsed = Date.now() - startTime;
+      const t = elapsed / totalDuration;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (t < 0.125) {
+        // Phase 1: Zoom out to show galaxy (0-1s)
+        const p = t / 0.125;
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const star of bbStars) {
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Galaxy glow
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 150 * (1 + p));
+        grad.addColorStop(0, 'rgba(255,255,200,0.3)');
+        grad.addColorStop(1, 'rgba(255,255,200,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 150 * (1 + p), 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (t < 0.375) {
+        // Phase 2: Stars collapsing inward (1-3s)
+        const p = (t - 0.125) / 0.25;
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const star of bbStars) {
+          const sx = star.x + (cx - star.x) * p;
+          const sy = star.y + (cy - star.y) * p;
+          ctx.fillStyle = `rgba(255,255,${Math.floor(200 + 55 * p)},${0.8 + 0.2 * p})`;
+          ctx.beginPath();
+          ctx.arc(sx, sy, star.size * (1 + p * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+      } else if (t < 0.5) {
+        // Phase 3: Compress to single point (3-4s)
+        const p = (t - 0.375) / 0.125;
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const pointSize = 100 * (1 - p) + 3;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, pointSize);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.5, 'rgba(255,255,200,0.8)');
+        grad.addColorStop(1, 'rgba(255,200,100,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, pointSize, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (t < 0.5625) {
+        // Phase 4: FLASH — white screen (4-4.5s)
+        const p = (t - 0.5) / 0.0625;
+        ctx.fillStyle = `rgba(255,255,255,${1 - p * 0.2})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Spawn explosion particles at peak
+        if (bbParticles.length === 0) {
+          for (let i = 0; i < 100; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 3 + Math.random() * 8;
+            const hue = Math.random() * 360;
+            bbParticles.push({
+              x: cx, y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              hue: hue,
+              size: 2 + Math.random() * 4,
+              life: 1
+            });
+          }
+        }
+
+      } else if (t < 0.8125) {
+        // Phase 5: Explosion expanding outward (4.5-6.5s)
+        const p = (t - 0.5625) / 0.25;
+        ctx.fillStyle = `rgba(0,0,0,${Math.min(1, p * 0.8)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (const part of bbParticles) {
+          part.x += part.vx;
+          part.y += part.vy;
+          part.life -= 0.005;
+          if (part.life > 0) {
+            ctx.fillStyle = `hsla(${part.hue},80%,60%,${part.life})`;
+            ctx.beginPath();
+            ctx.arc(part.x, part.y, part.size * part.life, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        // Center glow fading
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 200 * p);
+        glow.addColorStop(0, `rgba(255,255,200,${0.5 * (1 - p)})`);
+        glow.addColorStop(1, 'rgba(255,255,200,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 200 * p, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else {
+        // Phase 6-8: Fade to black, then text (6.5-8s)
+        const p = (t - 0.8125) / 0.1875;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (p > 0.3) {
+          textEl.classList.remove('hidden');
+          textEl.innerHTML = `<div class="bb-line1">A new universe begins...</div>
+            <div class="bb-cd-reward">+${NumberFormatter.format(cdEarned)} Cosmic Dust</div>`;
+        }
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete - let user click to proceed
+        overlay.onclick = () => {
+          overlay.classList.add('hidden');
+          overlay.onclick = null;
+          textEl.classList.add('hidden');
+          updateAll();
+          switchTab('generators');
+          SceneRenderer.setPhase(GameState.getState().currentPhase);
+        };
+      }
+    }
+
+    requestAnimationFrame(animate);
   }
 
   // ===== ACHIEVEMENTS =====
@@ -1181,13 +1338,21 @@ const UI = (() => {
     const banner = document.getElementById('event-banner');
     const typeClass = event.type === 'positive' ? 'event-positive' :
       event.type === 'negative' ? 'event-negative' : 'event-neutral';
+    const isMiniGame = event.icon === '\uD83C\uDFAE';
+    const playBtn = isMiniGame ? '<button class="mg-play-btn" id="mg-accept-btn">PLAY</button>' : '';
     banner.innerHTML = `<div class="event-content ${typeClass}">
       <span class="event-icon">${event.icon}</span>
       <span class="event-name">${event.name}</span>
       <span class="event-desc">${event.desc}</span>
+      ${playBtn}
       <span class="event-timer" id="event-timer"></span>
     </div>`;
     banner.classList.remove('hidden');
+
+    if (isMiniGame) {
+      const btn = document.getElementById('mg-accept-btn');
+      if (btn) btn.addEventListener('click', () => GameEvents.acceptMiniGame());
+    }
   }
 
   function hideEventBanner() {

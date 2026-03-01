@@ -378,7 +378,7 @@ const Engine = (() => {
     unlockAchievement('ach_launch');
 
     s.tutorialStep = 5;
-    s.tutorialComplete = true;
+    // Tutorial step 5 will show RP intro, then mark complete
 
     UI.playPhaseTransition(2);
   }
@@ -615,6 +615,11 @@ const Engine = (() => {
         GameState.addCurrency('as', 1);
         s.stats.totalAlienSignalsDecoded++;
         UI.showAlienSignalPopup();
+
+        // 25% chance to trigger Signal Decoder mini-game
+        if (Math.random() < 0.25 && !MiniGames.isActive()) {
+          setTimeout(() => GameEvents.triggerSignalDecoder(), 2000);
+        }
 
         if (s.alienSignals === 1) {
           addLogEntry('log15');

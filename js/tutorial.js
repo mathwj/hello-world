@@ -32,6 +32,12 @@ const Tutorial = (() => {
       target: '.launch-btn',
       text: "She's ready! Tap LAUNCH to blast off!",
       waitFor: () => GameState.getState().rocketLaunched
+    },
+    {
+      id: 5,
+      text: "You've reached Low Earth Orbit! A new currency: Research Points (RP). Use RP to unlock powerful technologies.",
+      auto: true,
+      duration: 5000
     }
   ];
 
@@ -41,7 +47,7 @@ const Tutorial = (() => {
 
   function init() {
     const s = GameState.getState();
-    if (s.tutorialComplete || s.tutorialStep >= 5) return;
+    if (s.tutorialComplete || s.tutorialStep >= 6) return;
 
     currentStep = s.tutorialStep || 0;
     active = true;

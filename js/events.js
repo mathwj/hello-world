@@ -9,6 +9,10 @@ const GameEvents = (() => {
   let rareAsteroidTimer = 0;
   let nextRareAsteroidIn = getRandomAsteroidInterval();
 
+  // Mini-game timers
+  let miniGameTimer = 0;
+  let nextMiniGameIn = getRandomMiniGameInterval();
+
   // Rare asteroid state
   let asteroidActive = false;
   let asteroidTapsRemaining = 0;
@@ -32,6 +36,10 @@ const GameEvents = (() => {
   function getRandomArtifactInterval() {
     const cfg = GameData.ARTIFACT_FRAGMENTS;
     return cfg.spawnInterval[0] + Math.random() * (cfg.spawnInterval[1] - cfg.spawnInterval[0]);
+  }
+
+  function getRandomMiniGameInterval() {
+    return 1800 + Math.random() * 1800; // 30-60 min in seconds
   }
 
   function processTick(dt) {
@@ -67,6 +75,16 @@ const GameEvents = (() => {
           nextRareAsteroidIn = getRandomAsteroidInterval();
           spawnRareAsteroid();
         }
+      }
+    }
+
+    // Mini-game trigger (Phase 2+, not during another mini-game)
+    if (s.currentPhase >= 2 && !MiniGames.isActive()) {
+      miniGameTimer += dt;
+      if (miniGameTimer >= nextMiniGameIn) {
+        miniGameTimer = 0;
+        nextMiniGameIn = getRandomMiniGameInterval();
+        triggerMiniGame(s);
       }
     }
 
@@ -162,6 +180,7 @@ const GameEvents = (() => {
     asteroidActive = false;
     UI.hideRareAsteroid();
 
+    const s = GameState.getState();
     if (mined) {
       const cfg = GameData.RARE_ASTEROID;
       const mult = asteroidIsCritical ? 3 : 1;
@@ -173,6 +192,9 @@ const GameEvents = (() => {
       GameState.addCurrency('rm', rmReward);
       GameState.addCurrency('credits', creditReward);
 
+      // Track consecutive asteroid finds for achievement
+      s.stats.consecutiveAsteroids = (s.stats.consecutiveAsteroids || 0) + 1;
+
       UI.showEventBanner({
         name: asteroidIsCritical ? 'CRITICAL Asteroid Mined!' : 'Rare Asteroid Mined!',
         desc: 'Ore +' + NumberFormatter.format(oreReward) + ', RM +' + NumberFormatter.format(rmReward),
@@ -181,6 +203,9 @@ const GameEvents = (() => {
       });
       setTimeout(() => UI.hideEventBanner(), 3000);
     } else {
+      // Reset consecutive streak on miss
+      s.stats.consecutiveAsteroids = 0;
+
       UI.showEventBanner({
         name: 'Asteroid Escaped!',
         desc: 'The rare asteroid floated away...',
@@ -232,11 +257,54 @@ const GameEvents = (() => {
     }
   }
 
+  // ========== MINI-GAME TRIGGERS ==========
+  function triggerMiniGame(s) {
+    // Choose which mini-game based on current phase and randomness
+    const available = ['asteroid_dodger'];
+    if (s.currentPhase >= 3) available.push('gravity_slingshot');
+    // Signal Decoder triggers specifically from alien signals, not from timer
+
+    const type = available[Math.floor(Math.random() * available.length)];
+
+    // Show offer banner instead of auto-starting
+    UI.showEventBanner({
+      name: 'Mini-Game Available!',
+      desc: type === 'asteroid_dodger' ? 'Dodge asteroids for credits!' : 'Slingshot a probe for RP!',
+      icon: '\uD83C\uDFAE',
+      type: 'positive'
+    });
+
+    // Store pending mini-game for player to accept
+    s._pendingMiniGame = type;
+    setTimeout(() => {
+      UI.hideEventBanner();
+      // Auto-dismiss if not accepted within 30s
+      if (s._pendingMiniGame === type) {
+        s._pendingMiniGame = null;
+      }
+    }, 30000);
+  }
+
+  function acceptMiniGame() {
+    const s = GameState.getState();
+    if (!s._pendingMiniGame) return;
+    const type = s._pendingMiniGame;
+    s._pendingMiniGame = null;
+    UI.hideEventBanner();
+    MiniGames.startGame(type);
+  }
+
+  function triggerSignalDecoder() {
+    if (MiniGames.isActive()) return;
+    MiniGames.startGame('signal_decoder');
+  }
+
   function isAsteroidActive() { return asteroidActive; }
   function isArtifactVisible() { return artifactVisible; }
 
   return {
     processTick, tapRareAsteroid, collectArtifactFragment,
-    isAsteroidActive, isArtifactVisible
+    isAsteroidActive, isArtifactVisible,
+    acceptMiniGame, triggerSignalDecoder
   };
 })();

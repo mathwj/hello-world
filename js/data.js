@@ -323,7 +323,10 @@ const GameData = (() => {
     // Secret
     { id: 'ach_secret_patience', name: 'Patience', desc: 'Wait 24h without tapping', reward: { credits: 0, special: 'hourCredits' }, secret: true, category: 'secret' },
     { id: 'ach_secret_speed', name: 'Speed Runner', desc: 'Reach Phase 5 in 1 hour', reward: { cosmicDust: 500 }, secret: true, category: 'secret' },
-    { id: 'ach_secret_first_contact', name: 'First Contact', desc: 'Collect first Alien Signal', reward: { rp: 1000 }, check: s => s.alienSignals >= 1, secret: true, category: 'secret' }
+    { id: 'ach_secret_first_contact', name: 'First Contact', desc: 'Collect first Alien Signal', reward: { rp: 1000 }, check: s => s.alienSignals >= 1, secret: true, category: 'secret' },
+    { id: 'ach_first_legend', name: 'First Legend', desc: 'Upgrade an astronaut to Legendary', reward: { ore: 50000 }, check: s => s.crew.astronauts.some(a => a.tier >= 4), secret: false, category: 'crew' },
+    { id: 'ach_completionist', name: 'Completionist', desc: 'Own all generator types across all phases', reward: { cosmicDust: 1000 }, check: s => checkAllGeneratorTypesOwned(s), secret: true, category: 'secret' },
+    { id: 'ach_lucky_find', name: 'Lucky Find', desc: 'Find 3 Rare Asteroids in a row', reward: { rm: 500 }, check: s => (s.stats.consecutiveAsteroids || 0) >= 3, secret: true, category: 'secret' }
   ];
 
   function getTotalGenerators(state) {
@@ -332,6 +335,15 @@ const GameData = (() => {
       total += (state.generators[key] || 0);
     }
     return total;
+  }
+
+  function checkAllGeneratorTypesOwned(state) {
+    for (const key in GENERATORS) {
+      for (const gen of GENERATORS[key]) {
+        if ((state.generators[gen.id] || 0) < 1) return false;
+      }
+    }
+    return true;
   }
 
   // ========== CAPTAIN'S LOG ==========
