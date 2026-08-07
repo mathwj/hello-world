@@ -140,25 +140,39 @@ const Officer = (() => {
     state.pointerAt = performance.now();   // hold it for a beat
   }
 
-  // Types `text` out, moving the mouth in step with it.
+  /* ── mouth control, for whoever is doing the talking ─────── */
+
+  function beginSpeech() { state.speaking = true; }
+
+  function shape(ch) {
+    const v = visemeFor(ch);
+    state.openTarget = v.open;
+    state.wideTarget = v.wide;
+  }
+
+  function endSpeech() {
+    state.speaking = false;
+    state.openTarget = 0;
+    state.wideTarget = 0;
+  }
+
+  // Types `text` out, moving the mouth in step with it. Used when the
+  // officer has no voice — with speech synthesis, voice.js drives the
+  // same three functions from the utterance instead.
   // `onChar` receives the text so far so the caller can render a bubble.
   function speak(text, onChar) {
     return new Promise(resolve => {
-      state.speaking = true;
+      beginSpeech();
       let i = 0;
 
       const step = () => {
         if (i >= text.length) {
-          state.speaking = false;
-          state.openTarget = 0;
-          state.wideTarget = 0;
+          endSpeech();
           return resolve();
         }
 
         const ch = text[i++];
-        const v = visemeFor(ch);
-        state.openTarget = v.open;
-        state.wideTarget = v.wide;
+        shape(ch);
         onChar(text.slice(0, i));
 
         let delay = REDUCED ? 4 : 26 + Math.random() * 18;
@@ -201,5 +215,6 @@ const Officer = (() => {
     lookAt('traveler');
   }
 
-  return { init, speak, pause, setMood, lookAt, stamp, reset, blink, REDUCED };
+  return { init, speak, beginSpeech, shape, endSpeech,
+           pause, setMood, lookAt, stamp, reset, blink, REDUCED };
 })();

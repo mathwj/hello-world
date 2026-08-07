@@ -164,8 +164,13 @@
   <!-- ───────────────────────── conversation ───────────────────────── -->
   <section class="panel">
     <header class="panel-head">
-      <h1>Border Control</h1>
-      <p id="panel-sub">Officer M. Vance · Badge 4417</p>
+      <div>
+        <h1>Border Control</h1>
+        <p id="panel-sub">Officer M. Vance · Badge 4417</p>
+      </div>
+      <button type="button" id="voice-toggle" class="toggle" aria-pressed="false" hidden>
+        VOICE OFF
+      </button>
     </header>
 
     <div class="log" id="log" role="log" aria-live="polite" aria-relevant="additions"></div>
@@ -173,15 +178,40 @@
     <div class="composer">
       <div class="chips" id="chips"></div>
       <form class="input-row" id="form" autocomplete="off">
+        <button type="button" id="mic" class="mic" aria-label="Answer out loud" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0" />
+            <line x1="12" y1="18" x2="12" y2="21" />
+          </svg>
+        </button>
         <input id="input" type="text" placeholder="Say something…"
                aria-label="Your answer" maxlength="140" />
         <button type="submit" id="send" aria-label="Send">→</button>
       </form>
     </div>
   </section>
+
+  <!-- ───────────────────────── gate ─────────────────────────
+       Speaking and listening both need a user gesture, so the
+       interview starts on a click. -->
+  <div class="gate" id="gate">
+    <div class="gate-card">
+      <p class="gate-kicker">Booth 4 · Lane B</p>
+      <h2>The officer will speak to you.</h2>
+      <p class="gate-copy">
+        Answer out loud — the microphone opens only while he is waiting for you,
+        and closes the moment you stop. You can always type instead.
+      </p>
+      <button type="button" id="gate-start" class="gate-btn">Step up to the counter</button>
+      <button type="button" id="gate-silent" class="gate-link">Continue without voice</button>
+      <p class="gate-note" id="gate-note"></p>
+    </div>
+  </div>
 </main>
 
 <script src="js/officer.js"></script>
+<script src="js/voice.js"></script>
 <script src="js/dialogue.js"></script>
 <script src="js/app.js"></script>
 </body>
