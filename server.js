@@ -422,6 +422,17 @@ const STATIC = {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
 
+  // Lets the page tell "server is down" apart from "server is an old copy that
+  // predates streaming" — both look identical to an EventSource otherwise.
+  if (url.pathname === '/api/health') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    });
+    res.end(JSON.stringify({ ok: true, stream: true, runtime: 'node' }));
+    return;
+  }
+
   // Server-sent events: a deep scan takes a while, so listings are pushed to
   // the page band by band rather than making it wait for the whole run.
   if (url.pathname === '/api/search/stream') {

@@ -469,6 +469,13 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
 
+        # Lets the page tell "server is down" apart from "server is an old copy
+        # that predates streaming" — identical to an EventSource otherwise.
+        if parsed.path == "/api/health":
+            self._send(200, json.dumps({"ok": True, "stream": True, "runtime": "python"}),
+                       "application/json", {"Cache-Control": "no-store"})
+            return
+
         # Server-sent events: a deep scan takes a while, so listings are pushed
         # to the page band by band rather than making it wait for the whole run.
         if parsed.path == "/api/search/stream":

@@ -472,15 +472,38 @@
     });
 
     // EventSource retries forever by default; one clean failure is enough.
-    stream.onerror = () => {
+    stream.onerror = async () => {
       if (!stream) return;
       stopScan();
-      showMessage(
-        listings.length
-          ? `Connection to the local server dropped — keeping the ${listings.length} listings found.`
-          : 'Could not reach the local server. Is it still running in your terminal?',
-        !listings.length
-      );
+      if (listings.length) {
+        showMessage(
+          `Connection to the local server dropped — keeping the ${listings.length} listings found.`
+        );
+        return;
+      }
+      // A stopped server and an out-of-date server fail identically here, so
+      // ask the server directly which one it is. A 404 means it is running but
+      // predates this route; a thrown fetch means nothing is listening at all.
+      let status = 'down';
+      try {
+        const res = await fetch('/api/health');
+        if (res.ok) {
+          const health = await res.json().catch(() => null);
+          status = health && health.stream ? 'ok' : 'old';
+        } else {
+          status = 'old';
+        }
+      } catch {
+        status = 'down';
+      }
+      const messages = {
+        down: 'Could not reach the local server. Is it still running in that terminal window?',
+        old: 'The server running in your terminal is an older version than this page, ' +
+             'so it has no streaming support. Replace server.js (or server.py) with the ' +
+             'new copy, then stop it with Control-C and start it again.',
+        ok: 'The server is running but the search failed. Check its terminal window for an error.',
+      };
+      showMessage(messages[status], true);
     };
   }
 
