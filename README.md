@@ -23,6 +23,11 @@ is taken. Keep `index.html` in the same folder as the server you run.
 Type an area ("Lisbon, Portugal", "Copenhagen", "Big Sur, CA"), optionally add
 dates, guests, currency, a place type, and a price range, then hit **Search**.
 
+**Min / night** sets a floor in the selected currency — set it to 1000 with BRL
+and only listings at or above R$1,000 a night come back. It is Airbnb's own
+filter, so a deep scan spends its entire budget above the floor instead of
+paging through cheap listings to reach the expensive ones.
+
 ### What you get
 
 - Scans from ~50 up to ~1500 listings per search, streamed into the page as

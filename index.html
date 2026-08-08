@@ -188,11 +188,11 @@
       </select>
     </div>
     <div class="field">
-      <label for="minPrice">Min / night</label>
-      <input id="minPrice" name="minPrice" type="number" min="0" placeholder="any">
+      <label for="minPrice">Min / night<span class="cur"></span></label>
+      <input id="minPrice" name="minPrice" type="number" min="0" placeholder="e.g. 1000">
     </div>
     <div class="field">
-      <label for="maxPrice">Max / night</label>
+      <label for="maxPrice">Max / night<span class="cur"></span></label>
       <input id="maxPrice" name="maxPrice" type="number" min="0" placeholder="any">
     </div>
     <div class="field">
@@ -529,6 +529,16 @@
 
   form.addEventListener('submit', runSearch);
   $('sort').addEventListener('change', () => { shown = PAGE_STEP; render(); });
+
+  // Spell out which currency the price floor is in — "1000" means very
+  // different things in BRL and GBP.
+  function syncCurrencyLabels() {
+    const code = $('currency').value;
+    for (const el of document.querySelectorAll('label .cur')) {
+      el.textContent = code ? ` (${code})` : '';
+    }
+  }
+  $('currency').addEventListener('change', syncCurrencyLabels);
   $('stop').addEventListener('click', () =>
     stopScan(`Stopped at ${listings.length} listings.`));
   $('show-more').addEventListener('click', () => { shown += PAGE_STEP; render(); });
@@ -543,6 +553,8 @@
     render();
   }
 
+  syncCurrencyLabels();
+
   // Restore the previous search so a reload doesn't mean retyping everything.
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
@@ -551,6 +563,7 @@
       const el = form.elements[k];
       if (el) el.value = v;
     }
+    syncCurrencyLabels();
   }
 })();
 </script>
