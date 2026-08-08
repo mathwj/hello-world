@@ -25,6 +25,8 @@ dates, guests, currency, a place type, and a price range, then hit **Search**.
 
 ### What you get
 
+- Scans from ~50 up to ~1500 listings per search, streamed into the page as
+  each price band completes, with a **Stop** button to cut a long scan short.
 - Results sorted most expensive first, plus cheapest-first, per-night, rating,
   and most-reviewed orderings — re-sorting is instant, no refetch.
 - Both a stay total and a derived per-night price for every listing, with the
@@ -39,7 +41,11 @@ of CORS. `server.js` is a ~200-line zero-dependency proxy that does three
 things:
 
 1. Requests Airbnb's own search pages (18 listings each, paged through a cursor,
-   3 pages at a time).
+   3 pages at a time). A single query starts recycling the same listings after a
+   few hundred results, so a deep scan splits the search into price bands and
+   pages each band separately. Bands that come back full are split again at
+   their median price, which adapts to any currency or market. Bands are worked
+   from both ends of the range, weighted 2:1 towards the top.
 2. Reads the JSON Airbnb embeds in those pages (`data-deferred-state-0`) and
    normalizes each result — name, photos, rating, review count, coordinates,
    badges, and prices parsed into numbers across currency formats.
@@ -48,9 +54,10 @@ things:
 
 ### Caveats
 
-- **You are sorting a slice, not the whole area.** The ranking covers the pages
-  scanned (up to 15 pages ≈ 270 listings), ordered by Airbnb's relevance, not
-  every listing in the area. Use the min/max price filters to aim the search at
+- **You are sorting a large sample, not the whole area.** Band splitting gets
+  far deeper than paging alone — a 400-listing Lisbon scan reached €37,779 for
+  four nights where a flat 3-page scan topped out at €1,650 — but it is still a
+  sample. Raise the listing count, or use the min/max price filters, to aim at
   the range you care about.
 - Prices are whatever Airbnb displays for your dates — normally the stay total
   before taxes. Per-night figures are derived from that. Confirm on Airbnb

@@ -27,8 +27,11 @@ UA = (
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 )
 
-PAGE_SIZE = 18       # listings per Airbnb search page
-MAX_PAGES = 15
+PAGE_SIZE = 18        # listings per Airbnb search page
+MAX_PAGES = 5         # pages per price band before we split it instead
+MAX_BANDS = 40        # hard stop on how many bands one search may scan
+MAX_BAND_DEPTH = 6    # how many times a band may be halved
+MAX_LISTINGS = 2000
 CONCURRENCY = 3
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
 
@@ -289,45 +292,108 @@ def normalize_result(node, opts):
 # Search orchestration
 # --------------------------------------------------------------------------- #
 
-def search(opts):
-    pages = min(max(1, opts.get("pages") or 3), MAX_PAGES)
-    offsets = [i * PAGE_SIZE for i in range(pages)]
-    warnings = []
-    first_url = None
+def band_label(band):
+    if band["min"] or band["max"]:
+        return f"Price band {band['min'] or 0}-{band['max'] or '∞'}"
+    return "Whole area"
+
+
+def scan_band(opts, band, warnings):
+    """Fetch one price band, paging through it, and return its listings."""
+    band_opts = dict(opts, minPrice=band["min"] or 0, maxPrice=band["max"] or 0)
+    offsets = [i * PAGE_SIZE for i in range(MAX_PAGES)]
 
     def load(offset):
         try:
-            html, url = fetch_search_page(opts, offset)
+            html, url = fetch_search_page(band_opts, offset)
         except Exception as err:  # network, HTTP error, timeout
-            return offset, None, None, f"Page {offset // PAGE_SIZE + 1}: {err}"
+            return offset, None, None, f"{band_label(band)}: {err}"
         state = extract_deferred_state(html)
         if state is None:
             return offset, url, None, (
-                f"Page {offset // PAGE_SIZE + 1}: Airbnb did not return search data "
+                f"{band_label(band)}: Airbnb did not return search data "
                 "(it may be showing a captcha or a changed layout)."
             )
-        results = find_search_results(state)
-        if not results:
-            return offset, url, None, f"Page {offset // PAGE_SIZE + 1}: no listings returned."
-        return offset, url, results, None
+        return offset, url, find_search_results(state), None
 
     with ThreadPoolExecutor(max_workers=min(CONCURRENCY, len(offsets))) as pool:
         pages_out = list(pool.map(load, offsets))
 
-    listings = []
-    seen = set()
+    found = []
+    first_url = None
     for offset, url, results, warning in pages_out:
         if offset == 0 and url:
             first_url = url
         if warning:
             warnings.append(warning)
         for node in results or []:
-            listing = normalize_result(node, opts)
+            found.append(normalize_result(node, band_opts))
+    return found, first_url
+
+
+def search(opts, on_batch=None):
+    """
+    Airbnb recycles results past a few hundred deep on a single query, so going
+    wider means splitting the query instead of paging it. Each price band is its
+    own search with its own inventory; bands that come back full get split at
+    their median price and scanned again, which adapts to any currency market.
+    """
+    target = min(max(opts.get("limit") or 50, PAGE_SIZE), MAX_LISTINGS)
+    listings = []
+    seen = set()
+    warnings = []
+    first_url = None
+    bands_done = 0
+
+    queue = [{"min": opts.get("minPrice") or 0, "max": opts.get("maxPrice") or 0, "depth": 0}]
+
+    while queue and len(listings) < target and bands_done < MAX_BANDS:
+        # Work inwards from both ends of the price range, weighted 2:1 towards
+        # the top: the expensive tail is the headline of this page, but every
+        # third band works up from the cheap end so the bottom of the list is
+        # real data rather than whatever happened to turn up.
+        from_top = bands_done % 3 != 2
+        if from_top:
+            pick = max(range(len(queue)), key=lambda i: queue[i]["max"] or float("inf"))
+        else:
+            pick = min(range(len(queue)), key=lambda i: queue[i]["min"] or 0)
+        band = queue.pop(pick)
+
+        found, url = scan_band(opts, band, warnings)
+        bands_done += 1
+        if first_url is None:
+            first_url = url
+
+        fresh = []
+        for listing in found:
             key = listing["id"] or listing["name"]
             if key in seen:
                 continue
             seen.add(key)
+            fresh.append(listing)
             listings.append(listing)
+
+        # on_batch returns False when the page has gone away, so an abandoned
+        # scan stops hitting Airbnb instead of running to completion unwatched.
+        if on_batch is not None:
+            keep_going = on_batch(fresh, {
+                "total": len(listings),
+                "target": target,
+                "bandsDone": bands_done,
+                "bandsQueued": len(queue),
+                "band": band_label(band),
+            })
+            if keep_going is False:
+                break
+
+        # A band that filled every page it was allowed probably has more behind it.
+        full = len(found) >= MAX_PAGES * PAGE_SIZE * 0.9
+        if full and len(listings) < target and band["depth"] < MAX_BAND_DEPTH:
+            prices = sorted(l["perNight"] for l in found if l["perNight"] is not None)
+            mid = round(prices[len(prices) // 2]) if prices else 0
+            if mid > (band["min"] or 0) + 1 and (not band["max"] or mid < band["max"] - 1):
+                queue.append({"min": band["min"] or 0, "max": mid, "depth": band["depth"] + 1})
+                queue.append({"min": mid, "max": band["max"] or 0, "depth": band["depth"] + 1})
 
     listings.sort(key=lambda l: l["total"] if l["total"] is not None else -1, reverse=True)
 
@@ -339,7 +405,8 @@ def search(opts):
             "adults": opts.get("adults"),
             "nights": nights_between(opts.get("checkin"), opts.get("checkout")),
             "currency": opts.get("currency") or None,
-            "pagesRequested": pages,
+            "target": target,
+            "bandsScanned": bands_done,
         },
         "searchUrl": first_url,
         "count": len(listings),
@@ -369,7 +436,7 @@ def opts_from_params(params):
         "children": int_param(params, "children", 0),
         "infants": int_param(params, "infants", 0),
         "pets": int_param(params, "pets", 0),
-        "pages": int_param(params, "pages", 3),
+        "limit": int_param(params, "limit", 50),
         "currency": (params.get("currency") or [""])[0],
         "minPrice": int_param(params, "minPrice", 0),
         "maxPrice": int_param(params, "maxPrice", 0),
@@ -401,6 +468,48 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
+
+        # Server-sent events: a deep scan takes a while, so listings are pushed
+        # to the page band by band rather than making it wait for the whole run.
+        if parsed.path == "/api/search/stream":
+            opts = opts_from_params(params)
+            if not opts["place"].strip():
+                self._send(400, json.dumps({"error": 'Missing "place" parameter.'}),
+                           "application/json")
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.close_connection = True
+
+            alive = True
+
+            def send(event, data):
+                nonlocal alive
+                if not alive:
+                    return False
+                try:
+                    self.wfile.write(
+                        f"event: {event}\ndata: {json.dumps(data)}\n\n".encode()
+                    )
+                    self.wfile.flush()
+                    return True
+                except (BrokenPipeError, ConnectionResetError):
+                    alive = False  # page closed or navigated away
+                    return False
+
+            def on_batch(batch, progress):
+                return send("batch", dict(progress, listings=batch))
+
+            try:
+                payload = search(opts, on_batch)
+                payload.pop("listings", None)
+                send("done", payload)
+            except Exception as err:
+                send("failed", {"error": str(err)})
+            return
 
         if parsed.path == "/api/search":
             opts = opts_from_params(params)

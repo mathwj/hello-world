@@ -20,7 +20,10 @@ const UA =
   '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 const PAGE_SIZE = 18; // listings per Airbnb search page
-const MAX_PAGES = 15;
+const MAX_PAGES = 5;          // pages per price band before we split it instead
+const MAX_BANDS = 40;         // hard stop on how many bands one search may scan
+const MAX_BAND_DEPTH = 6;     // how many times a band may be halved
+const MAX_LISTINGS = 2000;
 const CONCURRENCY = 3;
 
 /* ------------------------------------------------------------------ *
@@ -241,44 +244,38 @@ function normalizeResult(node, opts) {
  * Search orchestration
  * ------------------------------------------------------------------ */
 
-async function search(opts) {
-  const pages = Math.min(Math.max(1, opts.pages || 3), MAX_PAGES);
-  const offsets = Array.from({ length: pages }, (_, i) => i * PAGE_SIZE);
-
-  const listings = [];
-  const seen = new Set();
-  const warnings = [];
+/** Fetch one price band, paging through it, and return its normalized listings. */
+async function scanBand(opts, band, warnings) {
+  const bandOpts = { ...opts, minPrice: band.min || 0, maxPrice: band.max || 0 };
+  const offsets = Array.from({ length: MAX_PAGES }, (_, i) => i * PAGE_SIZE);
+  const found = [];
   let firstUrl = null;
-
   let cursor = 0;
+  let exhausted = false;
+
   async function worker() {
-    while (cursor < offsets.length) {
+    while (cursor < offsets.length && !exhausted) {
       const offset = offsets[cursor++];
       try {
-        const { html, url } = await fetchSearchPage(opts, offset);
+        const { html, url } = await fetchSearchPage(bandOpts, offset);
         if (offset === 0) firstUrl = url;
         const state = extractDeferredState(html);
         if (!state) {
           warnings.push(
-            `Page ${offset / PAGE_SIZE + 1}: Airbnb did not return search data ` +
+            `${label(band)}: Airbnb did not return search data ` +
               `(it may be showing a captcha or a changed layout).`
           );
           continue;
         }
         const results = findSearchResults(state);
         if (!results.length) {
-          warnings.push(`Page ${offset / PAGE_SIZE + 1}: no listings returned.`);
+          // Ran off the end of this band — no point requesting deeper offsets.
+          exhausted = true;
           continue;
         }
-        for (const node of results) {
-          const listing = normalizeResult(node, opts);
-          const key = listing.id || listing.name;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          listings.push(listing);
-        }
+        for (const node of results) found.push(normalizeResult(node, bandOpts));
       } catch (err) {
-        warnings.push(`Page ${offset / PAGE_SIZE + 1}: ${err.message}`);
+        warnings.push(`${label(band)}: ${err.message}`);
       }
     }
   }
@@ -286,6 +283,88 @@ async function search(opts) {
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCY, offsets.length) }, worker)
   );
+  return { found, firstUrl };
+}
+
+const label = (band) =>
+  band.min || band.max
+    ? `Price band ${band.min || 0}-${band.max || '∞'}`
+    : 'Whole area';
+
+/**
+ * Airbnb recycles results past a few hundred deep on a single query, so going
+ * wider means splitting the query instead of paging it. Each price band is its
+ * own search with its own inventory; bands that come back full get split at
+ * their median price and scanned again, which adapts to any currency or market.
+ */
+async function search(opts, onBatch) {
+  const target = Math.min(Math.max(opts.limit || 50, PAGE_SIZE), MAX_LISTINGS);
+  const listings = [];
+  const seen = new Set();
+  const warnings = [];
+  let firstUrl = null;
+  let bandsDone = 0;
+
+  const queue = [{ min: opts.minPrice || 0, max: opts.maxPrice || 0, depth: 0 }];
+
+  while (queue.length && listings.length < target && bandsDone < MAX_BANDS) {
+    // Work inwards from both ends of the price range: scanning top-down alone
+    // fills the expensive tail but leaves "cheapest first" badly sampled.
+    const ceiling = (b) => (b.max ? b.max : Infinity);
+    // Weighted 2:1 towards the top — the expensive tail is the headline of this
+    // page, but every third band works up from the cheap end so the bottom of
+    // the list is real data rather than whatever happened to turn up.
+    const fromTop = bandsDone % 3 !== 2;
+    let pick = 0;
+    for (let i = 1; i < queue.length; i++) {
+      const better = fromTop
+        ? ceiling(queue[i]) > ceiling(queue[pick])
+        : (queue[i].min || 0) < (queue[pick].min || 0);
+      if (better) pick = i;
+    }
+    const band = queue.splice(pick, 1)[0];
+    const { found, firstUrl: url } = await scanBand(opts, band, warnings);
+    bandsDone++;
+    if (!firstUrl) firstUrl = url;
+
+    const fresh = [];
+    for (const listing of found) {
+      const key = listing.id || listing.name;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      fresh.push(listing);
+      listings.push(listing);
+    }
+
+    // onBatch returns false when the page has gone away, so an abandoned
+    // scan stops hitting Airbnb instead of running to completion unwatched.
+    if (onBatch) {
+      const keepGoing = onBatch(fresh, {
+        total: listings.length,
+        target,
+        bandsDone,
+        bandsQueued: queue.length,
+        band: label(band),
+      });
+      if (keepGoing === false) break;
+    }
+
+    // A band that filled every page it was allowed probably has more behind it.
+    const full = found.length >= MAX_PAGES * PAGE_SIZE * 0.9;
+    if (full && listings.length < target && band.depth < MAX_BAND_DEPTH) {
+      const prices = found
+        .map((l) => l.perNight)
+        .filter((n) => n != null)
+        .sort((a, b) => a - b);
+      const mid = prices.length ? Math.round(prices[prices.length >> 1]) : 0;
+      const canSplit =
+        mid > (band.min || 0) + 1 && (!band.max || mid < band.max - 1);
+      if (canSplit) {
+        queue.push({ min: band.min || 0, max: mid, depth: band.depth + 1 });
+        queue.push({ min: mid, max: band.max || 0, depth: band.depth + 1 });
+      }
+    }
+  }
 
   listings.sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
 
@@ -297,7 +376,8 @@ async function search(opts) {
       adults: opts.adults,
       nights: nightsBetween(opts.checkin, opts.checkout),
       currency: opts.currency || null,
-      pagesRequested: pages,
+      target,
+      bandsScanned: bandsDone,
     },
     searchUrl: firstUrl,
     count: listings.length,
@@ -326,7 +406,7 @@ function optsFromParams(params) {
     children: intParam(params, 'children', 0),
     infants: intParam(params, 'infants', 0),
     pets: intParam(params, 'pets', 0),
-    pages: intParam(params, 'pages', 3),
+    limit: intParam(params, 'limit', 50),
     currency: params.get('currency') || '',
     minPrice: intParam(params, 'minPrice', 0),
     maxPrice: intParam(params, 'maxPrice', 0),
@@ -341,6 +421,40 @@ const STATIC = {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
+
+  // Server-sent events: a deep scan takes a while, so listings are pushed to
+  // the page band by band rather than making it wait for the whole run.
+  if (url.pathname === '/api/search/stream') {
+    const opts = optsFromParams(url.searchParams);
+    if (!opts.place.trim()) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Missing "place" parameter.' }));
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Connection': 'keep-alive',
+    });
+    let aborted = false;
+    req.on('close', () => {
+      aborted = true;
+    });
+    const send = (event, data) => {
+      if (!aborted) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+    try {
+      const payload = await search(opts, (batch, progress) => {
+        send('batch', { listings: batch, ...progress });
+        return !aborted;
+      });
+      send('done', { ...payload, listings: undefined });
+    } catch (err) {
+      send('failed', { error: err.message });
+    }
+    res.end();
+    return;
+  }
 
   if (url.pathname === '/api/search') {
     const opts = optsFromParams(url.searchParams);

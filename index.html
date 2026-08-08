@@ -168,14 +168,13 @@
       </select>
     </div>
     <div class="field">
-      <label for="pages">Pages to scan</label>
-      <select id="pages" name="pages">
-        <option value="1">1 (~18 listings)</option>
-        <option value="3" selected>3 (~54)</option>
-        <option value="5">5 (~90)</option>
-        <option value="8">8 (~144)</option>
-        <option value="12">12 (~216)</option>
-        <option value="15">15 (~270)</option>
+      <label for="limit">How many listings</label>
+      <select id="limit" name="limit">
+        <option value="50">~50 (seconds)</option>
+        <option value="150" selected>~150</option>
+        <option value="400">~400 (~25s)</option>
+        <option value="800">~800 (~1 min)</option>
+        <option value="1500">~1500 (a few min)</option>
       </select>
     </div>
     <div class="field">
@@ -218,18 +217,23 @@
     <button type="button" class="ghost" id="view-table" aria-pressed="false">Table</button>
     <div class="spacer"></div>
     <div class="stats" id="stats"></div>
+    <button type="button" class="ghost hidden" id="stop">Stop</button>
     <button type="button" class="ghost" id="export">Export CSV</button>
     <a id="open-airbnb" class="ghost" style="display:none"></a>
   </div>
 
   <div id="results-cards" class="grid"></div>
   <div id="results-table" class="hidden"></div>
+  <div id="more-wrap" class="hidden" style="margin-top:16px; text-align:center">
+    <button type="button" class="ghost" id="show-more"></button>
+  </div>
 
   <footer>
-    Listings come from Airbnb's own search results for the pages scanned &mdash; that is a slice of the
-    area, not every listing in it. Scan more pages for a deeper pool. Displayed prices follow whatever
-    Airbnb shows for your dates (usually the stay total before taxes); per-night figures are derived
-    from it. Verify on Airbnb before booking.
+    A single Airbnb query starts repeating itself after a few hundred results, so a deep scan splits
+    the search into price bands and pages each one, working down from the top of the market. You are
+    still seeing a large sample of the area rather than every listing in it. Displayed prices follow
+    whatever Airbnb shows for your dates (usually the stay total before taxes); per-night figures are
+    derived from it. Verify on Airbnb before booking.
   </footer>
 </div>
 
@@ -242,10 +246,14 @@
   const cardsEl = $('results-cards');
   const tableEl = $('results-table');
   const STORAGE_KEY = 'airbnb-sorter-form';
+  // Rendering 1500 cards at once bogs the page down, so results come in chunks.
+  const PAGE_STEP = 300;
 
   let listings = [];
   let meta = null;
   let view = 'cards';
+  let stream = null;          // live EventSource during a scan
+  let shown = PAGE_STEP;      // how many results are currently in the DOM
 
   /* ---------- helpers ---------- */
 
@@ -301,15 +309,21 @@
          &middot; median <b>${money(median(nightly), symbol)}</b>`
       : `<b>${rows.length}</b> listings`;
 
+    const visible = rows.slice(0, shown);
     if (view === 'cards') {
       cardsEl.classList.remove('hidden');
       tableEl.classList.add('hidden');
-      cardsEl.innerHTML = rows.map(cardHtml).join('');
+      cardsEl.innerHTML = visible.map(cardHtml).join('');
     } else {
       cardsEl.classList.add('hidden');
       tableEl.classList.remove('hidden');
-      tableEl.innerHTML = tableHtml(rows);
+      tableEl.innerHTML = tableHtml(visible);
     }
+
+    const remaining = rows.length - visible.length;
+    $('more-wrap').classList.toggle('hidden', remaining <= 0);
+    $('show-more').textContent =
+      `Show ${Math.min(PAGE_STEP, remaining)} more (${remaining} left)`;
   }
 
   const esc = (s) =>
@@ -371,7 +385,18 @@
 
   /* ---------- search ---------- */
 
-  async function runSearch(event) {
+  function stopScan(note) {
+    if (stream) {
+      stream.close();
+      stream = null;
+    }
+    $('submit').disabled = false;
+    $('submit').textContent = 'Search';
+    $('stop').classList.add('hidden');
+    if (note) showMessage(note);
+  }
+
+  function runSearch(event) {
     event.preventDefault();
     const data = new FormData(form);
     const params = new URLSearchParams();
@@ -383,31 +408,45 @@
       return;
     }
 
+    if (location.protocol === 'file:') {
+      showMessage(
+        'Open this page through the local server (run node server.js or python3 server.py, ' +
+        'then visit http://127.0.0.1:8787) — a page loaded from disk cannot reach Airbnb.',
+        true
+      );
+      return;
+    }
+
     localStorage.setItem(STORAGE_KEY, params.toString());
-    $('submit').disabled = true;
-    $('submit').textContent = 'Searching…';
-    showMessage('Fetching ' + (data.get('pages') || 3) + ' page(s) from Airbnb…');
-    toolbar.classList.add('hidden');
+    if (stream) stream.close();
+    listings = [];
+    meta = null;
+    shown = PAGE_STEP;
     cardsEl.innerHTML = '';
     tableEl.innerHTML = '';
+    $('more-wrap').classList.add('hidden');
+    $('submit').disabled = true;
+    $('submit').textContent = 'Scanning…';
+    $('stop').classList.remove('hidden');
+    toolbar.classList.remove('hidden');
+    showMessage('Scanning Airbnb…');
 
-    try {
-      const res = await fetch('/api/search?' + params.toString());
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error || 'Request failed');
+    const target = Number(data.get('limit')) || 150;
+    stream = new EventSource('/api/search/stream?' + params.toString());
 
-      listings = payload.listings || [];
+    stream.addEventListener('batch', (ev) => {
+      const payload = JSON.parse(ev.data);
+      listings = listings.concat(payload.listings || []);
+      showMessage(
+        `Scanning… ${payload.total} of ~${target} listings, ` +
+        `${payload.bandsDone} price band${payload.bandsDone === 1 ? '' : 's'} done.`
+      );
+      render();
+    });
+
+    stream.addEventListener('done', (ev) => {
+      const payload = JSON.parse(ev.data);
       meta = payload;
-
-      if (!listings.length) {
-        showMessage('No listings came back. Try a broader area, different dates, or fewer filters.', true);
-        return;
-      }
-      const warn = (payload.warnings || []).length
-        ? ' Some pages were skipped: ' + payload.warnings.join(' ')
-        : '';
-      showMessage(`${listings.length} listings from ${payload.query.pagesRequested} page(s).${warn}`);
-
       const link = $('open-airbnb');
       if (payload.searchUrl) {
         link.href = payload.searchUrl;
@@ -416,21 +455,33 @@
         link.textContent = 'Open on Airbnb';
         link.style.display = '';
       }
-      toolbar.classList.remove('hidden');
-      render();
-    } catch (err) {
-      const offline = location.protocol === 'file:';
-      showMessage(
-        offline
-          ? 'Open this page through the local server (node server.js, then http://127.0.0.1:8787) — ' +
-            'a page loaded from disk cannot reach Airbnb.'
-          : 'Search failed: ' + err.message,
-        true
+      const warn = (payload.warnings || []).length
+        ? ' Some pages were skipped: ' + payload.warnings.join(' ')
+        : '';
+      stopScan(
+        listings.length
+          ? `${listings.length} listings from ${payload.query.bandsScanned} price band(s).${warn}`
+          : 'No listings came back. Try a broader area, different dates, or fewer filters.'
       );
-    } finally {
-      $('submit').disabled = false;
-      $('submit').textContent = 'Search';
-    }
+      render();
+    });
+
+    stream.addEventListener('failed', (ev) => {
+      stopScan();
+      showMessage('Search failed: ' + (JSON.parse(ev.data).error || 'unknown error'), true);
+    });
+
+    // EventSource retries forever by default; one clean failure is enough.
+    stream.onerror = () => {
+      if (!stream) return;
+      stopScan();
+      showMessage(
+        listings.length
+          ? `Connection to the local server dropped — keeping the ${listings.length} listings found.`
+          : 'Could not reach the local server. Is it still running in your terminal?',
+        !listings.length
+      );
+    };
   }
 
   /* ---------- CSV ---------- */
@@ -454,7 +505,10 @@
   /* ---------- wiring ---------- */
 
   form.addEventListener('submit', runSearch);
-  $('sort').addEventListener('change', render);
+  $('sort').addEventListener('change', () => { shown = PAGE_STEP; render(); });
+  $('stop').addEventListener('click', () =>
+    stopScan(`Stopped at ${listings.length} listings.`));
+  $('show-more').addEventListener('click', () => { shown += PAGE_STEP; render(); });
   $('export').addEventListener('click', exportCsv);
   $('view-cards').addEventListener('click', () => setView('cards'));
   $('view-table').addEventListener('click', () => setView('table'));
