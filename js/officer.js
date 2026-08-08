@@ -8,8 +8,8 @@ const Officer = (() => {
 
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // mouth anchor, in viewBox units
-  const MX = 200, MY = 118;
+  // mouth anchor, in viewBox units — under the nose, on a small face
+  const MX = 211, MY = 106;
 
   const MOODS = {
     neutral:    { curve:  0.15, rest: 0.00 },
@@ -36,12 +36,12 @@ const Officer = (() => {
   // A lens shape: two quadratics between the mouth corners.
   // `open` drives the gap, `wide` stretches it, `curve` lifts the corners.
   function mouthPath(open, wide, curve) {
-    const w = 10.6 + wide * 3.6;
-    const h = Math.max(open * 9.5, 0.7);
-    const c = curve * 3.6;
+    const w = 5.6 + wide * 2.1;
+    const h = Math.max(open * 5.4, 0.5);
+    const c = curve * 2.2;
     const lx = MX - w, rx = MX + w, cy = MY - c;
     const upper = MY - h * 0.55;
-    const lower = MY + h * 0.55 + 1.7;
+    const lower = MY + h * 0.55 + 1.35;
     return `M ${lx} ${cy} Q ${MX} ${upper} ${rx} ${cy} Q ${MX} ${lower} ${lx} ${cy} Z`;
   }
 
@@ -113,6 +113,7 @@ const Officer = (() => {
     el.mouth    = document.getElementById('mouth');
     el.pupils   = [...document.querySelectorAll('.pupil-rig')];
     el.arm      = document.getElementById('stamp-arm');
+    el.restArm  = document.getElementById('rest-arm');
     el.stamp    = document.getElementById('stamp-mark');
     el.counter  = document.getElementById('counter');
     el.stage    = document.getElementById('stage');
@@ -135,7 +136,7 @@ const Officer = (() => {
   }
 
   function lookAt(where) {
-    if (where === 'passport') { state.tgx = 0.7; state.tgy = 0.85; }
+    if (where === 'passport') { state.tgx = 0.85; state.tgy = 0.8; }
     else                      { state.tgx = 0;   state.tgy = 0;    }
     state.pointerAt = performance.now();   // hold it for a beat
   }
@@ -195,6 +196,9 @@ const Officer = (() => {
     el.stamp.classList.toggle('denied', !approved);
     el.stamp.querySelector('text').textContent = approved ? 'CLEARED' : 'HOLD';
 
+    // hand off from the hand resting on the counter to the one holding
+    // the stamp, so there are never two right arms
+    el.restArm.classList.add('away');
     el.arm.classList.remove('stamping');
     void el.arm.offsetWidth;               // restart the animation
     el.arm.classList.add('stamping');
@@ -204,13 +208,16 @@ const Officer = (() => {
     el.stamp.classList.add('on');
     setTimeout(() => el.counter.classList.remove('jolt'), 240);
 
-    await pause(900);
+    await pause(760);
+    el.restArm.classList.remove('away');
+    await pause(220);
     lookAt('traveler');
   }
 
   function reset() {
     el.stamp.classList.remove('on', 'denied');
     el.arm.classList.remove('stamping');
+    el.restArm.classList.remove('away');
     setMood('neutral');
     lookAt('traveler');
   }

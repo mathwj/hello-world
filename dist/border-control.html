@@ -11,26 +11,27 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  --bg:            #0e1418;
-  --panel:         #131b21;
-  --panel-2:       #18232a;
-  --line:          #24333c;
-  --ink:           #dfe8ec;
-  --ink-dim:       #7f929c;
-  --accent:        #e0a94a;
-  --accent-soft:   #f0cf95;
-  --green:         #58b28a;
-  --red:           #cf6a5a;
+  --bg:            #ded5c0;
+  --panel:         #f4efe2;
+  --panel-2:       #ebe4d2;
+  --line:          #d5cab1;
+  --ink:           #35312a;
+  --ink-dim:       #7d7462;
+  --accent:        #4bb8d8;
+  --accent-soft:   #1c7e9c;
+  --green:         #5d8a5f;
+  --red:           #b0685b;
 
-  --wall:          #23343a;
-  --wall-top:      #2a3d44;
-  --counter:       #16222a;
-  --counter-top:   #35505b;
-  --uniform:       #2c4a63;
-  --uniform-dark:  #22394c;
-  --shirt:         #cdd8de;
-  --skin:          #d9a582;
-  --skin-dark:     #c4906e;
+  --wall:          #efe9db;
+  --wall-warm:     #e6dcc6;
+  --floor:         #ded3b8;
+  --counter:       #f0ebdd;
+  --counter-top:   #f7f3e8;
+  --shirt:         #5cc6e4;
+  --shirt-dark:    #43b0d2;
+  --black:         #26241f;
+  --skin:          #e9b78e;
+  --skin-line:     #6a5340;
 
   --radius: 12px;
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -89,7 +90,7 @@ body {
   font-size: 11px;
   letter-spacing: 0.14em;
   color: var(--ink-dim);
-  background: rgba(8, 12, 15, 0.55);
+  background: rgba(255, 252, 244, 0.78);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 6px 12px;
@@ -100,82 +101,99 @@ body {
   width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 8px var(--green);
+  box-shadow: none;
   animation: pulse 3.2s ease-in-out infinite;
 }
-.hud-dot.busy   { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-.hud-dot.closed { background: var(--red);    box-shadow: 0 0 8px var(--red); }
-.hud-dot.live   { background: #6fc3e8; box-shadow: 0 0 8px #6fc3e8;
-                  animation-duration: 1.1s; }
+.hud-dot.busy   { background: var(--accent); }
+.hud-dot.closed { background: var(--red); }
+.hud-dot.live   { background: var(--accent); animation-duration: 1.1s; }
 
 /* ── booth artwork ─────────────────────────────────────────── */
 
-.wall        { fill: var(--wall); }
-.wall-panel  { fill: var(--wall-top); }
-.wall-seam   { stroke: rgba(0,0,0,.22); stroke-width: 2; }
+/* Painted flat colour with a thin, warm charcoal line — the whole
+   scene is stroked in --ink at a hair over 1px. */
 
-.lamp-body   { fill: #3d545c; }
-.lamp-glow   { fill: url(#glow); animation: lampBreath 9s ease-in-out infinite; }
-.vignette    { fill: url(#vignette); }
+.wall  { fill: var(--wall); }
+.floor { fill: var(--floor); }
+.seam  { stroke: var(--ink); stroke-width: 1; opacity: .45; }
 
-.sign-plate  { fill: #17252b; stroke: #3a545e; stroke-width: 1.4; }
-.sign-text   { fill: var(--accent-soft); font-family: var(--mono); font-size: 11px;
-               letter-spacing: .06em; text-anchor: middle; }
-.sign-lamp   { fill: var(--accent); opacity: .85; animation: blinkLamp 2.6s steps(1) infinite; }
-.sign-lamp--alt { animation-delay: 1.3s; }
+/* uneven brushwork on the plaster */
+.wash        { fill: var(--wall-warm); opacity: .3; }
+.wash--cool  { fill: #e6e6db; opacity: .3; }
 
-.uniform      { fill: var(--uniform); }
-.uniform-dark { fill: var(--uniform-dark); }
-.shirt        { fill: var(--shirt); }
-.epaulette    { fill: #3d6484; }
-.nameplate    { fill: #9fb0bb; }
-.chest-badge  { fill: var(--accent); opacity: .9; }
+.pane-sky     { fill: #cfdfe3; }
+.pane-ground  { fill: #b9b3a4; }
+.pane-horizon { stroke: var(--ink); stroke-width: .8; opacity: .35; }
+.pane-frame   { fill: none; stroke: var(--ink); stroke-width: 1.2; opacity: .85; }
+.sill         { fill: var(--counter-top); stroke: var(--ink); stroke-width: 1; }
+.mast         { stroke: var(--ink); stroke-width: 1; opacity: .5; }
+.mast-head    { fill: var(--ink); opacity: .5; }
+.plane        { fill: #918b7e; }
 
-.skin        { fill: var(--skin); }
-.skin-dark   { fill: var(--skin-dark); }
-.skin-shade  { fill: rgba(0,0,0,.07); }
-
-.eye-white   { fill: #f3f6f7; }
-.pupil       { fill: #223038; }
-.glint       { fill: #fff; opacity: .85; }
-.brow        { fill: #3a2a22; }
-.nose        { fill: none; stroke: var(--skin-dark); stroke-width: 2; stroke-linecap: round; }
-#mouth       { fill: #6d3a37; }
-
-.cap-crown   { fill: #24405a; }
-.cap-band    { fill: #1b3044; }
-.cap-brim    { fill: #16273a; }
-.cap-badge   { fill: var(--accent); }
+.screen-glass { fill: #dde6e2; opacity: .4; }
+.screen-frame { fill: none; stroke: var(--ink); stroke-width: 1.1; opacity: .8; }
+.screen-post  { fill: #cdd5d2; stroke: var(--ink); stroke-width: 1.1; }
+.screen-glint { stroke: #ffffff; stroke-width: 5; opacity: .35; }
 
 .counter-top  { fill: var(--counter-top); }
 .counter-face { fill: var(--counter); }
-.counter-seam { stroke: rgba(255,255,255,.05); stroke-width: 2; }
+.counter-edge { stroke: var(--ink); stroke-width: 1.1; opacity: .7; }
 
-#status-light { fill: var(--green); opacity: .9; animation: pulse 3.2s ease-in-out infinite; }
-#status-light.busy   { fill: var(--accent); }
-#status-light.closed { fill: var(--red); }
+/* the officer */
+.skin       { fill: var(--skin); stroke: var(--skin-line); stroke-width: 1.1;
+              stroke-linejoin: round; }
+.neck       { stroke-width: 1; }
+.nose       { stroke-width: 1.1; }
+.hair       { fill: #2f2a24; }
+.blush      { fill: #dd9074; opacity: .35; }
 
-.passport-cover { fill: #3d2a34; }
-.passport-mark  { fill: var(--accent); opacity: .55; }
+.shirt          { fill: var(--shirt); stroke: var(--ink); stroke-width: 1.2;
+                  stroke-linejoin: round; }
+.shirt--collar  { fill: var(--shirt-dark); }
+.tie            { fill: var(--black); stroke: var(--ink); stroke-width: .9; }
+.stitch         { fill: none; stroke: var(--ink); stroke-width: .9; opacity: .55; }
+.epaulette        { fill: var(--black); }
+.epaulette-stripe { stroke: #f3efe4; stroke-width: 1.6; }
 
-/* #passport carries an SVG rotate() attribute — do NOT give it a
-   transform-origin here, the browser would apply the origin on top
-   of the rotation's own centre and shove it off the counter. */
+.limb      { fill: none; stroke: var(--shirt); stroke-width: 10.6; stroke-linecap: round; }
+.limb-ink  { fill: none; stroke: var(--ink);   stroke-width: 12.8; stroke-linecap: round; }
+.fingers     { fill: none; stroke: var(--skin);      stroke-width: 3.2; stroke-linecap: round; }
+.fingers-ink { fill: none; stroke: var(--skin-line); stroke-width: 4.6; stroke-linecap: round; }
 
-.stamp-body { fill: #22323c; }
-.stamp-head { fill: #6b8492; }
+.eye-white { fill: #fbf8ef; stroke: var(--ink); stroke-width: .8; }
+.pupil     { fill: #2b2721; }
+.brow      { fill: none; stroke: #3a3128; stroke-width: 1.8; stroke-linecap: round; }
+#mouth     { fill: #6d4136; stroke: #6d4136; stroke-width: .6; }
+
+.cap-crown { fill: #f7f3e8; stroke: var(--ink); stroke-width: 1.2; }
+.cap-band  { fill: var(--black); }
+.cap-brim  { fill: var(--black); }
+.cap-badge { fill: #f7f3e8; stroke: var(--ink); stroke-width: .9; }
+
+.passport-cover { fill: #8f5a55; stroke: var(--ink); stroke-width: 1.1; }
+.passport-mark  { fill: #e7c98f; }
+
+.stamp-body { fill: var(--black); }
+.stamp-head { fill: #8b8375; stroke: var(--ink); stroke-width: .9; }
+
+/* paper grain over the whole picture */
+.grain {
+  mix-blend-mode: multiply;
+  opacity: .16;
+  pointer-events: none;
+}
 
 #stamp-mark {
   opacity: 0;
   transform-box: view-box;
-  transform-origin: 304px 213px;
+  transform-origin: 284px 196px;
 }
 #stamp-mark rect {
-  fill: none; stroke: var(--green); stroke-width: 2;
+  fill: none; stroke: var(--green); stroke-width: 1.8;
 }
 #stamp-mark text {
-  fill: var(--green); font-family: var(--mono); font-size: 6.6px;
-  letter-spacing: .06em; text-anchor: middle;
+  fill: var(--green); font-family: var(--mono); font-size: 7px;
+  letter-spacing: .04em; text-anchor: middle;
 }
 #stamp-mark.denied rect { stroke: var(--red); }
 #stamp-mark.denied text { fill: var(--red); }
@@ -185,19 +203,19 @@ body {
 
 #body {
   transform-box: view-box;
-  transform-origin: 200px 224px;
+  transform-origin: 214px 236px;
   animation: breathe 4.4s ease-in-out infinite;
 }
 
 #head-rig {
   transform-box: view-box;
-  transform-origin: 200px 132px;
+  transform-origin: 214px 160px;
   animation: sway 7.3s ease-in-out infinite;
 }
 
 #head-look {
   transform-box: view-box;
-  transform-origin: 200px 132px;
+  transform-origin: 214px 160px;
   will-change: transform;
 }
 
@@ -211,16 +229,26 @@ body {
 #officer.blink .eye { transform: scaleY(.08); }
 
 /* moods — small offsets, read clearly at a glance */
-#brows { transform-box: view-box; transform-origin: 200px 84px;
+#brows { transform-box: view-box; transform-origin: 211px 78px;
          transition: transform 260ms ease-out; }
-#officer.mood-suspicious #brows { transform: translateY(3.4px) scaleX(1.04); }
-#officer.mood-friendly   #brows { transform: translateY(-2.4px); }
+#officer.mood-suspicious #brows { transform: translateY(2.4px) rotate(-1deg); }
+#officer.mood-friendly   #brows { transform: translateY(-1.8px); }
 #officer.mood-suspicious #eyes .eye { transform: scaleY(.72); }
 #officer.blink.mood-suspicious #eyes .eye { transform: scaleY(.08); }
 
+/* The resting hand breathes with the body it is attached to. */
+#rest-arm {
+  transform-box: view-box;
+  transform-origin: 214px 236px;
+  animation: breathe 4.4s ease-in-out infinite;
+  transition: opacity 200ms ease;
+}
+#officer.stamping ~ #rest-arm,
+#rest-arm.away { opacity: 0; }
+
 #stamp-arm {
   transform-box: view-box;
-  transform-origin: 268px 172px;   /* the shoulder */
+  transform-origin: 251px 178px;   /* the shoulder */
   transform: rotate(-34deg);
   opacity: 0;
 }
@@ -237,16 +265,6 @@ body {
 @keyframes sway {
   0%, 100% { transform: rotate(-1.1deg) translateX(-.6px); }
   50%      { transform: rotate(1.2deg)  translateX(.6px);  }
-}
-
-@keyframes lampBreath {
-  0%, 100% { opacity: .82; }
-  50%      { opacity: 1;   }
-}
-
-@keyframes blinkLamp {
-  0%, 49%   { opacity: .85; }
-  50%, 100% { opacity: .18; }
 }
 
 @keyframes pulse {
@@ -307,7 +325,7 @@ body {
   cursor: pointer;
   transition: color 140ms, border-color 140ms;
 }
-.toggle[aria-pressed="true"] { color: var(--accent-soft); border-color: var(--accent); }
+.toggle[aria-pressed="true"] { color: var(--accent-soft); border-color: var(--accent-soft); }
 .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .panel-head h1 {
   margin: 0;
@@ -348,15 +366,16 @@ body {
 
 .msg.officer {
   align-self: flex-start;
-  background: var(--panel-2);
+  background: #fdfaf1;
   border: 1px solid var(--line);
   border-bottom-left-radius: 4px;
 }
 
 .msg.you {
   align-self: flex-end;
-  background: #2c4a63;
-  color: #eef4f7;
+  background: #bfe6f2;
+  color: var(--ink);
+  border: 1px solid #9fd2e4;
   border-bottom-right-radius: 4px;
 }
 
@@ -378,14 +397,14 @@ body {
 /* what the microphone thinks it is hearing, so far */
 .msg.you.interim {
   background: none;
-  border: 1px dashed #3d5764;
+  border: 1px dashed #9fc4d2;
   color: var(--ink-dim);
   font-style: italic;
 }
 
 .caret::after {
   content: "▍";
-  color: var(--accent);
+  color: var(--accent-soft);
   animation: caret .9s steps(1) infinite;
 }
 
@@ -423,9 +442,9 @@ body {
   transition: background 140ms, border-color 140ms, transform 140ms;
   animation: rise .26s ease-out both;
 }
-.chip:hover { background: #22323c; border-color: #3d5764; transform: translateY(-1px); }
+.chip:hover { background: #fdfaf1; border-color: var(--ink-dim); transform: translateY(-1px); }
 .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.chip.primary { border-color: var(--accent); color: var(--accent-soft); }
+.chip.primary { border-color: var(--accent-soft); color: var(--accent-soft); }
 
 .input-row {
   display: flex;
@@ -461,16 +480,16 @@ body {
 .mic[disabled] { opacity: .4; cursor: default; }
 
 .mic.listening {
-  color: #0e1418;
-  background: #6fc3e8;
-  border-color: #6fc3e8;
+  color: #10333d;
+  background: var(--accent);
+  border-color: var(--accent);
   animation: micPulse 1.5s ease-out infinite;
 }
 
 @keyframes micPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(111, 195, 232, .5); }
-  70%  { box-shadow: 0 0 0 10px rgba(111, 195, 232, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(111, 195, 232, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(75, 184, 216, .55); }
+  70%  { box-shadow: 0 0 0 10px rgba(75, 184, 216, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(75, 184, 216, 0); }
 }
 
 #input {
@@ -484,14 +503,14 @@ body {
   border-radius: 10px;
   padding: 11px 14px;
 }
-#input::placeholder { color: #5d707b; }
-#input:focus { outline: none; border-color: #3d5764; }
+#input::placeholder { color: #a89d88; }
+#input:focus { outline: none; border-color: var(--accent-soft); }
 
 #send {
   font: inherit;
   font-size: 16px;
   width: 44px;
-  color: #0e1418;
+  color: #10333d;
   background: var(--accent);
   border: none;
   border-radius: 10px;
@@ -510,7 +529,7 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(8, 12, 15, .72);
+  background: rgba(239, 233, 219, .74);
   backdrop-filter: blur(7px);
   z-index: 10;
   transition: opacity 380ms ease, visibility 380ms;
@@ -551,7 +570,7 @@ body {
   font: inherit;
   font-size: 15px;
   width: 100%;
-  color: #0e1418;
+  color: #10333d;
   background: var(--accent);
   border: none;
   border-radius: 10px;
@@ -581,7 +600,7 @@ body {
   font-family: var(--mono);
   font-size: 11px;
   line-height: 1.6;
-  color: var(--accent-soft);
+  color: #9a6b3f;
 }
 
 .gate-btn:focus-visible,
@@ -607,7 +626,7 @@ body {
     animation: none;
   }
   .msg, .chip, .gate-card, .mic.listening { animation: none; }
-  .mic.listening { box-shadow: 0 0 0 3px rgba(111, 195, 232, .4); }
+  .mic.listening { box-shadow: 0 0 0 3px rgba(75, 184, 216, .45); }
   .log { scroll-behavior: auto; }
   #stamp-mark.on { opacity: 1; }
 }
@@ -624,141 +643,209 @@ body {
       <title>Customs officer at booth 4</title>
 
       <defs>
-        <radialGradient id="glow" cx="50%" cy="4%" r="72%">
-          <stop offset="0%"   stop-color="#f4cd83" stop-opacity=".34" />
-          <stop offset="50%"  stop-color="#f4cd83" stop-opacity=".10" />
-          <stop offset="100%" stop-color="#f4cd83" stop-opacity="0" />
-        </radialGradient>
-        <linearGradient id="vignette" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="#000" stop-opacity="0" />
-          <stop offset="100%" stop-color="#000" stop-opacity=".38" />
-        </linearGradient>
+        <!-- paper grain, laid over everything at the end -->
+        <filter id="grain" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="3" seed="11" />
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer><feFuncA type="linear" slope="0.62" /></feComponentTransfer>
+        </filter>
+        <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="16" />
+        </filter>
       </defs>
 
-      <!-- wall -->
-      <rect class="wall" x="0" y="0" width="400" height="300" />
-      <rect class="wall-panel" x="0" y="0" width="400" height="104" />
-      <line class="wall-seam" x1="0" y1="104" x2="400" y2="104" />
-      <rect class="vignette" x="0" y="120" width="400" height="112" />
+      <!-- ── room ── -->
+      <rect class="wall" x="0" y="0" width="400" height="255" />
+      <ellipse class="wash" cx="96" cy="60" rx="185" ry="105" filter="url(#soft)" />
+      <ellipse class="wash wash--cool" cx="340" cy="205" rx="140" ry="90" filter="url(#soft)" />
+      <rect class="floor" x="0" y="248" width="400" height="52" />
+      <line class="seam" x1="0" y1="248" x2="400" y2="248" />
 
-      <!-- lamp -->
-      <g id="lamp">
-        <ellipse class="lamp-glow" cx="200" cy="10" rx="185" ry="120" />
-        <rect class="lamp-body" x="150" y="0" width="100" height="9" rx="3" />
-      </g>
-
-      <!-- sign -->
-      <g id="sign">
-        <rect class="sign-plate" x="118" y="20" width="164" height="26" rx="4" />
-        <text class="sign-text" x="200" y="37">C U S T O M S</text>
-        <rect class="sign-lamp" x="126" y="28" width="6" height="10" rx="2" />
-        <rect class="sign-lamp sign-lamp--alt" x="268" y="28" width="6" height="10" rx="2" />
+      <!-- ── window onto the apron ── -->
+      <g id="window">
+        <rect class="pane-sky" x="286" y="72" width="68" height="45" />
+        <rect class="pane-ground" x="286" y="117" width="68" height="22" />
+        <line class="pane-horizon" x1="286" y1="117" x2="354" y2="117" />
+        <line class="mast" x1="300" y1="128" x2="300" y2="101" />
+        <rect class="mast-head" x="295" y="98" width="10" height="3.6" rx="1" />
+        <g class="plane">
+          <ellipse cx="325" cy="128" rx="15" ry="2.8" />
+          <path d="M318 126 l4.5 -6.5 h2.6 l-2.6 6.5 z" />
+          <rect x="315" y="128" width="13" height="2.2" rx="1" />
+        </g>
+        <rect class="pane-frame" x="286" y="72" width="68" height="67" />
+        <rect class="sill" x="281" y="139" width="78" height="4" rx="1" />
       </g>
 
       <!-- ── officer ── -->
       <g id="officer">
         <g id="body">
 
+          <!-- neck -->
+          <path class="skin neck" d="M206 106 C205 128 204 146 203 163 L227 163 C225 146 224 128 223 106 Z" />
+
           <!-- torso -->
-          <path class="uniform" d="M126 252 C126 182 156 158 200 158 C244 158 274 182 274 252 Z" />
-          <path class="uniform-dark" d="M186 152 L200 176 L214 152 Z" />
-          <path class="shirt" d="M182 150 L200 172 L218 150 L214 146 L186 146 Z" />
-          <rect class="epaulette" x="138" y="176" width="20" height="6" rx="3" />
-          <rect class="epaulette" x="242" y="176" width="20" height="6" rx="3" />
-          <rect class="nameplate" x="216" y="192" width="28" height="6" rx="2" />
-          <g class="chest-badge">
-            <path d="M160 190 l10 -4 l10 4 v8 c0 6 -5 9 -10 11 c-5 -2 -10 -5 -10 -11 z" />
+          <path class="shirt" d="M203 161 C185 165 174 174 170 187 L164 236 L266 236 L258 187
+                                  C254 174 243 165 227 161 Z" />
+
+          <!-- collar and tie -->
+          <path class="shirt shirt--collar" d="M203 160 L215 180 L227 160 L222 157 L208 157 Z" />
+          <path class="tie" d="M209 162 L221 162 L218 175 L223 220 L207 220 L212 175 Z" />
+
+          <!-- pocket -->
+          <path class="stitch" d="M231 190 h19 v17 h-19 z" />
+          <line class="stitch" x1="231" y1="196" x2="250" y2="196" />
+
+          <!-- shoulder boards -->
+          <g class="epaulettes">
+            <g transform="rotate(-14 188 173)">
+              <rect class="epaulette" x="178" y="170" width="20" height="6" rx="1" />
+              <line class="epaulette-stripe" x1="182" y1="170" x2="182" y2="176" />
+              <line class="epaulette-stripe" x1="187" y1="170" x2="187" y2="176" />
+            </g>
+            <g transform="rotate(14 242 173)">
+              <rect class="epaulette" x="232" y="170" width="20" height="6" rx="1" />
+              <line class="epaulette-stripe" x1="243" y1="170" x2="243" y2="176" />
+              <line class="epaulette-stripe" x1="248" y1="170" x2="248" y2="176" />
+            </g>
           </g>
 
-          <!-- neck -->
-          <rect class="skin-dark" x="189" y="118" width="22" height="30" rx="8" />
+          <!-- the open hand: passport, please -->
+          <g id="gesture-arm">
+            <path class="limb-ink" d="M183 180 C173 182 163 186 157 190" />
+            <path class="limb"     d="M183 180 C173 182 163 186 157 190" />
+            <g class="fingers-ink">
+              <path d="M146 183.5 C138 179.5 130 179 125 181" />
+              <path d="M146 187 C137 184 129 184.5 124 187" />
+              <path d="M146 190.5 C137 189 130 190 125 192.5" />
+              <path d="M147 194 C142 196 137 199 134 202" />
+            </g>
+            <ellipse class="skin" cx="152" cy="189" rx="9.2" ry="6"
+                     transform="rotate(-12 152 189)" />
+            <g class="fingers">
+              <path d="M146 183.5 C138 179.5 130 179 125 181" />
+              <path d="M146 187 C137 184 129 184.5 124 187" />
+              <path d="M146 190.5 C137 189 130 190 125 192.5" />
+              <path d="M147 194 C142 196 137 199 134 202" />
+            </g>
+          </g>
 
           <g id="head-rig">
             <g id="head-look">
 
-              <!-- ears -->
-              <ellipse class="skin" cx="169" cy="98" rx="4.6" ry="6.6" />
-              <ellipse class="skin" cx="231" cy="98" rx="4.6" ry="6.6" />
+              <!-- hair sits proud of the face on the far side -->
+              <ellipse class="hair" cx="215.6" cy="92" rx="18.8" ry="24.2" />
+              <path class="hair" d="M228 68 C234 76 235 88 232 97 C233 85 231 74 226 68 Z" />
 
               <!-- head -->
-              <ellipse class="skin" cx="200" cy="96" rx="30" ry="34" />
-              <path class="skin-shade" d="M200 62 a30 34 0 0 1 0 68 z" />
+              <ellipse class="skin head" cx="214" cy="92" rx="18" ry="24" />
+
+              <!-- the nose, hanging past the silhouette -->
+              <path class="skin nose" d="M205 90.5 C199 95 190 102 186 108
+                                         C184 112 189 113 193 110
+                                         C199 106 205 100 207 95 Z" />
 
               <!-- brows -->
               <g id="brows">
-                <rect class="brow" x="180" y="81" width="15" height="3.4" rx="1.7" />
-                <rect class="brow" x="205" y="81" width="15" height="3.4" rx="1.7" />
+                <path class="brow" d="M205 76.5 C208 74 212 74 215 76.5" />
+                <path class="brow" d="M220 75.5 C223 73.5 227 73.9 229 76" />
               </g>
 
               <!-- eyes -->
               <g id="eyes">
                 <g class="eye">
-                  <ellipse class="eye-white" cx="187.5" cy="94" rx="6.1" ry="4.4" />
+                  <ellipse class="eye-white" cx="210" cy="83.5" rx="3.8" ry="3.1" />
                   <g class="pupil-rig">
-                    <circle class="pupil" cx="187.5" cy="94" r="2.7" />
-                    <circle class="glint" cx="188.7" cy="92.6" r="0.9" />
+                    <circle class="pupil" cx="210" cy="83.5" r="1.85" />
                   </g>
                 </g>
                 <g class="eye">
-                  <ellipse class="eye-white" cx="212.5" cy="94" rx="6.1" ry="4.4" />
+                  <ellipse class="eye-white" cx="224" cy="83" rx="3.8" ry="3.1" />
                   <g class="pupil-rig">
-                    <circle class="pupil" cx="212.5" cy="94" r="2.7" />
-                    <circle class="glint" cx="213.7" cy="92.6" r="0.9" />
+                    <circle class="pupil" cx="224" cy="83" r="1.85" />
                   </g>
                 </g>
               </g>
 
-              <!-- nose -->
-              <path class="nose" d="M200 98 q-4 8 3 9" />
+              <ellipse class="blush" cx="228" cy="96" rx="6" ry="4" />
 
-              <!-- mouth -->
-              <path id="mouth" d="M191 118 Q200 117 209 118 Q200 120 191 118 Z" />
+              <!-- mouth (rebuilt every frame by officer.js) -->
+              <path id="mouth" d="M207 103 Q213 102 219 103 Q213 105 207 103 Z" />
 
-              <!-- cap -->
+              <!-- peaked cap -->
               <g id="cap">
-                <path class="cap-crown" d="M172 63 q2 -23 28 -23 q26 0 28 23 z" />
-                <rect class="cap-band" x="171" y="61" width="58" height="9" rx="1.5" />
-                <ellipse class="cap-brim" cx="200" cy="71" rx="37" ry="4.8" />
-                <circle class="cap-badge" cx="200" cy="53" r="4.2" />
+                <path class="cap-crown" d="M194 64 C191 46 201 38 214 38 C228 38 239 47 236 64 Z" />
+                <path class="cap-band"  d="M193 61 C200 65 231 65 237 61 L237 69 C230 73 200 73 193 69 Z" />
+                <ellipse class="cap-brim" cx="206" cy="70" rx="31" ry="4.8"
+                         transform="rotate(-4 206 70)" />
+                <path class="cap-badge" d="M203 47 l6 -2.4 l6 2.4 v5 c0 3.6 -3 5.4 -6 6.6
+                                           c-3 -1.2 -6 -3 -6 -6.6 z" />
               </g>
 
             </g>
           </g>
         </g>
-
       </g>
 
-      <!-- counter -->
+      <!-- ── screen on the counter ── -->
+      <g id="screen">
+        <rect class="screen-glass" x="62" y="122" width="52" height="82" />
+        <line class="screen-glint" x1="70" y1="198" x2="106" y2="132" />
+        <rect class="screen-frame" x="62" y="122" width="52" height="82" />
+        <rect class="screen-post" x="59" y="120" width="5" height="84" rx="1" />
+      </g>
+
+      <!-- ── counter ── -->
       <g id="counter">
-        <rect class="counter-top" x="0" y="228" width="400" height="10" />
-        <rect class="counter-face" x="0" y="238" width="400" height="62" />
-        <line class="counter-seam" x1="0" y1="262" x2="400" y2="262" />
+        <rect class="counter-top" x="26" y="200" width="306" height="11" />
+        <rect class="counter-face" x="26" y="211" width="306" height="89" />
+        <line class="counter-edge" x1="26" y1="200" x2="332" y2="200" />
+        <line class="counter-edge" x1="26" y1="211" x2="332" y2="211" />
+        <line class="counter-edge" x1="332" y1="200" x2="332" y2="300" />
+        <line class="counter-edge" x1="26"  y1="200" x2="26"  y2="300" />
 
-        <!-- status light -->
-        <circle id="status-light" cx="46" cy="222" r="4" />
-
-        <!-- passport — clear of the officer, so it reads as lying on the counter -->
-        <g id="passport" transform="rotate(-7 304 215)">
-          <rect class="passport-cover" x="282" y="202" width="44" height="26" rx="3" />
-          <circle class="passport-mark" cx="304" cy="211" r="5.5" />
-          <rect class="passport-mark" x="292" y="220" width="24" height="2" rx="1" />
+        <!-- passport -->
+        <g id="passport" transform="rotate(-4 284 198)">
+          <rect class="passport-cover" x="262" y="188" width="44" height="21" rx="2" />
+          <circle class="passport-mark" cx="284" cy="195" r="4.2" />
+          <rect class="passport-mark" x="274" y="202" width="20" height="1.6" rx="0.8" />
           <g id="stamp-mark">
-            <rect x="285" y="205" width="38" height="15" rx="2" />
-            <text x="304" y="215">CLEARED</text>
+            <rect x="266" y="189" width="37" height="14" rx="1.5" />
+            <text x="284.5" y="198.5">CLEARED</text>
           </g>
         </g>
       </g>
 
-      <!-- Stamping arm. Drawn last so it lands on top of the passport, and
-           swung from the shoulder (see #stamp-arm in the CSS) so it stays
-           attached to the body instead of sliding around loose. -->
-      <g id="stamp-arm">
-        <rect class="uniform" x="264" y="162" width="46" height="20" rx="10"
-              transform="rotate(16 268 172)" />
-        <circle class="skin" cx="304" cy="182" r="9.5" />
-        <rect class="stamp-body" x="296" y="184" width="16" height="14" rx="3" />
-        <rect class="stamp-head" x="292" y="198" width="24" height="7" rx="2" />
+      <!-- ── the other hand: resting, then stamping ──
+           Both live outside #counter so the fingers fall over its edge. -->
+      <g id="rest-arm">
+        <path class="limb-ink" d="M251 178 C258 184 260 191 260 197" />
+        <path class="limb"     d="M251 178 C258 184 260 191 260 197" />
+        <ellipse class="skin" cx="259" cy="199" rx="9" ry="5.4" />
+        <g class="fingers-ink">
+          <path d="M252 202 C251 205 251 207 252 209" />
+          <path d="M257 203 C256 206 256 208 257 210" />
+          <path d="M262 203 C262 206 262 208 263 210" />
+          <path d="M267 202 C268 204 268 206 268 208" />
+        </g>
+        <g class="fingers">
+          <path d="M252 202 C251 205 251 207 252 209" />
+          <path d="M257 203 C256 206 256 208 257 210" />
+          <path d="M262 203 C262 206 262 208 263 210" />
+          <path d="M267 202 C268 204 268 206 268 208" />
+        </g>
       </g>
+
+      <g id="stamp-arm">
+        <path class="limb-ink" d="M251 178 C262 181 272 186 278 191" />
+        <path class="limb"     d="M251 178 C262 181 272 186 278 191" />
+        <rect class="stamp-body" x="276" y="180" width="12" height="14" rx="2" />
+        <rect class="stamp-head" x="272" y="194" width="20" height="6" rx="1.5" />
+        <ellipse class="skin" cx="282" cy="185" rx="8.5" ry="6.4" />
+      </g>
+
+      <!-- paper -->
+      <rect class="grain" x="0" y="0" width="400" height="300" filter="url(#grain)" />
     </svg>
 
     <div class="stage-hud">
@@ -827,8 +914,8 @@ const Officer = (() => {
 
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // mouth anchor, in viewBox units
-  const MX = 200, MY = 118;
+  // mouth anchor, in viewBox units — under the nose, on a small face
+  const MX = 211, MY = 106;
 
   const MOODS = {
     neutral:    { curve:  0.15, rest: 0.00 },
@@ -855,12 +942,12 @@ const Officer = (() => {
   // A lens shape: two quadratics between the mouth corners.
   // `open` drives the gap, `wide` stretches it, `curve` lifts the corners.
   function mouthPath(open, wide, curve) {
-    const w = 10.6 + wide * 3.6;
-    const h = Math.max(open * 9.5, 0.7);
-    const c = curve * 3.6;
+    const w = 5.6 + wide * 2.1;
+    const h = Math.max(open * 5.4, 0.5);
+    const c = curve * 2.2;
     const lx = MX - w, rx = MX + w, cy = MY - c;
     const upper = MY - h * 0.55;
-    const lower = MY + h * 0.55 + 1.7;
+    const lower = MY + h * 0.55 + 1.35;
     return `M ${lx} ${cy} Q ${MX} ${upper} ${rx} ${cy} Q ${MX} ${lower} ${lx} ${cy} Z`;
   }
 
@@ -932,6 +1019,7 @@ const Officer = (() => {
     el.mouth    = document.getElementById('mouth');
     el.pupils   = [...document.querySelectorAll('.pupil-rig')];
     el.arm      = document.getElementById('stamp-arm');
+    el.restArm  = document.getElementById('rest-arm');
     el.stamp    = document.getElementById('stamp-mark');
     el.counter  = document.getElementById('counter');
     el.stage    = document.getElementById('stage');
@@ -954,7 +1042,7 @@ const Officer = (() => {
   }
 
   function lookAt(where) {
-    if (where === 'passport') { state.tgx = 0.7; state.tgy = 0.85; }
+    if (where === 'passport') { state.tgx = 0.85; state.tgy = 0.8; }
     else                      { state.tgx = 0;   state.tgy = 0;    }
     state.pointerAt = performance.now();   // hold it for a beat
   }
@@ -1014,6 +1102,9 @@ const Officer = (() => {
     el.stamp.classList.toggle('denied', !approved);
     el.stamp.querySelector('text').textContent = approved ? 'CLEARED' : 'HOLD';
 
+    // hand off from the hand resting on the counter to the one holding
+    // the stamp, so there are never two right arms
+    el.restArm.classList.add('away');
     el.arm.classList.remove('stamping');
     void el.arm.offsetWidth;               // restart the animation
     el.arm.classList.add('stamping');
@@ -1023,13 +1114,16 @@ const Officer = (() => {
     el.stamp.classList.add('on');
     setTimeout(() => el.counter.classList.remove('jolt'), 240);
 
-    await pause(900);
+    await pause(760);
+    el.restArm.classList.remove('away');
+    await pause(220);
     lookAt('traveler');
   }
 
   function reset() {
     el.stamp.classList.remove('on', 'denied');
     el.arm.classList.remove('stamping');
+    el.restArm.classList.remove('away');
     setMood('neutral');
     lookAt('traveler');
   }

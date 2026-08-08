@@ -38,10 +38,21 @@ He will not talk over you: the mic never opens until he has finished his line,
 and anything you type while he is speaking stays in the box rather than being
 swallowed.
 
+## How it looks
+
+Painted flat colour on warm plaster: a cream room, a cyan uniform, thin warm
+charcoal outlines, and a peaked cap. The officer is drawn tall and narrow —
+small head, long neck, and a nose that hangs well past his silhouette — with
+the booth pared back to a glass screen, a counter, and a window onto the apron.
+A `feTurbulence` rect multiplied over the whole picture gives it paper grain,
+and two blurred washes break up the flatness of the wall. The conversation
+panel shares the palette so the page reads as one illustration.
+
+Everything is drawn in the browser: one inline SVG, no images.
+
 ## What moves
 
-Nothing here is a video or a sprite sheet — the officer is one inline SVG that
-is rigged and animated:
+Nothing here is a video or a sprite sheet — the officer is rigged and animated:
 
 - **Breathing** — the whole body scales a fraction from the waist on a 4.4s
   cycle, so the head rides up and down with the chest.
@@ -63,8 +74,9 @@ is rigged and animated:
   same three calls driven by the typewriter.
 - **Moods** — `neutral`, `stern`, `friendly` and `suspicious` change the brow
   height, the eye aperture and the curve of the mouth.
-- **The stamp** — at the verdict, an arm swings down *from the shoulder*, the
-  counter jolts on impact, and the mark lands on the passport.
+- **The stamp** — his right hand rests on the counter until the verdict, then
+  hands off to a second arm holding the stamp: it swings *from the shoulder*,
+  the counter jolts on impact, and the mark lands on the passport.
 
 Everything respects `prefers-reduced-motion`: ambient animation stops and the
 dialogue types out almost instantly.
@@ -103,6 +115,7 @@ Adding a question means adding one node and pointing a `next` at it.
 | --- | --- |
 | `index.html` | the booth, drawn as inline SVG, plus the conversation panel |
 | `css/styles.css` | palette, layout, and every ambient/keyframe animation |
+| — | the artwork block near the top is the paint; the rigging block below it is the motion |
 | `js/officer.js` | the puppet: mouth shapes, blinking, gaze, the stamp |
 | `js/voice.js` | speech out, microphone in, and the failure paths |
 | `js/dialogue.js` | the script and the free-text matcher |
