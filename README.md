@@ -9,12 +9,16 @@ results, and ranks them from most expensive to cheapest.
 
 ### Run it
 
-Needs Node 18 or newer. No dependencies to install.
+Two interchangeable servers — use whichever runtime you have. No dependencies
+to install either way.
 
 ```bash
-node server.js          # then open http://127.0.0.1:8787
-node server.js --port 3000
+node server.js          # Node 18+
+python3 server.py       # or Python 3.8+
 ```
+
+Then open http://127.0.0.1:8787. Pass `--port 3000` to either one if that port
+is taken. Keep `index.html` in the same folder as the server you run.
 
 Type an area ("Lisbon, Portugal", "Copenhagen", "Big Sur, CA"), optionally add
 dates, guests, currency, a place type, and a price range, then hit **Search**.
