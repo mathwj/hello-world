@@ -16,14 +16,17 @@ const Dialogue = (() => {
       ask: ['Next. Step up to the line.', 'Passport and travel documents, please.'],
       intents: [
         { id: 'hand', label: 'Hand over your passport',
+          say: 'Here you go.',
           keys: ['here you go', 'here', 'passport', 'sure', 'of course', 'okay', 'ok', 'yes', 'take it'],
           reply: 'Thank you.', next: 'purpose' },
 
         { id: 'hello', label: 'Good morning',
+          say: 'Good morning.',
           keys: ['hello', 'hi', 'hey', 'morning', 'evening', 'afternoon'],
           reply: 'Morning. Documents.', keep: true },
 
         { id: 'missing', label: "I can't find it",
+          say: "I can't find it.",
           keys: ["can't find", 'cant find', 'lost', 'forgot', "don't have", 'dont have', 'no passport'],
           reply: 'Then this becomes a much longer morning. Check your pockets.',
           suspicion: 2, keep: true }
@@ -38,18 +41,22 @@ const Dialogue = (() => {
       ask: ['Purpose of your visit?'],
       intents: [
         { id: 'tourism', label: 'Tourism',
+          say: 'Tourism.',
           keys: ['tourism', 'tourist', 'holiday', 'vacation', 'sightseeing', 'travel', 'fun', 'leisure'],
           set: { purpose: 'tourism' }, reply: 'Sightseeing. Alright.', next: 'duration' },
 
         { id: 'business', label: 'Business',
+          say: 'Business.',
           keys: ['business', 'work', 'conference', 'meeting', 'client', 'job'],
           set: { purpose: 'business' }, reply: 'Business.', next: 'business_probe' },
 
         { id: 'family', label: 'Visiting family',
+          say: "I'm visiting family.",
           keys: ['family', 'friend', 'visiting', 'wedding', 'mother', 'father', 'brother', 'sister', 'partner'],
           set: { purpose: 'family' }, reply: 'Family. Nice this time of year.', next: 'duration' },
 
         { id: 'study', label: 'Studying',
+          say: "I'm here to study.",
           keys: ['study', 'student', 'school', 'university', 'exchange', 'course'],
           set: { purpose: 'study' }, reply: 'Studying. Noted.', next: 'duration' },
 
@@ -68,10 +75,12 @@ const Dialogue = (() => {
       ask: ['Who are you meeting with?'],
       intents: [
         { id: 'named', label: 'A client, I have the address',
+          say: 'A client. I have the address.',
           keys: ['client', 'company', 'office', 'address', 'colleague', 'supplier', 'partner', 'team'],
           reply: 'Good. Keep the address handy.', next: 'duration' },
 
         { id: 'evasive', label: "I'd rather not say",
+          say: "I'd rather not say.",
           keys: ['rather not', 'confidential', 'nda', "can't say", 'cant say', 'private', 'secret'],
           reply: 'Confidential. Of course it is.', suspicion: 3, next: 'duration' }
       ],
@@ -84,15 +93,18 @@ const Dialogue = (() => {
       ask: ['How long are you staying?'],
       intents: [
         { id: 'short', label: 'About a week',
+          say: 'About a week.',
           keys: ['week', 'day', 'days', 'weekend', 'short', 'brief', 'few'],
           set: { duration: 'about a week' }, reply: 'A week. Fine.', next: 'stay' },
 
         { id: 'long', label: 'A few months',
+          say: 'A few months.',
           keys: ['month', 'months', 'year', 'long', 'while', 'season'],
           set: { duration: 'a few months' },
           reply: "That's a long holiday. Return ticket?", suspicion: 2, next: 'stay' },
 
         { id: 'open', label: "I haven't decided",
+          say: "I haven't decided.",
           keys: ["haven't decided", 'havent decided', 'not sure', 'open', 'one way', 'one-way', 'depends', 'indefinite'],
           set: { duration: 'undecided' },
           reply: 'One-way and undecided. I do love a mystery.', suspicion: 3, next: 'stay' }
@@ -105,14 +117,17 @@ const Dialogue = (() => {
       ask: ['And where will you be staying?'],
       intents: [
         { id: 'hotel', label: 'A hotel downtown',
+          say: 'A hotel downtown.',
           keys: ['hotel', 'hostel', 'airbnb', 'apartment', 'rental', 'booked', 'reservation'],
           set: { stay: 'a hotel' }, reply: 'Booked in advance. Refreshing.', next: 'luggage' },
 
         { id: 'friends', label: 'With friends',
+          say: "I'm staying with friends.",
           keys: ['friend', 'family', 'cousin', 'relatives', 'someone i know', 'my brother', 'my sister'],
           set: { stay: 'with friends' }, reply: 'With friends. Address on the form, then.', next: 'luggage' },
 
         { id: 'nowhere', label: "I'll figure it out",
+          say: "I'll figure it out.",
           keys: ['figure it out', 'no idea', "don't know", 'dont know', 'nowhere', 'wherever', 'car', 'not sure'],
           set: { stay: 'undecided' },
           reply: 'No address. You are making this interesting.', suspicion: 3, next: 'luggage' }
@@ -126,15 +141,18 @@ const Dialogue = (() => {
       ask: ['Did you pack your bags yourself?'],
       intents: [
         { id: 'self', label: 'Yes, myself',
+          say: 'Yes, myself.',
           keys: ['yes', 'myself', 'i did', 'me', 'own'],
           reply: 'Good.', next: 'declare' },
 
         { id: 'other', label: 'Someone helped me',
+          say: 'Someone helped me.',
           keys: ['helped', 'someone', 'my partner', 'my mother', 'wife', 'husband', 'roommate', 'no'],
           reply: 'Someone else touched your bags. Remember that answer.',
           suspicion: 3, next: 'declare' },
 
         { id: 'favour', label: "I'm carrying something for a friend",
+          say: "I'm carrying something for a friend.",
           keys: ['carrying', 'favour', 'favor', 'package', 'parcel', 'for a friend', 'deliver'],
           reply: 'A parcel. For a friend. You cannot possibly be serious.',
           suspicion: 5, mood: 'suspicious', next: 'declare' }
@@ -149,22 +167,27 @@ const Dialogue = (() => {
             'currency above ten thousand.'],
       intents: [
         { id: 'nothing', label: 'Nothing to declare',
+          say: 'Nothing to declare.',
           keys: ['nothing', 'no', 'none', 'nope', 'clean', 'empty'],
           set: { declare: 'nothing' }, reply: 'Nothing at all.', next: 'verdict' },
 
         { id: 'food', label: 'Some food from home',
+          say: 'Some food from home.',
           keys: ['food', 'cheese', 'meat', 'sausage', 'fruit', 'honey', 'chocolate', 'snack', 'sandwich', 'plant', 'seeds'],
           set: { declare: 'food' }, reply: 'Food. Show me.', suspicion: 1, next: 'probe_food' },
 
         { id: 'cash', label: 'Cash, a fair amount',
+          say: 'Some cash.',
           keys: ['cash', 'money', 'currency', 'euro', 'dollar', 'notes', 'gold'],
           set: { declare: 'currency' }, reply: 'Currency. How much, exactly?', suspicion: 1, next: 'probe_cash' },
 
         { id: 'gift', label: 'Just souvenirs',
+          say: 'Just souvenirs.',
           keys: ['gift', 'souvenir', 'present', 'shopping', 'perfume', 'watch'],
           set: { declare: 'souvenirs' }, reply: 'Souvenirs. Keep the receipts.', next: 'verdict' },
 
         { id: 'contraband', label: 'A live parrot',
+          say: 'A live parrot.',
           keys: ['parrot', 'drugs', 'gun', 'weapon', 'knife', 'bomb', 'snake', 'lizard', 'animal', 'ivory'],
           set: { declare: 'something alarming' },
           reply: 'Say that again slowly, and think about it first.',
@@ -179,9 +202,11 @@ const Dialogue = (() => {
       ask: ['Is it sealed, commercially packaged?'],
       intents: [
         { id: 'sealed', label: 'Sealed, from a shop',
+          say: 'Sealed, from a shop.',
           keys: ['sealed', 'shop', 'packaged', 'store', 'yes', 'factory', 'wrapped'],
           reply: 'Then it stays with you.', next: 'verdict' },
         { id: 'homemade', label: "It's homemade",
+          say: "It's homemade.",
           keys: ['homemade', 'home', 'grandma', 'mother', 'no', 'open', 'fresh', 'raw'],
           reply: 'Homemade. That goes in the bin on your left.', suspicion: 2, next: 'verdict' }
       ],
@@ -193,12 +218,15 @@ const Dialogue = (() => {
       ask: ['A number, please.'],
       intents: [
         { id: 'under', label: 'Under ten thousand',
-          keys: ['under', 'less', 'thousand', 'hundred', 'small', 'few', 'below'],
+          say: 'Under ten thousand.',
+          keys: ['under', 'less', 'below', 'small', 'nothing much', 'a few hundred'],
           reply: 'Under the limit. Nothing to file.', next: 'verdict' },
         { id: 'over', label: 'More than ten thousand',
-          keys: ['over', 'more', 'above', 'lot', 'million', 'fifty', 'twenty', 'hundred thousand'],
+          say: 'More than ten thousand.',
+          keys: ['over', 'more', 'above', 'a lot', 'million', 'plenty', 'fifty', 'twenty'],
           reply: 'Then you fill out a form. A long one.', suspicion: 3, next: 'verdict' },
         { id: 'coy', label: "I'd rather not say",
+          say: "I'd rather not say.",
           keys: ['rather not', "won't say", 'wont say', 'private', 'none of', 'secret'],
           reply: 'Declining to count it is itself an answer.', suspicion: 4, next: 'verdict' }
       ],

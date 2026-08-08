@@ -1,31 +1,40 @@
 /* ─────────────────────────────────────────────────────────────
    app.js — wires the script to the puppet, the voice and the panel.
 
-   Turn order with voice on:
-     officer speaks aloud  →  mic opens  →  you answer  →  repeat.
-   Typing and the chips keep working at every point, and every
-   voice failure falls back to them rather than dead-ending.
+   The interview is spoken, both ways. There is no text box: he asks,
+   the microphone opens, you answer out loud. Stay quiet long enough
+   and a cue appears with a line to say — a prompt, not a button.
+
+   The one exception is a browser that cannot listen at all. Then the
+   cues turn into something you can click, because the alternative is
+   a conversation nobody can finish.
    ───────────────────────────────────────────────────────────── */
 
 (() => {
 
   const log      = document.getElementById('log');
   const chips    = document.getElementById('chips');
-  const form     = document.getElementById('form');
-  const input    = document.getElementById('input');
+  const cue      = document.getElementById('cue');
+  const cueLabel = document.getElementById('cue-label');
+  const cueLine  = document.getElementById('cue-line');
   const mic      = document.getElementById('mic');
-  const toggle   = document.getElementById('voice-toggle');
+  const listenState = document.getElementById('listen-state');
   const composer = document.querySelector('.composer');
   const hudDot   = document.getElementById('hud-dot');
   const hudText  = document.getElementById('hud-text');
   const gate     = document.getElementById('gate');
   const gateNote = document.getElementById('gate-note');
 
+  const HINT_WAIT  = 3400;   // silence he will tolerate before prompting
+  const HINT_CYCLE = 5600;   // then he offers a different answer
+  const GIVE_UP    = 4;      // silent rounds before the mic parks itself
+
   const state = { suspicion: 0, facts: {}, node: null, strikes: 0, over: false };
-  const voice = { out: false, in: false };   // speaking / listening enabled
+  const voice = { out: false, in: false };
 
   let interimEl = null;
   let misses = 0;
+  let hintTimer = null, hintCycle = null, hintIndex = 0;
 
   /* ── panel plumbing ──────────────────────────────────────── */
 
@@ -49,20 +58,20 @@
 
   function setBusy(on) {
     composer.classList.toggle('locked', on);
-    if (on) hud('SPEAKING', 'busy');
-    else if (!state.over) { hud('OPEN'); if (!voice.in) input.focus(); }
+    if (on) { hud('SPEAKING', 'busy'); say_state('He is speaking'); }
+    else if (!state.over) hud('OPEN');
   }
+
+  function say_state(text) { listenState.textContent = text; }
 
   function setListening(on) {
     mic.classList.toggle('listening', on);
     mic.setAttribute('aria-pressed', String(on));
-    if (on) hud('LISTENING', 'live');
+    if (on) { hud('LISTENING', 'live'); say_state('Listening — answer out loud'); }
     else if (!state.over && !composer.classList.contains('locked')) hud('OPEN');
   }
 
-  // One line: spoken aloud if we have a voice, typed out if not.
-  // Either way the same callback draws the caption and the same
-  // three Officer calls drive the mouth.
+  // One line, spoken aloud if he has a voice, typed out as a caption if not.
   async function say(line) {
     const el = bubble('officer');
     el.classList.add('caret');
@@ -71,31 +80,15 @@
     let spoken = false;
     if (voice.out) {
       spoken = await Voice.speak(line, render);
-      // A browser that claims speech support but never actually starts
-      // would stall on every line. Ask once, then stop asking.
       if (!spoken) {
         voice.out = false;
-        syncVoiceUI();
-        note('NO VOICE AVAILABLE HERE — CAPTIONS ONLY');
+        note('NO VOICE ON THIS BROWSER — CAPTIONS ONLY');
       }
     }
     if (!spoken) await Officer.speak(line, render);
 
     el.classList.remove('caret');
     await Officer.pause(spoken ? 120 : 260);
-  }
-
-  function renderChips(intents) {
-    chips.replaceChildren();
-    for (const intent of intents) {
-      if (!intent.label) continue;
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'chip';
-      b.textContent = intent.label;
-      b.addEventListener('click', () => answer(intent.label, intent));
-      chips.appendChild(b);
-    }
   }
 
   function showInterim(text) {
@@ -109,6 +102,50 @@
     interimEl = null;
   }
 
+  /* ── the cue ─────────────────────────────────────────────── */
+
+  // What this question could be answered with, phrased to be said.
+  function suggestions() {
+    return (state.node?.intents || [])
+      .filter(i => i.label)
+      .map(i => i.say || i.label);
+  }
+
+  function showCue(i) {
+    const lines = suggestions();
+    if (!lines.length) return;
+    hintIndex = i % lines.length;
+    cueLine.textContent = '“' + lines[hintIndex] + '”';
+    cue.hidden = false;
+    cue.classList.remove('pop');
+    void cue.offsetWidth;
+    cue.classList.add('pop');
+  }
+
+  function hideCue() {
+    cue.hidden = true;
+    cue.classList.remove('pop');
+  }
+
+  // The clock belongs to the question, not to one recognition attempt:
+  // the mic reopens every few seconds while you are silent, and
+  // re-arming each time would reset the wait and freeze the cue on its
+  // first suggestion forever.
+  function armHint() {
+    if (hintTimer || hintCycle) return;
+    if (!suggestions().length) return;
+    hintTimer = setTimeout(() => {
+      showCue(hintIndex);
+      hintCycle = setInterval(() => showCue(hintIndex + 1), HINT_CYCLE);
+    }, HINT_WAIT);
+  }
+
+  function disarmHint() {
+    clearTimeout(hintTimer);
+    clearInterval(hintCycle);
+    hintTimer = hintCycle = null;
+  }
+
   /* ── the interview ───────────────────────────────────────── */
 
   async function enter(id, extraLines = []) {
@@ -116,6 +153,7 @@
     state.node = node;
     state.strikes = 0;
     misses = 0;
+    hintIndex = 0;
 
     if (node.final) return finish();
 
@@ -126,30 +164,29 @@
     const asks = typeof node.ask === 'function' ? node.ask(state) : node.ask;
     for (const line of asks) await say(line);
 
-    renderChips(node.intents || []);
     setBusy(false);
     openMic();
   }
 
-  // Re-ask the current node without repeating the whole preamble.
+  // Re-ask without repeating the whole preamble.
   async function reask(extraLines) {
-    const node = state.node;
+    misses = 0;              // a fresh question deserves fresh patience
     setBusy(true);
     for (const line of extraLines) await say(line);
-    renderChips(node.intents || []);
     setBusy(false);
     openMic();
   }
 
   async function answer(shown, intent) {
-    // No question on the table yet (the gate is still up, or he is
-    // mid-sentence) — there is nothing to answer.
     if (!state.node || state.over || composer.classList.contains('locked')) return;
 
     Voice.stopListening();
+    disarmHint();
+    hintIndex = 0;
+    hideCue();
+    chips.replaceChildren();
     setListening(false);
     clearInterim();
-    chips.replaceChildren();
     bubble('you', shown);
     setBusy(true);
 
@@ -180,89 +217,108 @@
   /* ── the microphone ──────────────────────────────────────── */
 
   async function openMic() {
-    if (!voice.in || state.over || Voice.listening) return;
+    if (state.over) return;
+    if (!voice.in) return offerClickableCues();
+    if (Voice.listening) return;
 
     setListening(true);
-    const heard = await Voice.listen(showInterim);
+    armHint();
+
+    const heard = await Voice.listen(showInterim, () => {
+      disarmHint();          // they started talking; stop nagging
+      hideCue();
+    });
+
     setListening(false);
 
     if (state.over || !voice.in) return clearInterim();
 
     if (heard.transcript) {
       clearInterim();
+      hideCue();
       return answer(heard.transcript, null);
     }
 
     switch (heard.error) {
       case 'aborted':
-        // Ours, or the browser refusing to run recognition at all.
         if (heard.intentional) return clearInterim();
-        return dropVoiceInput('MICROPHONE UNAVAILABLE — TYPE YOUR ANSWER INSTEAD');
+        return dropVoiceInput('THE MICROPHONE WAS CUT OFF');
 
       case 'not-allowed':
       case 'service-not-allowed':
       case 'unsupported':
       case 'start-failed':
-        return dropVoiceInput('MICROPHONE UNAVAILABLE — TYPE YOUR ANSWER INSTEAD');
+        return dropVoiceInput('MICROPHONE UNAVAILABLE');
 
       case 'network':
-        return dropVoiceInput('SPEECH SERVICE UNREACHABLE — TYPE YOUR ANSWER INSTEAD');
+        return dropVoiceInput('SPEECH SERVICE UNREACHABLE');
 
-      default:                               // no-speech, and anything else
+      default:                                  // no-speech, mostly
         clearInterim();
-        if (++misses >= 2) {
-          note('NO ANSWER HEARD — TYPE IT, OR TAP THE MICROPHONE');
-          input.focus();
+        armHint();                              // if a false start killed it
+        if (++misses === 1 || misses === 3) {
+          setBusy(true);
+          await say(misses === 1 ? "I didn't catch that." : 'Any time you like.');
+          setBusy(false);
+        }
+        if (misses >= GIVE_UP) {                // stop reopening on a dead room
+          disarmHint();
+          showCue(hintIndex);
+          say_state('Tap the microphone when you are ready');
           return;
         }
-        setBusy(true);
-        await say(misses === 1 ? "I didn't catch that." : 'Speak up, please.');
-        setBusy(false);
+        if (!cue.hidden) showCue(hintIndex + 1);
         return openMic();
     }
+  }
+
+  // Only reached when this browser cannot listen at all. The cues stop
+  // being prompts and become the way through.
+  function offerClickableCues() {
+    hideCue();
+    chips.replaceChildren();
+    const lines = state.node?.intents?.filter(i => i.label) || [];
+    for (const intent of lines) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = intent.say || intent.label;
+      b.addEventListener('click', () => answer(intent.say || intent.label, intent));
+      chips.appendChild(b);
+    }
+    say_state('No microphone — pick an answer');
   }
 
   function dropVoiceInput(message) {
     voice.in = false;
     clearInterim();
+    disarmHint();
     setListening(false);
-    mic.hidden = true;
-    note(message);
-    input.focus();
+    mic.classList.add('dead');
+    note(message + ' — PICK AN ANSWER INSTEAD');
+    offerClickableCues();
   }
 
   mic.addEventListener('click', () => {
-    if (Voice.listening) { Voice.stopListening(); setListening(false); clearInterim(); }
-    else if (!composer.classList.contains('locked')) { voice.in = true; openMic(); }
+    if (Voice.listening) {
+      Voice.stopListening();
+      disarmHint();
+      setListening(false);
+      clearInterim();
+      say_state('Tap the microphone when you are ready');
+    } else if (!composer.classList.contains('locked') && !state.over) {
+      misses = 0;
+      openMic();
+    }
   });
-
-  toggle.addEventListener('click', () => {
-    const on = toggle.getAttribute('aria-pressed') !== 'true';
-    setVoice(on, on && Voice.support.listen && voice.allowedIn);
-    if (!on) { Voice.shutUp(); Voice.stopListening(); setListening(false); clearInterim(); }
-    else openMic();
-  });
-
-  function syncVoiceUI() {
-    const on = voice.out || voice.in;
-    toggle.hidden = !(Voice.support.speak || Voice.support.listen);
-    toggle.setAttribute('aria-pressed', String(on));
-    toggle.textContent = on ? 'VOICE ON' : 'VOICE OFF';
-    mic.hidden = !voice.in;
-    if (!state.over) input.placeholder = voice.in ? '…or type it' : 'Say something…';
-  }
-
-  function setVoice(out, listen) {
-    voice.out = out && Voice.support.speak;
-    voice.in  = !!listen;
-    syncVoiceUI();
-  }
 
   /* ── ending ──────────────────────────────────────────────── */
 
   async function finish() {
     state.over = true;
     setBusy(true);
+    disarmHint();
+    hideCue();
     chips.replaceChildren();
     Voice.stopListening();
     setListening(false);
@@ -288,9 +344,8 @@
     chips.appendChild(again);
 
     composer.classList.remove('locked');
-    input.disabled = true;
-    input.placeholder = 'The counter is closed.';
     mic.disabled = true;
+    say_state('The counter is closed');
   }
 
   function restart() {
@@ -299,46 +354,31 @@
     state.suspicion = 0;
     state.facts = {};
     state.over = false;
+    misses = 0;
     log.replaceChildren();
     chips.replaceChildren();
     clearInterim();
-    input.disabled = false;
-    input.placeholder = 'Say something…';
+    hideCue();
     mic.disabled = false;
     Officer.reset();
     enter(Dialogue.start);
   }
 
-  /* ── input ───────────────────────────────────────────────── */
-
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const text = input.value.trim();
-    // If he is still talking, keep what you typed rather than eating it.
-    if (!text || state.over || composer.classList.contains('locked')) return;
-    input.value = '';
-    answer(text, null);
-  });
-
-  input.addEventListener('focus', () => {
-    if (Voice.listening) { Voice.stopListening(); setListening(false); clearInterim(); }
-  });
-
   /* ── the gate ────────────────────────────────────────────── */
 
-  async function begin(withVoice) {
+  async function begin() {
     const start = document.getElementById('gate-start');
-    if (withVoice) {
-      start.disabled = true;
-      start.textContent = 'One moment…';
-      const got = await Voice.unlock();
-      voice.allowedIn = got.listen;
-      setVoice(got.speak, got.listen);
-      if (!got.listen && got.reason) gateNote.textContent = got.reason;
-      if (!got.listen && got.reason) await new Promise(r => setTimeout(r, 1800));
-    } else {
-      voice.allowedIn = false;
-      setVoice(false, false);
+    start.disabled = true;
+    start.textContent = 'One moment…';
+
+    const got = await Voice.unlock();
+    voice.out = got.speak;
+    voice.in  = got.listen;
+    mic.classList.toggle('dead', !got.listen);
+
+    if (!got.listen && got.reason) {
+      gateNote.textContent = got.reason + ' You can still pick your answers.';
+      await new Promise(r => setTimeout(r, 2200));
     }
 
     gate.classList.add('open');
@@ -346,16 +386,14 @@
     enter(Dialogue.start);
   }
 
-  document.getElementById('gate-start').addEventListener('click', () => begin(true));
-  document.getElementById('gate-silent').addEventListener('click', () => begin(false));
+  document.getElementById('gate-start').addEventListener('click', begin);
 
-  if (!Voice.support.speak && !Voice.support.listen) {
-    gateNote.textContent = 'This browser has no speech support — the interview will be typed.';
+  if (!Voice.support.listen) {
+    gateNote.textContent = 'This browser has no speech recognition — Chrome, Edge or Safari do.';
   } else if (location.protocol === 'file:') {
-    gateNote.textContent = 'Opened from a file — if the microphone is refused, serve the page over http://localhost.';
+    gateNote.textContent = 'Opened from a file — the microphone needs the page served over http://localhost.';
   }
 
-  // Nothing is accepted until the gate is cleared and a question is up.
   composer.classList.add('locked');
   Officer.init();
 })();

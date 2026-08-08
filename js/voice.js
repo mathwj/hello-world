@@ -7,7 +7,8 @@
    not), so the lips match what you actually hear.
 
    Input is SpeechRecognition — Chrome, Edge and Safari only, and
-   only on a secure origin. Everything degrades to typing.
+   only on a secure origin. Where it is missing the caller falls back
+   to pickable answers; there is no typing.
    ───────────────────────────────────────────────────────────── */
 
 const Voice = (() => {
@@ -165,7 +166,9 @@ const Voice = (() => {
 
   // Resolves { transcript } on speech, or { error } — 'no-speech',
   // 'not-allowed', 'aborted', 'network', 'unsupported'.
-  function listen(onInterim) {
+  // `onSpeech` fires the moment a voice is detected, before any words
+  // are recognised, so the caller can stop prompting.
+  function listen(onInterim, onSpeech) {
     if (!SR) return Promise.resolve({ error: 'unsupported' });
 
     return new Promise(resolve => {
@@ -187,7 +190,17 @@ const Voice = (() => {
         resolve(out);
       };
 
+      let announced = false;
+      const speechStarted = () => {
+        if (announced) return;
+        announced = true;
+        onSpeech?.();
+      };
+      rec.onspeechstart = speechStarted;
+      rec.onsoundstart = speechStarted;
+
       rec.onresult = e => {
+        speechStarted();          // some builds skip onspeechstart
         let interim = '';
         for (const r of e.results) {
           if (r.isFinal) final += r[0].transcript;

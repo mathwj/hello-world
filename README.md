@@ -9,34 +9,45 @@ npx http-server . -p 8080     # then open http://localhost:8080
 ```
 
 Serve it rather than double-clicking it: browsers refuse microphone access on
-`file://`, so opening the file directly gets you the typed interview only.
+`file://`, and without a microphone there is nothing to talk to.
 
 `node build.mjs` writes `dist/border-control.html` — the same app inlined into
 one self-contained file.
 
 ## Talking to him
 
-The turn is: **he speaks → the mic opens → you answer → he replies.** The mic is
+There is no text box. He asks, the microphone opens, you answer out loud —
+that is the whole interface.
+
+The turn: **he speaks → the mic opens → you answer → he replies.** The mic is
 only live while he is waiting for you, which the pulsing button and the
-`LISTENING` sign in the booth both show; what it thinks it is hearing appears as
-a dashed bubble before it commits.
+`LISTENING` sign in the booth both show; what it thinks it is hearing appears
+as a dashed bubble before it commits.
 
-Speech needs a click to start (browsers will not open a mic or a voice without
-one), which is what the gate at the front is for. From there:
+**Hesitate and he prompts you.** After a few seconds of silence a cue appears —
+`TRY SAYING “Here you go.”` — and you say that line back. Keep quiet and it
+rotates through the other answers this question accepts. It is a prompt, not a
+button: the way past it is to speak. Every cue is phrased to be said out loud
+and is checked against the matcher, so the line he shows you is a line that
+actually works.
 
-- **Voice out** is `speechSynthesis`. The caption and the mouth are driven from
-  the utterance itself, so the lips match the audio rather than a typing
-  animation — see below.
-- **Voice in** is `SpeechRecognition`: Chrome, Edge and Safari, on a secure
+Stay silent for four rounds and the mic parks itself rather than reopening
+forever; tap it when you are ready.
+
+Speech needs a click to start — browsers will not open a mic or a voice without
+one — which is what the gate at the front is for. It also takes the single
+microphone permission prompt and reports what it got.
+
+- **His voice** is `speechSynthesis`. Where a browser has no voices installed
+  he falls back to captions, and says so once.
+- **Your voice** is `SpeechRecognition`: Chrome, Edge and Safari, on a secure
   origin. Firefox does not implement it.
-- **Every failure falls back to typing**, and says so in the log: no voice on
-  this browser, permission refused, speech service unreachable, nothing heard
-  twice in a row. The chips and the text box work at every point, and
-  `VOICE OFF` in the header turns the whole thing back into a typed interview.
+- **If listening is impossible** — no support, permission refused, speech
+  service unreachable — the cues stop being prompts and become answers you can
+  click, with a note saying why. That is the only way to get through this
+  without a microphone, and it is deliberately the fallback, not the interface.
 
-He will not talk over you: the mic never opens until he has finished his line,
-and anything you type while he is speaking stays in the box rather than being
-swallowed.
+He will not talk over you: the mic never opens until he has finished his line.
 
 ## How it looks
 
@@ -90,6 +101,7 @@ purpose: {
   ask: ['Purpose of your visit?'],
   intents: [
     { id: 'tourism', label: 'Tourism',
+      say: 'Tourism.',
       keys: ['holiday', 'vacation', 'sightseeing', ...],
       set: { purpose: 'tourism' }, reply: 'Sightseeing. Alright.',
       next: 'duration' },
@@ -100,8 +112,9 @@ purpose: {
 }
 ```
 
-- `label` becomes a clickable chip; `keys` are what free text is matched
-  against, scored by the weight of the keywords that hit.
+- `say` is the line the cue shows you — phrased to be spoken. `label` is the
+  short form used when the answers have to be clickable. `keys` are what the
+  transcript is matched against, scored by the weight of the keywords that hit.
 - `suspicion` accumulates across the interview and picks one of three endings:
   waved through, let in but flagged for a bag search, or sent to secondary.
 - `keep: true` re-asks the same question. `escape` is the way out, so nobody
@@ -119,5 +132,5 @@ Adding a question means adding one node and pointing a `next` at it.
 | `js/officer.js` | the puppet: mouth shapes, blinking, gaze, the stamp |
 | `js/voice.js` | speech out, microphone in, and the failure paths |
 | `js/dialogue.js` | the script and the free-text matcher |
-| `js/app.js` | turn-taking: speak, listen, answer, fall back |
+| `js/app.js` | turn-taking: speak, listen, prompt, answer |
 | `build.mjs` | inlines it all into `dist/border-control.html` |

@@ -304,21 +304,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-.toggle {
-  flex: none;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .12em;
-  color: var(--ink-dim);
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 11px;
-  cursor: pointer;
-  transition: color 140ms, border-color 140ms;
-}
-.toggle[aria-pressed="true"] { color: var(--accent-soft); border-color: var(--accent-soft); }
-.toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .panel-head h1 {
   margin: 0;
   font-size: 15px;
@@ -411,14 +396,100 @@ body {
 
 .composer {
   border-top: 1px solid var(--line);
-  padding: 14px 22px 18px;
+  padding: 16px 22px 20px;
 }
+.composer.locked { opacity: .45; pointer-events: none; }
+
+/* the line to say, once you have hesitated long enough */
+
+.cue { text-align: center; margin-bottom: 14px; }
+
+.cue-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.cue-line {
+  margin: 6px 0 0;
+  font-size: 19px;
+  line-height: 1.4;
+  color: var(--accent-soft);
+}
+
+.cue.pop { animation: cueIn .34s cubic-bezier(.2,1.3,.4,1) both; }
+
+@keyframes cueIn {
+  from { opacity: 0; transform: translateY(7px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── listening ─────────────────────────────────────────────── */
+
+.listen-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.listen-state {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.mic {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 160ms, border-color 160ms, background 160ms;
+}
+.mic svg {
+  width: 24px; height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+.mic svg rect { fill: currentColor; stroke: none; }
+.mic:hover { color: var(--ink); border-color: var(--ink-dim); }
+.mic:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 3px; }
+.mic[disabled], .mic.dead { opacity: .35; cursor: default; }
+
+.mic.listening {
+  color: #10333d;
+  background: var(--accent);
+  border-color: var(--accent);
+  animation: micPulse 1.5s ease-out infinite;
+}
+
+@keyframes micPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(75, 184, 216, .55); }
+  70%  { box-shadow: 0 0 0 14px rgba(75, 184, 216, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(75, 184, 216, 0); }
+}
+
+/* answers you can pick — only when this browser cannot listen */
 
 .chips {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .chips:empty { margin-bottom: 0; }
 
@@ -435,83 +506,8 @@ body {
   animation: rise .26s ease-out both;
 }
 .chip:hover { background: #fdfaf1; border-color: var(--ink-dim); transform: translateY(-1px); }
-.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 2px; }
 .chip.primary { border-color: var(--accent-soft); color: var(--accent-soft); }
-
-.input-row {
-  display: flex;
-  gap: 8px;
-}
-
-/* ── microphone ────────────────────────────────────────────── */
-
-.mic {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  color: var(--ink-dim);
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: color 160ms, border-color 160ms, background 160ms;
-}
-.mic svg {
-  width: 20px; height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-}
-.mic svg rect { fill: currentColor; stroke: none; }
-.mic:hover { color: var(--ink); border-color: #3d5764; }
-.mic:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.mic[disabled] { opacity: .4; cursor: default; }
-
-.mic.listening {
-  color: #10333d;
-  background: var(--accent);
-  border-color: var(--accent);
-  animation: micPulse 1.5s ease-out infinite;
-}
-
-@keyframes micPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(75, 184, 216, .55); }
-  70%  { box-shadow: 0 0 0 10px rgba(75, 184, 216, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(75, 184, 216, 0); }
-}
-
-#input {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  font-size: 14px;
-  color: var(--ink);
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 11px 14px;
-}
-#input::placeholder { color: #a89d88; }
-#input:focus { outline: none; border-color: var(--accent-soft); }
-
-#send {
-  font: inherit;
-  font-size: 16px;
-  width: 44px;
-  color: #10333d;
-  background: var(--accent);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: opacity 140ms;
-}
-#send:hover { opacity: .88; }
-
-.composer.locked { opacity: .4; pointer-events: none; }
 
 /* ── gate ──────────────────────────────────────────────────── */
 
@@ -617,7 +613,7 @@ body {
   #stamp-arm.stamping, #stamp-mark.on, #counter.jolt {
     animation: none;
   }
-  .msg, .chip, .gate-card, .mic.listening { animation: none; }
+  .msg, .chip, .cue.pop, .gate-card, .mic.listening { animation: none; }
   .mic.listening { box-shadow: 0 0 0 3px rgba(75, 184, 216, .45); }
   .log { scroll-behavior: auto; }
   #stamp-mark.on { opacity: 1; }
