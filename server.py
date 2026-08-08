@@ -550,7 +550,10 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path in ("/", "/index.html"):
             try:
                 with open(os.path.join(HERE, "index.html"), "rb") as fh:
-                    self._send(200, fh.read(), "text/html; charset=utf-8")
+                    # No caching: otherwise replacing index.html leaves the
+                    # browser showing the old page until someone hard-refreshes.
+                    self._send(200, fh.read(), "text/html; charset=utf-8",
+                               {"Cache-Control": "no-store"})
             except OSError:
                 self._send(500, "Could not read index.html — keep it next to server.py.")
             return

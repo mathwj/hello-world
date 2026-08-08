@@ -517,7 +517,9 @@ const server = http.createServer(async (req, res) => {
         res.end('Could not read ' + entry[0]);
         return;
       }
-      res.writeHead(200, { 'Content-Type': entry[1] });
+      // No caching: otherwise replacing index.html leaves the browser showing
+      // the old page until someone thinks to hard-refresh.
+      res.writeHead(200, { 'Content-Type': entry[1], 'Cache-Control': 'no-store' });
       res.end(buf);
     });
     return;
