@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Airbnb listings, sorted by price</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f6f4;
+    --panel: #ffffff;
+    --ink: #16161a;
+    --muted: #6b6b76;
+    --line: #e2e2dd;
+    --accent: #d2385a;
+    --accent-ink: #ffffff;
+    --shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131316;
+      --panel: #1c1c20;
+      --ink: #eeeef2;
+      --muted: #9a9aa6;
+      --line: #2e2e35;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 64px; }
+  header h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em; }
+  header p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+
+  form {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    align-items: end;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field.wide { grid-column: span 2; }
+  label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+  input, select {
+    font: inherit;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 9px 10px;
+    width: 100%;
+    min-width: 0;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button {
+    font: inherit; font-weight: 600;
+    border: 0; border-radius: 9px; padding: 10px 16px;
+    background: var(--accent); color: var(--accent-ink);
+    cursor: pointer;
+  }
+  button:disabled { opacity: .55; cursor: progress; }
+  .ghost {
+    background: transparent; color: var(--ink); cursor: pointer;
+    border: 1px solid var(--line); border-radius: 9px;
+    font: inherit; font-weight: 500; padding: 7px 12px;
+  }
+  a.ghost { text-decoration: none; display: inline-block; }
+  .ghost[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin: 22px 0 14px;
+  }
+  .toolbar .spacer { flex: 1 1 auto; }
+  .toolbar select { width: auto; }
+  .stats { color: var(--muted); font-size: 13px; }
+  .stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .note {
+    margin: 14px 0 0; padding: 11px 13px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel);
+    color: var(--muted); font-size: 13px;
+  }
+  .note.error { border-color: #d2385a55; color: #d2385a; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow); display: flex; flex-direction: column;
+    text-decoration: none; color: inherit;
+    transition: transform .15s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card .thumb { aspect-ratio: 4/3; background: var(--line); object-fit: cover; width: 100%; display: block; }
+  .card .body { padding: 12px 13px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .rank { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .name { font-weight: 600; line-height: 1.3; }
+  .meta { font-size: 13px; color: var(--muted); }
+  .price { margin-top: auto; padding-top: 8px; font-variant-numeric: tabular-nums; }
+  .price .big { font-size: 18px; font-weight: 700; }
+  .price .sub { font-size: 12px; color: var(--muted); }
+  .strike { text-decoration: line-through; color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 6px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; }
+  .badge {
+    font-size: 11px; padding: 2px 7px; border-radius: 99px;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel);
+          border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td a { color: inherit; font-weight: 600; text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+
+  footer { margin-top: 34px; color: var(--muted); font-size: 12.5px; line-height: 1.6; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Airbnb listings, sorted by price</h1>
+    <p>Searches an area on Airbnb, pulls several pages of results, and ranks them most expensive to cheapest.</p>
+  </header>
+
+  <form id="search-form">
+    <div class="field wide">
+      <label for="place">Where</label>
+      <input id="place" name="place" placeholder="Lisbon, Portugal" required>
+    </div>
+    <div class="field">
+      <label for="checkin">Check in</label>
+      <input id="checkin" name="checkin" type="date">
+    </div>
+    <div class="field">
+      <label for="checkout">Check out</label>
+      <input id="checkout" name="checkout" type="date">
+    </div>
+    <div class="field">
+      <label for="adults">Guests</label>
+      <input id="adults" name="adults" type="number" min="1" max="16" value="2">
+    </div>
+    <div class="field">
+      <label for="currency">Currency</label>
+      <select id="currency" name="currency">
+        <option value="">Airbnb default</option>
+        <option>USD</option><option>EUR</option><option>GBP</option>
+        <option>DKK</option><option>SEK</option><option>NOK</option>
+        <option>CHF</option><option>CAD</option><option>AUD</option>
+        <option>JPY</option><option>INR</option><option>BRL</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="pages">Pages to scan</label>
+      <select id="pages" name="pages">
+        <option value="1">1 (~18 listings)</option>
+        <option value="3" selected>3 (~54)</option>
+        <option value="5">5 (~90)</option>
+        <option value="8">8 (~144)</option>
+        <option value="12">12 (~216)</option>
+        <option value="15">15 (~270)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="roomType">Place type</label>
+      <select id="roomType" name="roomType">
+        <option value="">Any</option>
+        <option value="Entire home/apt">Entire home/apt</option>
+        <option value="Private room">Private room</option>
+        <option value="Shared room">Shared room</option>
+        <option value="Hotel room">Hotel room</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="minPrice">Min / night</label>
+      <input id="minPrice" name="minPrice" type="number" min="0" placeholder="any">
+    </div>
+    <div class="field">
+      <label for="maxPrice">Max / night</label>
+      <input id="maxPrice" name="maxPrice" type="number" min="0" placeholder="any">
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button id="submit" type="submit">Search</button>
+    </div>
+  </form>
+
+  <div id="message" class="note hidden"></div>
+
+  <div id="toolbar" class="toolbar hidden">
+    <label for="sort" style="font-size:13px">Sort</label>
+    <select id="sort">
+      <option value="total-desc">Price: most expensive first</option>
+      <option value="total-asc">Price: cheapest first</option>
+      <option value="night-desc">Per night: high to low</option>
+      <option value="night-asc">Per night: low to high</option>
+      <option value="rating-desc">Rating: best first</option>
+      <option value="reviews-desc">Most reviewed</option>
+    </select>
+    <button type="button" class="ghost" id="view-cards" aria-pressed="true">Cards</button>
+    <button type="button" class="ghost" id="view-table" aria-pressed="false">Table</button>
+    <div class="spacer"></div>
+    <div class="stats" id="stats"></div>
+    <button type="button" class="ghost" id="export">Export CSV</button>
+    <a id="open-airbnb" class="ghost" style="display:none"></a>
+  </div>
+
+  <div id="results-cards" class="grid"></div>
+  <div id="results-table" class="hidden"></div>
+
+  <footer>
+    Listings come from Airbnb's own search results for the pages scanned &mdash; that is a slice of the
+    area, not every listing in it. Scan more pages for a deeper pool. Displayed prices follow whatever
+    Airbnb shows for your dates (usually the stay total before taxes); per-night figures are derived
+    from it. Verify on Airbnb before booking.
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const form = $('search-form');
+  const message = $('message');
+  const toolbar = $('toolbar');
+  const cardsEl = $('results-cards');
+  const tableEl = $('results-table');
+  const STORAGE_KEY = 'airbnb-sorter-form';
+
+  let listings = [];
+  let meta = null;
+  let view = 'cards';
+
+  /* ---------- helpers ---------- */
+
+  const money = (n, symbol) =>
+    n == null ? '—' : (symbol || '') + n.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: n < 100 ? 2 : 0,
+    });
+
+  const symbolOf = () => (listings.find((l) => l.currency)?.currency) || '';
+
+  function median(nums) {
+    if (!nums.length) return null;
+    const s = [...nums].sort((a, b) => a - b);
+    const mid = s.length >> 1;
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+
+  function showMessage(text, isError) {
+    message.textContent = text;
+    message.className = 'note' + (isError ? ' error' : '');
+    message.classList.toggle('hidden', !text);
+  }
+
+  /* ---------- sorting ---------- */
+
+  const SORTERS = {
+    'total-desc': (a, b) => nz(b.total) - nz(a.total),
+    'total-asc': (a, b) => pz(a.total) - pz(b.total),
+    'night-desc': (a, b) => nz(b.perNight) - nz(a.perNight),
+    'night-asc': (a, b) => pz(a.perNight) - pz(b.perNight),
+    'rating-desc': (a, b) => nz(b.rating) - nz(a.rating),
+    'reviews-desc': (a, b) => nz(b.reviews) - nz(a.reviews),
+  };
+  // Listings with no price always sink to the bottom, whichever direction we sort.
+  const nz = (v) => (v == null ? -Infinity : v);
+  const pz = (v) => (v == null ? Infinity : v);
+
+  function sorted() {
+    return [...listings].sort(SORTERS[$('sort').value] || SORTERS['total-desc']);
+  }
+
+  /* ---------- rendering ---------- */
+
+  function render() {
+    const rows = sorted();
+    const symbol = symbolOf();
+    const nightly = rows.map((l) => l.perNight).filter((n) => n != null);
+
+    $('stats').innerHTML = nightly.length
+      ? `<b>${rows.length}</b> listings &middot; per night
+         <b>${money(Math.min(...nightly), symbol)}</b>–<b>${money(Math.max(...nightly), symbol)}</b>
+         &middot; median <b>${money(median(nightly), symbol)}</b>`
+      : `<b>${rows.length}</b> listings`;
+
+    if (view === 'cards') {
+      cardsEl.classList.remove('hidden');
+      tableEl.classList.add('hidden');
+      cardsEl.innerHTML = rows.map(cardHtml).join('');
+    } else {
+      cardsEl.classList.add('hidden');
+      tableEl.classList.remove('hidden');
+      tableEl.innerHTML = tableHtml(rows);
+    }
+  }
+
+  const esc = (s) =>
+    String(s ?? '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function priceBlock(l) {
+    const symbol = l.currency || '';
+    const main = l.total != null ? money(l.total, symbol) : esc(l.displayPrice || '—');
+    const nights = l.nights ? `${l.nights} night${l.nights > 1 ? 's' : ''}` : 'stay';
+    const per = l.perNight != null ? `${money(l.perNight, symbol)} / night` : '';
+    return { main, sub: per ? `${per} &middot; ${nights} total` : esc(l.qualifier || '') };
+  }
+
+  // Airbnb serves resized copies via im_w; the local server proxies them so the
+  // browser never talks to Airbnb's CDN directly.
+  const thumbUrl = (url) =>
+    url ? '/img?u=' + encodeURIComponent(url + (url.includes('?') ? '&' : '?') + 'im_w=480') : '';
+
+  function cardHtml(l, i) {
+    const p = priceBlock(l);
+    const badges = (l.badges || []).slice(0, 2)
+      .map((b) => `<span class="badge">${esc(b)}</span>`).join('');
+    return `
+      <a class="card" href="${esc(l.url || '#')}" target="_blank" rel="noopener">
+        ${l.photo ? `<img class="thumb" loading="lazy" src="${esc(thumbUrl(l.photo))}" alt="">`
+                  : `<div class="thumb"></div>`}
+        <div class="body">
+          <div class="rank">#${i + 1}${l.ratingLabel ? ' &middot; ★ ' + esc(l.ratingLabel) : ''}</div>
+          <div class="name">${esc(l.name)}</div>
+          <div class="meta">${esc((l.facts || []).join(' · '))}</div>
+          ${badges ? `<div class="badges">${badges}</div>` : ''}
+          <div class="price">
+            <span class="big">${p.main}</span>
+            ${l.originalPrice ? `<span class="strike">${esc(l.originalPrice)}</span>` : ''}
+            <div class="sub">${p.sub}</div>
+          </div>
+        </div>
+      </a>`;
+  }
+
+  function tableHtml(rows) {
+    const body = rows.map((l, i) => {
+      const symbol = l.currency || '';
+      return `<tr>
+        <td class="num">${i + 1}</td>
+        <td><a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.name)}</a>
+            <div class="meta">${esc((l.facts || []).join(' · '))}</div></td>
+        <td class="num">${l.ratingLabel ? '★ ' + esc(l.ratingLabel) : '—'}</td>
+        <td class="num">${money(l.perNight, symbol)}</td>
+        <td class="num"><b>${l.total != null ? money(l.total, symbol) : esc(l.displayPrice || '—')}</b></td>
+      </tr>`;
+    }).join('');
+    return `<table>
+      <thead><tr><th>#</th><th>Listing</th><th style="text-align:right">Rating</th>
+      <th style="text-align:right">Per night</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${body}</tbody></table>`;
+  }
+
+  /* ---------- search ---------- */
+
+  async function runSearch(event) {
+    event.preventDefault();
+    const data = new FormData(form);
+    const params = new URLSearchParams();
+    for (const [k, v] of data.entries()) if (String(v).trim()) params.set(k, v);
+
+    if (data.get('checkin') && data.get('checkout') &&
+        data.get('checkout') <= data.get('checkin')) {
+      showMessage('Check-out must be after check-in.', true);
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, params.toString());
+    $('submit').disabled = true;
+    $('submit').textContent = 'Searching…';
+    showMessage('Fetching ' + (data.get('pages') || 3) + ' page(s) from Airbnb…');
+    toolbar.classList.add('hidden');
+    cardsEl.innerHTML = '';
+    tableEl.innerHTML = '';
+
+    try {
+      const res = await fetch('/api/search?' + params.toString());
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Request failed');
+
+      listings = payload.listings || [];
+      meta = payload;
+
+      if (!listings.length) {
+        showMessage('No listings came back. Try a broader area, different dates, or fewer filters.', true);
+        return;
+      }
+      const warn = (payload.warnings || []).length
+        ? ' Some pages were skipped: ' + payload.warnings.join(' ')
+        : '';
+      showMessage(`${listings.length} listings from ${payload.query.pagesRequested} page(s).${warn}`);
+
+      const link = $('open-airbnb');
+      if (payload.searchUrl) {
+        link.href = payload.searchUrl;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = 'Open on Airbnb';
+        link.style.display = '';
+      }
+      toolbar.classList.remove('hidden');
+      render();
+    } catch (err) {
+      const offline = location.protocol === 'file:';
+      showMessage(
+        offline
+          ? 'Open this page through the local server (node server.js, then http://127.0.0.1:8787) — ' +
+            'a page loaded from disk cannot reach Airbnb.'
+          : 'Search failed: ' + err.message,
+        true
+      );
+    } finally {
+      $('submit').disabled = false;
+      $('submit').textContent = 'Search';
+    }
+  }
+
+  /* ---------- CSV ---------- */
+
+  function exportCsv() {
+    const cols = ['rank', 'name', 'total', 'perNight', 'nights', 'currency',
+                  'rating', 'reviews', 'url'];
+    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [cols.join(',')];
+    sorted().forEach((l, i) => {
+      lines.push(cols.map((c) => cell(c === 'rank' ? i + 1 : l[c])).join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `airbnb-${(meta?.query.place || 'listings').replace(/\W+/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  /* ---------- wiring ---------- */
+
+  form.addEventListener('submit', runSearch);
+  $('sort').addEventListener('change', render);
+  $('export').addEventListener('click', exportCsv);
+  $('view-cards').addEventListener('click', () => setView('cards'));
+  $('view-table').addEventListener('click', () => setView('table'));
+
+  function setView(next) {
+    view = next;
+    $('view-cards').setAttribute('aria-pressed', String(next === 'cards'));
+    $('view-table').setAttribute('aria-pressed', String(next === 'table'));
+    render();
+  }
+
+  // Restore the previous search so a reload doesn't mean retyping everything.
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const params = new URLSearchParams(saved);
+    for (const [k, v] of params.entries()) {
+      const el = form.elements[k];
+      if (el) el.value = v;
+    }
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "airbnb-listing-sorter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Search an area on Airbnb and sort the listings from most expensive to cheapest.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
