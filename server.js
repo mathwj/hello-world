@@ -35,11 +35,22 @@ function pageCursor(offset) {
   return Buffer.from(raw, 'utf8').toString('base64');
 }
 
-function buildSearchUrl(opts, offset) {
+function buildSearchUrl(opts, offset, bounds) {
   const place = (opts.place || '').trim();
   const slug = encodeURIComponent(place).replace(/%20/g, '-');
   const url = new URL(`https://www.airbnb.com/s/${slug}/homes`);
   const p = url.searchParams;
+
+  // Searching by map bounds is what makes street-level results possible: a
+  // plain text query for a street scatters results across the whole city.
+  if (bounds) {
+    p.set('search_by_map', 'true');
+    p.set('ne_lat', String(bounds.north));
+    p.set('ne_lng', String(bounds.east));
+    p.set('sw_lat', String(bounds.south));
+    p.set('sw_lng', String(bounds.west));
+    p.set('zoom', '15');
+  }
 
   p.set('tab_id', 'home_tab');
   p.set('refinement_paths[]', '/homes');
@@ -61,8 +72,8 @@ function buildSearchUrl(opts, offset) {
   return url.toString();
 }
 
-async function fetchSearchPage(opts, offset) {
-  const url = buildSearchUrl(opts, offset);
+async function fetchSearchPage(opts, offset, bounds) {
+  const url = buildSearchUrl(opts, offset, bounds);
   const res = await fetch(url, {
     headers: {
       'User-Agent': UA,
@@ -241,11 +252,128 @@ function normalizeResult(node, opts) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Streets: geocoding and geometry
+ * ------------------------------------------------------------------ */
+
+const geoCache = new Map();
+let geoChain = Promise.resolve(); // Nominatim asks for <=1 request per second
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const normalizeName = (s) =>
+  (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+function boxOf(result) {
+  const [south, north, west, east] = result.boundingbox.map(Number);
+  return { south, north, west, east };
+}
+
+function unionBoxes(boxes) {
+  return {
+    south: Math.min(...boxes.map((b) => b.south)),
+    north: Math.max(...boxes.map((b) => b.north)),
+    west: Math.min(...boxes.map((b) => b.west)),
+    east: Math.max(...boxes.map((b) => b.east)),
+  };
+}
+
+function expandBox(box, meters) {
+  const midLat = (box.south + box.north) / 2;
+  const dLat = meters / 111320;
+  const dLng = meters / (111320 * Math.max(0.05, Math.cos((midLat * Math.PI) / 180)));
+  return {
+    south: box.south - dLat,
+    north: box.north + dLat,
+    west: box.west - dLng,
+    east: box.east + dLng,
+  };
+}
+
+/** Metres from a point to the nearest edge of a box (0 when inside it). */
+function metresToBox(lat, lng, box) {
+  const dLat = Math.max(box.south - lat, 0, lat - box.north);
+  const dLng = Math.max(box.west - lng, 0, lng - box.east);
+  const y = dLat * 111320;
+  const x = dLng * 111320 * Math.max(0.05, Math.cos((lat * Math.PI) / 180));
+  return Math.sqrt(x * x + y * y);
+}
+
+const metresToNearestSegment = (lat, lng, segments) =>
+  Math.min(...segments.map((seg) => metresToBox(lat, lng, seg)));
+
+/**
+ * Nominatim returns one road segment per result, so a long avenue comes back as
+ * a 50 m stub. Collecting every segment that shares the street's name rebuilds
+ * the whole street, which is what the map query and the distance filter need.
+ */
+async function geocodeStreet(street, place) {
+  const key = `${street}|${place}`.toLowerCase();
+  if (geoCache.has(key)) return geoCache.get(key);
+
+  const run = geoChain.then(async () => {
+    const query = place ? `${street}, ${place}` : street;
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=json&limit=50&q=' +
+      encodeURIComponent(query);
+    let res = null;
+    // Nominatim answers 429 when queries come too close together; back off
+    // rather than dropping the street from the search.
+    for (const backoff of [0, 2000, 5000]) {
+      if (backoff) await sleep(backoff);
+      res = await fetch(url, {
+        headers: {
+          'User-Agent': 'airbnb-listing-sorter/1.0 (personal use)',
+          'Accept-Language': 'en',
+        },
+      });
+      if (res.status !== 429) break;
+    }
+    await sleep(1100); // stay under Nominatim's rate limit
+    if (!res.ok) throw new Error(`geocoder returned HTTP ${res.status}`);
+    const results = await res.json();
+    if (!Array.isArray(results) || !results.length) return null;
+
+    const wanted = normalizeName(street.split(',')[0]);
+    const roads = results.filter(
+      (r) =>
+        r.addresstype === 'road' &&
+        r.boundingbox &&
+        (normalizeName(r.name) === wanted ||
+          normalizeName(r.name).includes(wanted) ||
+          wanted.includes(normalizeName(r.name)))
+    );
+    // Fall back to the top hit for things that are not roads at all, so a
+    // neighbourhood or a landmark still works as a search centre.
+    const chosen = roads.length ? roads : results.slice(0, 1);
+    const segments = chosen.map(boxOf);
+    return {
+      name: chosen[0].name || street,
+      displayName: chosen[0].display_name || street,
+      query: street,
+      segments,
+      bbox: unionBoxes(segments),
+      exact: roads.length > 0,
+    };
+  });
+
+  geoChain = run.catch(() => {});
+  const value = await run;
+  geoCache.set(key, value);
+  return value;
+}
+
+/* ------------------------------------------------------------------ *
  * Search orchestration
  * ------------------------------------------------------------------ */
 
 /** Fetch one price band, paging through it, and return its normalized listings. */
-async function scanBand(opts, band, warnings) {
+async function scanBand(opts, band, warnings, bounds) {
   const bandOpts = { ...opts, minPrice: band.min || 0, maxPrice: band.max || 0 };
   const offsets = Array.from({ length: MAX_PAGES }, (_, i) => i * PAGE_SIZE);
   const found = [];
@@ -257,7 +385,7 @@ async function scanBand(opts, band, warnings) {
     while (cursor < offsets.length && !exhausted) {
       const offset = offsets[cursor++];
       try {
-        const { html, url } = await fetchSearchPage(bandOpts, offset);
+        const { html, url } = await fetchSearchPage(bandOpts, offset, bounds);
         if (offset === 0) firstUrl = url;
         const state = extractDeferredState(html);
         if (!state) {
@@ -297,17 +425,16 @@ const label = (band) =>
  * own search with its own inventory; bands that come back full get split at
  * their median price and scanned again, which adapts to any currency or market.
  */
-async function search(opts, onBatch) {
-  const target = Math.min(Math.max(opts.limit || 50, PAGE_SIZE), MAX_LISTINGS);
-  const listings = [];
-  const seen = new Set();
-  const warnings = [];
-  let firstUrl = null;
+async function searchArea(opts, area, ctx, onBatch) {
+  const { target, listings, seen, warnings } = ctx;
+  const bounds = area ? expandBox(area.bbox, opts.radius) : null;
+  const areaTarget = Math.min(listings.length + target, MAX_LISTINGS);
   let bandsDone = 0;
+  let firstUrl = null;
 
   const queue = [{ min: opts.minPrice || 0, max: opts.maxPrice || 0, depth: 0 }];
 
-  while (queue.length && listings.length < target && bandsDone < MAX_BANDS) {
+  while (queue.length && listings.length < areaTarget && bandsDone < MAX_BANDS) {
     // Work inwards from both ends of the price range: scanning top-down alone
     // fills the expensive tail but leaves "cheapest first" badly sampled.
     const ceiling = (b) => (b.max ? b.max : Infinity);
@@ -323,15 +450,29 @@ async function search(opts, onBatch) {
       if (better) pick = i;
     }
     const band = queue.splice(pick, 1)[0];
-    const { found, firstUrl: url } = await scanBand(opts, band, warnings);
+    const { found, firstUrl: url } = await scanBand(opts, band, warnings, bounds);
     bandsDone++;
     if (!firstUrl) firstUrl = url;
 
     const fresh = [];
     for (const listing of found) {
+      // Airbnb's map box is a rectangle around the whole street, so trim it
+      // back to listings actually within the radius of one of its segments.
+      if (area) {
+        if (listing.lat == null || listing.lng == null) continue;
+        const metres = metresToNearestSegment(listing.lat, listing.lng, area.segments);
+        if (metres > opts.radius) continue;
+        listing.metresFromStreet = Math.round(metres);
+      }
       const key = listing.id || listing.name;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      const already = seen.get(key);
+      if (already) {
+        // A listing can sit near two of the requested streets.
+        if (area && !already.streets.includes(area.name)) already.streets.push(area.name);
+        continue;
+      }
+      if (area) listing.streets = [area.name];
+      seen.set(key, listing);
       fresh.push(listing);
       listings.push(listing);
     }
@@ -341,17 +482,18 @@ async function search(opts, onBatch) {
     if (onBatch) {
       const keepGoing = onBatch(fresh, {
         total: listings.length,
-        target,
-        bandsDone,
+        target: ctx.overallTarget,
+        bandsDone: ++ctx.bandsDone,
         bandsQueued: queue.length,
         band: label(band),
+        area: area ? area.name : null,
       });
-      if (keepGoing === false) break;
+      if (keepGoing === false) return { firstUrl, stopped: true };
     }
 
     // A band that filled every page it was allowed probably has more behind it.
     const full = found.length >= MAX_PAGES * PAGE_SIZE * 0.9;
-    if (full && listings.length < target && band.depth < MAX_BAND_DEPTH) {
+    if (full && listings.length < areaTarget && band.depth < MAX_BAND_DEPTH) {
       const prices = found
         .map((l) => l.perNight)
         .filter((n) => n != null)
@@ -366,7 +508,55 @@ async function search(opts, onBatch) {
     }
   }
 
-  listings.sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
+  return { firstUrl, stopped: false };
+}
+
+/**
+ * Runs one scan per requested street, or a single area-wide scan when no
+ * streets are given, and merges the results. Airbnb never publishes a listing's
+ * street address, so "on this street" means "within the chosen radius of it"
+ * using the approximate coordinates Airbnb does publish.
+ */
+async function search(opts, onBatch) {
+  const target = Math.min(Math.max(opts.limit || 50, PAGE_SIZE), MAX_LISTINGS);
+  const ctx = {
+    target,
+    overallTarget: target * Math.max(1, (opts.streets || []).length),
+    listings: [],
+    seen: new Map(),
+    warnings: [],
+    bandsDone: 0,
+  };
+
+  const areas = [];
+  for (const street of opts.streets || []) {
+    try {
+      const geo = await geocodeStreet(street, opts.place);
+      if (geo) areas.push(geo);
+      else ctx.warnings.push(`Could not find "${street}" in ${opts.place}.`);
+    } catch (err) {
+      ctx.warnings.push(`Could not look up "${street}": ${err.message}`);
+    }
+  }
+  // Never fall back to an area-wide scan here: someone who asked for specific
+  // streets would silently get the whole city instead.
+  const requestedStreets = (opts.streets || []).length > 0;
+  if (requestedStreets && !areas.length) {
+    ctx.warnings.push(
+      'None of those streets could be located, so no search was run. ' +
+        'Check the spelling, or include the city in the street name.'
+    );
+  }
+
+  let firstUrl = null;
+  const toScan = requestedStreets ? areas : [null];
+  for (const area of toScan) {
+    const result = await searchArea(opts, area, ctx, onBatch);
+    if (!firstUrl) firstUrl = result.firstUrl;
+    if (result.stopped) break;
+  }
+
+  ctx.listings.sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
 
   return {
     query: {
@@ -377,12 +567,20 @@ async function search(opts, onBatch) {
       nights: nightsBetween(opts.checkin, opts.checkout),
       currency: opts.currency || null,
       target,
-      bandsScanned: bandsDone,
+      bandsScanned: ctx.bandsDone,
+      radius: areas.length ? opts.radius : null,
+      streets: areas.map((a) => ({
+        name: a.name,
+        displayName: a.displayName,
+        query: a.query,
+        exact: a.exact,
+        segments: a.segments.length,
+      })),
     },
     searchUrl: firstUrl,
-    count: listings.length,
-    warnings,
-    listings,
+    count: ctx.listings.length,
+    warnings: ctx.warnings,
+    listings: ctx.listings,
   };
 }
 
@@ -407,6 +605,8 @@ function optsFromParams(params) {
     infants: intParam(params, 'infants', 0),
     pets: intParam(params, 'pets', 0),
     limit: intParam(params, 'limit', 50),
+    streets: params.getAll('street').map((s) => s.trim()).filter(Boolean),
+    radius: Math.min(Math.max(intParam(params, 'radius', 400), 50), 5000),
     currency: params.get('currency') || '',
     minPrice: intParam(params, 'minPrice', 0),
     maxPrice: intParam(params, 'maxPrice', 0),

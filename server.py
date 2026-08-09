@@ -13,8 +13,12 @@ Standard library only.
 import argparse
 import base64
 import json
+import math
 import os
 import re
+import threading
+import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -53,11 +57,23 @@ def page_cursor(offset):
     return base64.b64encode(raw.encode()).decode()
 
 
-def build_search_url(opts, offset):
+def build_search_url(opts, offset, bounds=None):
     place = (opts.get("place") or "").strip()
     slug = urllib.parse.quote(place, safe="").replace("%20", "-")
 
-    params = [
+    params = []
+    # Searching by map bounds is what makes street-level results possible: a
+    # plain text query for a street scatters results across the whole city.
+    if bounds:
+        params += [
+            ("search_by_map", "true"),
+            ("ne_lat", str(bounds["north"])),
+            ("ne_lng", str(bounds["east"])),
+            ("sw_lat", str(bounds["south"])),
+            ("sw_lng", str(bounds["west"])),
+            ("zoom", "15"),
+        ]
+    params += [
         ("tab_id", "home_tab"),
         ("refinement_paths[]", "/homes"),
         ("query", place),
@@ -83,8 +99,8 @@ def build_search_url(opts, offset):
     return f"https://www.airbnb.com/s/{slug}/homes?" + urllib.parse.urlencode(params)
 
 
-def fetch_search_page(opts, offset):
-    url = build_search_url(opts, offset)
+def fetch_search_page(opts, offset, bounds=None):
+    url = build_search_url(opts, offset, bounds)
     req = urllib.request.Request(
         url,
         headers={
@@ -289,6 +305,136 @@ def normalize_result(node, opts):
 
 
 # --------------------------------------------------------------------------- #
+# Streets: geocoding and geometry
+# --------------------------------------------------------------------------- #
+
+_geo_cache = {}
+_geo_lock = threading.Lock()  # Nominatim asks for <=1 request per second
+
+
+def normalize_name(text):
+    stripped = unicodedata.normalize("NFD", text or "")
+    stripped = "".join(c for c in stripped if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", stripped.lower())).strip()
+
+
+def box_of(result):
+    south, north, west, east = (float(v) for v in result["boundingbox"])
+    return {"south": south, "north": north, "west": west, "east": east}
+
+
+def union_boxes(boxes):
+    return {
+        "south": min(b["south"] for b in boxes),
+        "north": max(b["north"] for b in boxes),
+        "west": min(b["west"] for b in boxes),
+        "east": max(b["east"] for b in boxes),
+    }
+
+
+def expand_box(box, metres):
+    mid_lat = (box["south"] + box["north"]) / 2
+    d_lat = metres / 111320
+    d_lng = metres / (111320 * max(0.05, math.cos(math.radians(mid_lat))))
+    return {
+        "south": box["south"] - d_lat,
+        "north": box["north"] + d_lat,
+        "west": box["west"] - d_lng,
+        "east": box["east"] + d_lng,
+    }
+
+
+def metres_to_box(lat, lng, box):
+    """Metres from a point to the nearest edge of a box (0 when inside it)."""
+    d_lat = max(box["south"] - lat, 0, lat - box["north"])
+    d_lng = max(box["west"] - lng, 0, lng - box["east"])
+    y = d_lat * 111320
+    x = d_lng * 111320 * max(0.05, math.cos(math.radians(lat)))
+    return math.hypot(x, y)
+
+
+def metres_to_nearest_segment(lat, lng, segments):
+    return min(metres_to_box(lat, lng, seg) for seg in segments)
+
+
+def geocode_street(street, place):
+    """
+    Nominatim returns one road segment per result, so a long avenue comes back
+    as a 50 m stub. Collecting every segment that shares the street's name
+    rebuilds the whole street, which the map query and distance filter need.
+    """
+    key = f"{street}|{place}".lower()
+    if key in _geo_cache:
+        return _geo_cache[key]
+
+    with _geo_lock:
+        if key in _geo_cache:
+            return _geo_cache[key]
+        query = f"{street}, {place}" if place else street
+        url = (
+            "https://nominatim.openstreetmap.org/search?format=json&limit=50&q="
+            + urllib.parse.quote(query)
+        )
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "airbnb-listing-sorter/1.0 (personal use)",
+                "Accept-Language": "en",
+            },
+        )
+        # Nominatim answers 429 when queries come too close together; back off
+        # rather than dropping the street from the search.
+        results = None
+        last_error = None
+        for backoff in (0, 2, 5):
+            if backoff:
+                time.sleep(backoff)
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    results = json.loads(resp.read().decode("utf-8", "replace"))
+                last_error = None
+                break
+            except urllib.error.HTTPError as err:
+                last_error = err
+                if err.code != 429:
+                    break
+        time.sleep(1.1)  # stay under Nominatim's rate limit
+        if last_error is not None:
+            raise last_error
+
+        if not isinstance(results, list) or not results:
+            _geo_cache[key] = None
+            return None
+
+        wanted = normalize_name(street.split(",")[0])
+        roads = [
+            r for r in results
+            if r.get("addresstype") == "road" and r.get("boundingbox")
+            and (normalize_name(r.get("name")) == wanted
+                 or wanted in normalize_name(r.get("name"))
+                 or normalize_name(r.get("name")) in wanted)
+        ]
+        # Fall back to the top hit for things that are not roads at all, so a
+        # neighbourhood or a landmark still works as a search centre.
+        chosen = roads or results[:1]
+        segments = [box_of(r) for r in chosen if r.get("boundingbox")]
+        if not segments:
+            _geo_cache[key] = None
+            return None
+
+        area = {
+            "name": chosen[0].get("name") or street,
+            "displayName": chosen[0].get("display_name") or street,
+            "query": street,
+            "segments": segments,
+            "bbox": union_boxes(segments),
+            "exact": bool(roads),
+        }
+        _geo_cache[key] = area
+        return area
+
+
+# --------------------------------------------------------------------------- #
 # Search orchestration
 # --------------------------------------------------------------------------- #
 
@@ -298,14 +444,14 @@ def band_label(band):
     return "Whole area"
 
 
-def scan_band(opts, band, warnings):
+def scan_band(opts, band, warnings, bounds=None):
     """Fetch one price band, paging through it, and return its listings."""
     band_opts = dict(opts, minPrice=band["min"] or 0, maxPrice=band["max"] or 0)
     offsets = [i * PAGE_SIZE for i in range(MAX_PAGES)]
 
     def load(offset):
         try:
-            html, url = fetch_search_page(band_opts, offset)
+            html, url = fetch_search_page(band_opts, offset, bounds)
         except Exception as err:  # network, HTTP error, timeout
             return offset, None, None, f"{band_label(band)}: {err}"
         state = extract_deferred_state(html)
@@ -331,23 +477,24 @@ def scan_band(opts, band, warnings):
     return found, first_url
 
 
-def search(opts, on_batch=None):
+def search_area(opts, area, ctx, on_batch=None):
     """
     Airbnb recycles results past a few hundred deep on a single query, so going
     wider means splitting the query instead of paging it. Each price band is its
     own search with its own inventory; bands that come back full get split at
     their median price and scanned again, which adapts to any currency market.
     """
-    target = min(max(opts.get("limit") or 50, PAGE_SIZE), MAX_LISTINGS)
-    listings = []
-    seen = set()
-    warnings = []
+    listings = ctx["listings"]
+    seen = ctx["seen"]
+    warnings = ctx["warnings"]
+    bounds = expand_box(area["bbox"], opts.get("radius") or 400) if area else None
+    area_target = min(len(listings) + ctx["target"], MAX_LISTINGS)
     first_url = None
     bands_done = 0
 
     queue = [{"min": opts.get("minPrice") or 0, "max": opts.get("maxPrice") or 0, "depth": 0}]
 
-    while queue and len(listings) < target and bands_done < MAX_BANDS:
+    while queue and len(listings) < area_target and bands_done < MAX_BANDS:
         # Work inwards from both ends of the price range, weighted 2:1 towards
         # the top: the expensive tail is the headline of this page, but every
         # third band works up from the cheap end so the bottom of the list is
@@ -359,42 +506,111 @@ def search(opts, on_batch=None):
             pick = min(range(len(queue)), key=lambda i: queue[i]["min"] or 0)
         band = queue.pop(pick)
 
-        found, url = scan_band(opts, band, warnings)
+        found, url = scan_band(opts, band, warnings, bounds)
         bands_done += 1
         if first_url is None:
             first_url = url
 
         fresh = []
         for listing in found:
+            # Airbnb's map box is a rectangle around the whole street, so trim
+            # it back to listings actually within the radius of a segment.
+            if area:
+                if listing["lat"] is None or listing["lng"] is None:
+                    continue
+                metres = metres_to_nearest_segment(
+                    listing["lat"], listing["lng"], area["segments"]
+                )
+                if metres > (opts.get("radius") or 400):
+                    continue
+                listing["metresFromStreet"] = round(metres)
             key = listing["id"] or listing["name"]
-            if key in seen:
+            already = seen.get(key)
+            if already is not None:
+                # A listing can sit near two of the requested streets.
+                if area and area["name"] not in already["streets"]:
+                    already["streets"].append(area["name"])
                 continue
-            seen.add(key)
+            if area:
+                listing["streets"] = [area["name"]]
+            seen[key] = listing
             fresh.append(listing)
             listings.append(listing)
 
         # on_batch returns False when the page has gone away, so an abandoned
         # scan stops hitting Airbnb instead of running to completion unwatched.
         if on_batch is not None:
+            ctx["bandsDone"] += 1
             keep_going = on_batch(fresh, {
                 "total": len(listings),
-                "target": target,
-                "bandsDone": bands_done,
+                "target": ctx["overallTarget"],
+                "bandsDone": ctx["bandsDone"],
                 "bandsQueued": len(queue),
                 "band": band_label(band),
+                "area": area["name"] if area else None,
             })
             if keep_going is False:
-                break
+                return first_url, True
 
         # A band that filled every page it was allowed probably has more behind it.
         full = len(found) >= MAX_PAGES * PAGE_SIZE * 0.9
-        if full and len(listings) < target and band["depth"] < MAX_BAND_DEPTH:
+        if full and len(listings) < area_target and band["depth"] < MAX_BAND_DEPTH:
             prices = sorted(l["perNight"] for l in found if l["perNight"] is not None)
             mid = round(prices[len(prices) // 2]) if prices else 0
             if mid > (band["min"] or 0) + 1 and (not band["max"] or mid < band["max"] - 1):
                 queue.append({"min": band["min"] or 0, "max": mid, "depth": band["depth"] + 1})
                 queue.append({"min": mid, "max": band["max"] or 0, "depth": band["depth"] + 1})
 
+    return first_url, False
+
+
+def search(opts, on_batch=None):
+    """
+    Runs one scan per requested street, or a single area-wide scan when no
+    streets are given, and merges the results. Airbnb never publishes a
+    listing's street address, so "on this street" means "within the chosen
+    radius of it" using the approximate coordinates Airbnb does publish.
+    """
+    target = min(max(opts.get("limit") or 50, PAGE_SIZE), MAX_LISTINGS)
+    streets = opts.get("streets") or []
+    ctx = {
+        "target": target,
+        "overallTarget": target * max(1, len(streets)),
+        "listings": [],
+        "seen": {},
+        "warnings": [],
+        "bandsDone": 0,
+    }
+
+    areas = []
+    for street in streets:
+        try:
+            area = geocode_street(street, opts.get("place"))
+            if area:
+                areas.append(area)
+            else:
+                ctx["warnings"].append(
+                    f'Could not find "{street}" in {opts.get("place")}.'
+                )
+        except Exception as err:
+            ctx["warnings"].append(f'Could not look up "{street}": {err}')
+    # Never fall back to an area-wide scan here: someone who asked for specific
+    # streets would silently get the whole city instead.
+    if streets and not areas:
+        ctx["warnings"].append(
+            "None of those streets could be located, so no search was run. "
+            "Check the spelling, or include the city in the street name."
+        )
+
+    first_url = None
+    for area in (areas if streets else [None]):
+        url, stopped = search_area(opts, area, ctx, on_batch)
+        if first_url is None:
+            first_url = url
+        if stopped:
+            break
+
+    listings = ctx["listings"]
     listings.sort(key=lambda l: l["total"] if l["total"] is not None else -1, reverse=True)
 
     return {
@@ -406,11 +622,22 @@ def search(opts, on_batch=None):
             "nights": nights_between(opts.get("checkin"), opts.get("checkout")),
             "currency": opts.get("currency") or None,
             "target": target,
-            "bandsScanned": bands_done,
+            "bandsScanned": ctx["bandsDone"],
+            "radius": (opts.get("radius") or 400) if areas else None,
+            "streets": [
+                {
+                    "name": a["name"],
+                    "displayName": a["displayName"],
+                    "query": a["query"],
+                    "exact": a["exact"],
+                    "segments": len(a["segments"]),
+                }
+                for a in areas
+            ],
         },
         "searchUrl": first_url,
         "count": len(listings),
-        "warnings": warnings,
+        "warnings": ctx["warnings"],
         "listings": listings,
     }
 
@@ -437,6 +664,8 @@ def opts_from_params(params):
         "infants": int_param(params, "infants", 0),
         "pets": int_param(params, "pets", 0),
         "limit": int_param(params, "limit", 50),
+        "streets": [v.strip() for v in (params.get("street") or []) if v.strip()],
+        "radius": min(max(int_param(params, "radius", 400), 50), 5000),
         "currency": (params.get("currency") or [""])[0],
         "minPrice": int_param(params, "minPrice", 0),
         "maxPrice": int_param(params, "maxPrice", 0),

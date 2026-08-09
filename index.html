@@ -80,6 +80,14 @@
   a.ghost { text-decoration: none; display: inline-block; }
   .ghost[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 
+  .streets { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 14px; }
+  .street-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .street-row .ghost { padding: 7px 11px; flex: 0 0 auto; }
+  .street-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .street-controls select { width: auto; }
+  label.inline { font-size: 13px; font-weight: 500; text-transform: none; }
+  .hint { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .75; }
+
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
     margin: 22px 0 14px;
@@ -199,6 +207,23 @@
       <label>&nbsp;</label>
       <button id="submit" type="submit">Search</button>
     </div>
+
+    <div class="streets">
+      <label>Streets <span class="hint">optional — only listings near these streets</span></label>
+      <div id="street-list"></div>
+      <div class="street-controls">
+        <button type="button" class="ghost" id="add-street">+ Add another street</button>
+        <label for="radius" class="inline">Within</label>
+        <select id="radius" name="radius">
+          <option value="150">150 m</option>
+          <option value="300">300 m</option>
+          <option value="500" selected>500 m</option>
+          <option value="1000">1 km</option>
+          <option value="2000">2 km</option>
+        </select>
+        <span class="hint">of the street</span>
+      </div>
+    </div>
   </form>
 
   <div id="message" class="note hidden"></div>
@@ -213,6 +238,7 @@
       <option value="rating-desc">Rating: best first</option>
       <option value="reviews-desc">Most reviewed</option>
     </select>
+    <select id="street-filter" class="hidden"></select>
     <button type="button" class="ghost" id="view-cards" aria-pressed="true">Cards</button>
     <button type="button" class="ghost" id="view-table" aria-pressed="false">Table</button>
     <div class="spacer"></div>
@@ -293,12 +319,28 @@
   const pz = (v) => (v == null ? Infinity : v);
 
   function sorted() {
-    return [...listings].sort(SORTERS[$('sort').value] || SORTERS['total-desc']);
+    const only = $('street-filter').value;
+    const rows = only
+      ? listings.filter((l) => (l.streets || []).includes(only))
+      : listings;
+    return [...rows].sort(SORTERS[$('sort').value] || SORTERS['total-desc']);
+  }
+
+  function refreshStreetFilter() {
+    const names = [...new Set(listings.flatMap((l) => l.streets || []))].sort();
+    const select = $('street-filter');
+    select.classList.toggle('hidden', names.length < 2);
+    if (names.length < 2) { select.innerHTML = ''; return; }
+    const current = select.value;
+    select.innerHTML =
+      `<option value="">All streets</option>` +
+      names.map((n) => `<option${n === current ? ' selected' : ''}>${esc(n)}</option>`).join('');
   }
 
   /* ---------- rendering ---------- */
 
   function render() {
+    refreshStreetFilter();
     const rows = sorted();
     const symbol = symbolOf();
     const nightly = rows.map((l) => l.perNight).filter((n) => n != null);
@@ -345,7 +387,11 @@
 
   function cardHtml(l, i) {
     const p = priceBlock(l);
-    const badges = (l.badges || []).slice(0, 2)
+    const streetBadges = (l.streets || []).map((n) =>
+      `<span class="badge">${esc(n)}${
+        l.metresFromStreet != null ? ' · ' + l.metresFromStreet + ' m' : ''
+      }</span>`).join('');
+    const badges = streetBadges + (l.badges || []).slice(0, 2)
       .map((b) => `<span class="badge">${esc(b)}</span>`).join('');
     return `
       <a class="card" href="${esc(l.url || '#')}" target="_blank" rel="noopener">
@@ -372,13 +418,17 @@
         <td class="num">${i + 1}</td>
         <td><a href="${esc(l.url || '#')}" target="_blank" rel="noopener">${esc(l.name)}</a>
             <div class="meta">${esc((l.facts || []).join(' · '))}</div></td>
+        <td>${(l.streets || []).length
+          ? esc(l.streets.join(', ')) +
+            (l.metresFromStreet != null ? ` <span class="meta">${l.metresFromStreet} m</span>` : '')
+          : '—'}</td>
         <td class="num">${l.ratingLabel ? '★ ' + esc(l.ratingLabel) : '—'}</td>
         <td class="num">${money(l.perNight, symbol)}</td>
         <td class="num"><b>${l.total != null ? money(l.total, symbol) : esc(l.displayPrice || '—')}</b></td>
       </tr>`;
     }).join('');
     return `<table>
-      <thead><tr><th>#</th><th>Listing</th><th style="text-align:right">Rating</th>
+      <thead><tr><th>#</th><th>Listing</th><th>Street</th><th style="text-align:right">Rating</th>
       <th style="text-align:right">Per night</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>${body}</tbody></table>`;
   }
@@ -400,7 +450,8 @@
     event.preventDefault();
     const data = new FormData(form);
     const params = new URLSearchParams();
-    for (const [k, v] of data.entries()) if (String(v).trim()) params.set(k, v);
+    // append, not set: several inputs share the name "street"
+    for (const [k, v] of data.entries()) if (String(v).trim()) params.append(k, v);
 
     if (data.get('checkin') && data.get('checkout') &&
         data.get('checkout') <= data.get('checkin')) {
@@ -422,6 +473,7 @@
     listings = [];
     meta = null;
     shown = PAGE_STEP;
+    $('street-filter').value = '';
     cardsEl.innerHTML = '';
     tableEl.innerHTML = '';
     $('more-wrap').classList.add('hidden');
@@ -438,7 +490,8 @@
       const payload = JSON.parse(ev.data);
       listings = listings.concat(payload.listings || []);
       showMessage(
-        `Scanning… ${payload.total} of ~${target} listings, ` +
+        (payload.area ? `Scanning ${payload.area}… ` : 'Scanning… ') +
+        `${payload.total} listings, ` +
         `${payload.bandsDone} price band${payload.bandsDone === 1 ? '' : 's'} done.`
       );
       render();
@@ -455,13 +508,19 @@
         link.textContent = 'Open on Airbnb';
         link.style.display = '';
       }
+      // Warnings are already full sentences (street not found, page skipped).
       const warn = (payload.warnings || []).length
-        ? ' Some pages were skipped: ' + payload.warnings.join(' ')
+        ? ' ' + payload.warnings.join(' ')
+        : '';
+      const streets = payload.query.streets || [];
+      const where = streets.length
+        ? ` near ${streets.map((s) => s.name).join(', ')} (within ${payload.query.radius} m)`
         : '';
       stopScan(
         listings.length
-          ? `${listings.length} listings from ${payload.query.bandsScanned} price band(s).${warn}`
-          : 'No listings came back. Try a broader area, different dates, or fewer filters.'
+          ? `${listings.length} listings${where}, from ${payload.query.bandsScanned} price band(s).${warn}`
+          : warn.trim() ||
+            `No listings came back${where}. Try a larger radius, a broader area, or fewer filters.`
       );
       render();
     });
@@ -511,7 +570,7 @@
 
   function exportCsv() {
     const cols = ['rank', 'name', 'total', 'perNight', 'nights', 'currency',
-                  'rating', 'reviews', 'url'];
+                  'rating', 'reviews', 'streets', 'metresFromStreet', 'url'];
     const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [cols.join(',')];
     sorted().forEach((l, i) => {
@@ -529,6 +588,28 @@
 
   form.addEventListener('submit', runSearch);
   $('sort').addEventListener('change', () => { shown = PAGE_STEP; render(); });
+
+  /* ---------- street rows ---------- */
+
+  function addStreetRow(value = '') {
+    const row = document.createElement('div');
+    row.className = 'street-row';
+    row.innerHTML =
+      `<input name="street" placeholder="e.g. Avenida Paulista" autocomplete="off">` +
+      `<button type="button" class="ghost remove-street" title="Remove">&times;</button>`;
+    row.querySelector('input').value = value;
+    row.querySelector('.remove-street').addEventListener('click', () => {
+      row.remove();
+      if (!$('street-list').children.length) addStreetRow();
+    });
+    $('street-list').appendChild(row);
+    return row;
+  }
+
+  $('add-street').addEventListener('click', () => {
+    addStreetRow().querySelector('input').focus();
+  });
+  $('street-filter').addEventListener('change', () => { shown = PAGE_STEP; render(); });
 
   // Spell out which currency the price floor is in — "1000" means very
   // different things in BRL and GBP.
@@ -560,11 +641,14 @@
   if (saved) {
     const params = new URLSearchParams(saved);
     for (const [k, v] of params.entries()) {
+      if (k === 'street') continue;
       const el = form.elements[k];
-      if (el) el.value = v;
+      if (el && !(el instanceof RadioNodeList)) el.value = v;
     }
+    for (const street of params.getAll('street')) addStreetRow(street);
     syncCurrencyLabels();
   }
+  if (!$('street-list').children.length) addStreetRow();
 })();
 </script>
 </body>

@@ -23,6 +23,11 @@ is taken. Keep `index.html` in the same folder as the server you run.
 Type an area ("Lisbon, Portugal", "Copenhagen", "Big Sur, CA"), optionally add
 dates, guests, currency, a place type, and a price range, then hit **Search**.
 
+**Streets** narrows a search to specific streets. Add as many rows as you like
+with **+ Add another street**; each one is scanned separately and the results
+are merged, deduplicated, and tagged with the street they matched. A listing
+near two of them gets both tags. Set the radius with the **Within** control.
+
 **Min / night** sets a floor in the selected currency — set it to 1000 with BRL
 and only listings at or above R$1,000 a night come back. It is Airbnb's own
 filter, so a deep scan spends its entire budget above the floor instead of
@@ -57,6 +62,14 @@ things:
 3. Serves `index.html` and proxies listing thumbnails, so the browser makes no
    third-party requests.
 
+Street search adds a step in front of that. Each street is geocoded through
+OpenStreetMap's Nominatim, which returns one road segment per result — a long
+avenue comes back as a 50 m stub — so every segment sharing the street's name is
+collected and unioned to rebuild the whole street. That union, expanded by the
+chosen radius, becomes an Airbnb map-bounds query (`search_by_map`), and each
+result is then checked against the individual segments so the rectangle Airbnb
+searched gets trimmed back to the actual radius.
+
 ### Caveats
 
 - **You are sorting a large sample, not the whole area.** Band splitting gets
@@ -70,4 +83,12 @@ things:
 - Parsing depends on Airbnb's page structure. If a release changes it, the page
   reports which pages came back empty rather than showing wrong numbers, and
   `findSearchResults()` in `server.js` is the place to fix.
+- **Streets are proximity, not addresses.** Airbnb never publishes a listing's
+  street address, and the coordinates it does publish are deliberately
+  approximate. "On Avenida Paulista" therefore means "within your chosen radius
+  of Avenida Paulista", and the distance shown on each card inherits that
+  fuzziness. Treat it as a neighbourhood filter, not a street register.
+- Street lookups go to OpenStreetMap's Nominatim, rate limited to one request a
+  second and cached for the life of the process. If a street cannot be located
+  the search is not run at all, rather than quietly widening to the whole city.
 - Keep the page count modest and don't hammer it; this is for personal browsing.
