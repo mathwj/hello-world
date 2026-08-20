@@ -1,0 +1,750 @@
+[
+  {
+    "id": "sample:ana-beatriz-ferraz",
+    "fullName": "Ana Beatriz Ferraz",
+    "headline": "Gerente de Marketing | Performance & Growth | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/ana-beatriz-ferraz",
+    "summary": "Gerente de marketing com 9 anos de experiência em aquisição paga e geração de demanda B2B. Lidero times de mídia e pré-vendas, com foco em CAC, ROAS e pipeline qualificado.",
+    "experiences": [
+      {
+        "title": "Gerente de Marketing",
+        "company": "Meridiano Software",
+        "companyIndustry": "B2B SaaS",
+        "companySize": "180 funcionários",
+        "location": "Curitiba, PR",
+        "startDate": "2021-03",
+        "endDate": null,
+        "description": "Responsável por um orçamento anual de mídia de R$ 4,2M em Google Ads, Meta Ads e LinkedIn Ads. Reduzi o CPA em 38% em 18 meses. Lidero um time de 6 pessoas, incluindo 2 analistas de mídia paga e 3 SDRs de inside sales. Implantei o funil de pré-vendas em conjunto com o comercial, elevando a taxa de MQL para SQL de 14% para 27%."
+      },
+      {
+        "title": "Coordenadora de Mídia Paga",
+        "company": "Agência Pinhão Digital",
+        "companyIndustry": "Agência de publicidade",
+        "location": "Curitiba, PR",
+        "startDate": "2018-01",
+        "endDate": "2021-02",
+        "description": "Gestão de tráfego pago para 12 contas simultâneas. Planejamento de mídia, compra programática via DV360 e reporting de ROAS para clientes de varejo e educação."
+      },
+      {
+        "title": "Analista de Marketing Digital",
+        "company": "Grupo Araucária Varejo",
+        "location": "Curitiba, PR",
+        "startDate": "2016-02",
+        "endDate": "2017-12",
+        "description": "E-mail marketing, SEO e apoio às campanhas de e-commerce."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Federal do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Comunicação Social - Publicidade e Propaganda",
+        "startYear": 2011,
+        "endYear": 2015
+      },
+      {
+        "school": "ISAE Escola de Negócios",
+        "degree": "MBA",
+        "fieldOfStudy": "Gestão de Marketing e Growth",
+        "startYear": 2019,
+        "endYear": 2021
+      }
+    ],
+    "certifications": [
+      { "name": "Google Ads Search Certification", "issuer": "Google", "year": 2023 },
+      { "name": "Meta Media Buying Professional", "issuer": "Meta", "year": 2022 }
+    ],
+    "skills": ["Google Ads", "Meta Ads", "Mídia programática", "Inside Sales", "HubSpot", "ROAS", "Gestão de time"],
+    "languages": ["Portuguese", "English", "Spanish"]
+  },
+  {
+    "id": "sample:rafael-tonon-machado",
+    "fullName": "Rafael Tonon Machado",
+    "headline": "Growth Manager | Aquisição paga e inside sales | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/rafael-tonon-machado",
+    "summary": "Growth manager focado em aquisição B2B. Construí a operação de inside sales do zero em duas empresas.",
+    "experiences": [
+      {
+        "title": "Growth Manager",
+        "company": "Bonsai Fintech",
+        "companyIndustry": "Fintech",
+        "companySize": "90 funcionários",
+        "location": "Curitiba, PR",
+        "startDate": "2020-08",
+        "endDate": null,
+        "description": "Dono do funil completo de aquisição. Gerencio R$ 250k/mês em mídia paga (Google, Meta, TikTok Ads) e estruturei o time de inside sales com 4 SDRs e 3 closers, operando em Salesforce. Crescimento de 3,4x no pipeline em 2 anos."
+      },
+      {
+        "title": "Coordenador de Growth",
+        "company": "Meridiano Software",
+        "location": "Curitiba, PR",
+        "startDate": "2018-05",
+        "endDate": "2020-07",
+        "description": "Testes de aquisição, CRO e automação de marketing em RD Station. Apoio direto ao time comercial na cadência de outbound."
+      },
+      {
+        "title": "Analista de Performance",
+        "company": "Agência Pinhão Digital",
+        "location": "Curitiba, PR",
+        "startDate": "2016-09",
+        "endDate": "2018-04",
+        "description": "Gestão de campanhas de search e social para contas de e-commerce."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Pontifícia Universidade Católica do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Administração",
+        "startYear": 2012,
+        "endYear": 2016
+      }
+    ],
+    "certifications": [
+      { "name": "RD Station Marketing Specialist", "issuer": "RD Station", "year": 2021 }
+    ],
+    "skills": ["Growth", "Google Ads", "Meta Ads", "Salesforce", "SDR management", "CRO", "RD Station"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:juliana-kowalski",
+    "fullName": "Juliana Kowalski",
+    "headline": "Head de Marketing | Ex-agência | São José dos Pinhais",
+    "location": "São José dos Pinhais, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/juliana-kowalski",
+    "summary": "12 anos em marketing, dos últimos 5 liderando times de mídia e conteúdo em indústria.",
+    "experiences": [
+      {
+        "title": "Head de Marketing",
+        "company": "Indústria Ventania",
+        "companyIndustry": "Manufatura",
+        "companySize": "1.200 funcionários",
+        "location": "São José dos Pinhais, PR",
+        "startDate": "2019-06",
+        "endDate": null,
+        "description": "Lidero marketing corporativo e trade. Time de 9 pessoas. Orçamento de mídia de R$ 6M/ano, majoritariamente em mídia offline (TV regional, OOH) e feiras, com cerca de 20% em mídia digital paga gerida por agência parceira."
+      },
+      {
+        "title": "Gerente de Marketing",
+        "company": "Grupo Araucária Varejo",
+        "location": "Curitiba, PR",
+        "startDate": "2015-01",
+        "endDate": "2019-05",
+        "description": "Gestão de marca, campanhas sazonais de varejo e relacionamento com agências."
+      },
+      {
+        "title": "Supervisora de Comunicação",
+        "company": "Cooperativa Sul Paranaense",
+        "location": "Curitiba, PR",
+        "startDate": "2012-03",
+        "endDate": "2014-12",
+        "description": "Comunicação institucional e eventos."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Positivo",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Marketing",
+        "startYear": 2007,
+        "endYear": 2011
+      },
+      {
+        "school": "FGV",
+        "degree": "Pós-graduação",
+        "fieldOfStudy": "Gestão Estratégica de Marketing",
+        "startYear": 2016,
+        "endYear": 2018
+      }
+    ],
+    "skills": ["Gestão de marca", "Trade marketing", "Gestão de agências", "Eventos", "Comunicação corporativa"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:diego-albuquerque-reis",
+    "fullName": "Diego Albuquerque Reis",
+    "headline": "Gestor de Tráfego Sênior | Performance para e-commerce | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/diego-albuquerque-reis",
+    "summary": "Especialista em mídia paga para e-commerce. R$ 30M investidos ao longo da carreira.",
+    "experiences": [
+      {
+        "title": "Gestor de Tráfego Sênior",
+        "company": "Loja Sul Marketplace",
+        "companyIndustry": "E-commerce",
+        "location": "Curitiba, PR",
+        "startDate": "2021-01",
+        "endDate": null,
+        "description": "Responsável por toda a compra de mídia: Google Ads, Meta Ads, Google Shopping e mídia programática. ROAS médio de 6,8. Gerencio 2 analistas juniores, sem responsabilidade sobre o time comercial."
+      },
+      {
+        "title": "Analista de Mídia Paga Pleno",
+        "company": "Agência Pinhão Digital",
+        "location": "Curitiba, PR",
+        "startDate": "2018-03",
+        "endDate": "2020-12",
+        "description": "Campanhas de performance para contas de varejo e moda."
+      },
+      {
+        "title": "Assistente de Marketing",
+        "company": "Café Serrano",
+        "location": "Curitiba, PR",
+        "startDate": "2017-01",
+        "endDate": "2018-02",
+        "description": "Redes sociais e apoio operacional."
+      }
+    ],
+    "educations": [
+      {
+        "school": "UniCuritiba",
+        "degree": "Tecnólogo",
+        "fieldOfStudy": "Marketing Digital",
+        "startYear": 2014,
+        "endYear": 2016
+      }
+    ],
+    "certifications": [
+      { "name": "Google Ads Shopping Certification", "issuer": "Google", "year": 2023 }
+    ],
+    "skills": ["Google Ads", "Meta Ads", "Google Shopping", "Mídia programática", "GA4", "ROAS"],
+    "languages": ["Portuguese"]
+  },
+  {
+    "id": "sample:mariana-schuster-lopes",
+    "fullName": "Mariana Schuster Lopes",
+    "headline": "Marketing Manager | B2B demand gen | São Paulo (aberta a mudança para Curitiba)",
+    "location": "São Paulo, São Paulo, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/mariana-schuster-lopes",
+    "summary": "Marketing manager B2B com 8 anos de experiência. Nascida em Curitiba, procuro retornar à região.",
+    "experiences": [
+      {
+        "title": "Marketing Manager",
+        "company": "Vetor Cloud",
+        "companyIndustry": "B2B SaaS",
+        "companySize": "400 funcionários",
+        "location": "São Paulo, SP",
+        "startDate": "2020-02",
+        "endDate": null,
+        "description": "Demand generation para o mercado enterprise. Gestão de R$ 500k/mês em mídia paga com foco em LinkedIn Ads e Google Ads. Trabalho lado a lado com um time de inside sales de 12 SDRs, definindo SLAs de lead e cadências no Salesforce."
+      },
+      {
+        "title": "Especialista em Demand Generation",
+        "company": "Nordeste Tech",
+        "location": "São Paulo, SP",
+        "startDate": "2017-06",
+        "endDate": "2020-01",
+        "description": "Campanhas de aquisição, webinars e nutrição de leads em Marketo."
+      },
+      {
+        "title": "Analista de Marketing",
+        "company": "Meridiano Software",
+        "location": "Curitiba, PR",
+        "startDate": "2015-08",
+        "endDate": "2017-05",
+        "description": "Primeiro emprego em marketing B2B, apoio a campanhas e eventos."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Federal do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Administração",
+        "startYear": 2011,
+        "endYear": 2015
+      }
+    ],
+    "skills": ["Demand generation", "LinkedIn Ads", "Google Ads", "Marketo", "Salesforce", "Inside Sales alignment", "ABM"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:paulo-ricardo-venancio",
+    "fullName": "Paulo Ricardo Venâncio",
+    "headline": "Gerente Comercial | Inside Sales | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/paulo-ricardo-venancio",
+    "summary": "Gestor comercial com forte atuação em inside sales e estruturação de times de pré-vendas.",
+    "experiences": [
+      {
+        "title": "Gerente Comercial",
+        "company": "Bonsai Fintech",
+        "location": "Curitiba, PR",
+        "startDate": "2019-09",
+        "endDate": null,
+        "description": "Lidero uma operação de inside sales com 11 pessoas entre SDRs e closers. Gestão de pipeline em Salesforce, definição de cadências de outbound e metas de conversão. Interface diária com marketing sobre qualidade de leads pagos, mas sem gestão direta de verba de mídia."
+      },
+      {
+        "title": "Coordenador de Inside Sales",
+        "company": "Meridiano Software",
+        "location": "Curitiba, PR",
+        "startDate": "2016-04",
+        "endDate": "2019-08",
+        "description": "Estruturei o time de pré-vendas do zero, indo de 2 para 8 SDRs."
+      },
+      {
+        "title": "Executivo de Vendas",
+        "company": "Grupo Araucária Varejo",
+        "location": "Curitiba, PR",
+        "startDate": "2013-02",
+        "endDate": "2016-03",
+        "description": "Vendas B2B para o canal atacadista."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Pontifícia Universidade Católica do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Administração",
+        "startYear": 2008,
+        "endYear": 2012
+      }
+    ],
+    "skills": ["Inside Sales", "SDR", "Salesforce", "Outbound", "Gestão de pipeline", "Coaching comercial"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:carolina-benites-do-amaral",
+    "fullName": "Carolina Benites do Amaral",
+    "headline": "Marketing Manager | Paid media + revenue ops | Pinhais",
+    "location": "Pinhais, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/carolina-benites-do-amaral",
+    "summary": "Marketing manager com sete anos de experiência entre agência e in-house. Divido meu tempo entre mídia paga e a operação de vendas internas.",
+    "experiences": [
+      {
+        "title": "Marketing Manager",
+        "company": "Educare Cursos",
+        "companyIndustry": "Educação",
+        "companySize": "260 funcionários",
+        "location": "Pinhais, PR",
+        "startDate": "2021-07",
+        "endDate": null,
+        "description": "Gestão de R$ 1,8M/ano em mídia paga (Meta Ads, Google Ads, TikTok Ads) para captação de alunos. Também respondo pela equipe de vendas internas com 6 consultores, incluindo scripts, metas e acompanhamento no CRM Pipedrive. Reduzi o custo por matrícula em 31%."
+      },
+      {
+        "title": "Coordenadora de Marketing",
+        "company": "Agência Pinhão Digital",
+        "location": "Curitiba, PR",
+        "startDate": "2019-02",
+        "endDate": "2021-06",
+        "description": "Atendimento e planejamento de mídia para contas de educação e saúde."
+      },
+      {
+        "title": "Analista de Marketing",
+        "company": "Clínica Bem Viver",
+        "location": "Curitiba, PR",
+        "startDate": "2017-08",
+        "endDate": "2019-01",
+        "description": "Campanhas locais e gestão de redes sociais."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Positivo",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Publicidade e Propaganda",
+        "startYear": 2013,
+        "endYear": 2017
+      }
+    ],
+    "certifications": [
+      { "name": "Meta Blueprint: Media Buying", "issuer": "Meta", "year": 2022 }
+    ],
+    "skills": ["Meta Ads", "Google Ads", "TikTok Ads", "Vendas internas", "Pipedrive", "CAC", "Gestão de time"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:henrique-tavares-do-nascimento",
+    "fullName": "Henrique Tavares do Nascimento",
+    "headline": "Analista de Marketing Pleno | Conteúdo e SEO | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/henrique-tavares-do-nascimento",
+    "summary": "Analista de marketing com foco em conteúdo, SEO e inbound.",
+    "experiences": [
+      {
+        "title": "Analista de Marketing Pleno",
+        "company": "Meridiano Software",
+        "location": "Curitiba, PR",
+        "startDate": "2022-01",
+        "endDate": null,
+        "description": "Produção de conteúdo, estratégia de SEO e gestão do blog corporativo. Apoio pontual em campanhas pagas, sem responsabilidade sobre verba."
+      },
+      {
+        "title": "Analista de Marketing Júnior",
+        "company": "Café Serrano",
+        "location": "Curitiba, PR",
+        "startDate": "2020-03",
+        "endDate": "2021-12",
+        "description": "Redes sociais, e-mail marketing e apoio ao e-commerce."
+      }
+    ],
+    "educations": [
+      {
+        "school": "UniCuritiba",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Jornalismo",
+        "startYear": 2015,
+        "endYear": 2019
+      }
+    ],
+    "skills": ["SEO", "Marketing de conteúdo", "WordPress", "Inbound", "RD Station"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:leticia-hoffmann-prado",
+    "fullName": "Letícia Hoffmann Prado",
+    "headline": "Marketing Manager | Retail media & performance | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/leticia-hoffmann-prado",
+    "summary": "Marketing manager de varejo com atuação em retail media, performance e times comerciais.",
+    "experiences": [
+      {
+        "title": "Marketing Manager",
+        "company": "Loja Sul Marketplace",
+        "companyIndustry": "E-commerce",
+        "location": "Curitiba, PR",
+        "startDate": "2022-04",
+        "endDate": null,
+        "description": "Respondo por aquisição paga (R$ 900k/mês entre Google, Meta e retail media) e pela régua de relacionamento. Trabalho com o time de televendas de 8 pessoas na conversão de leads de alto ticket. Time direto de 5."
+      },
+      {
+        "title": "Coordenadora de Performance",
+        "company": "Grupo Araucária Varejo",
+        "location": "Curitiba, PR",
+        "startDate": "2019-01",
+        "endDate": "2022-03",
+        "description": "Gestão de campanhas de performance e do programa de fidelidade."
+      },
+      {
+        "title": "Analista de Mídia",
+        "company": "Agência Pinhão Digital",
+        "location": "Curitiba, PR",
+        "startDate": "2016-06",
+        "endDate": "2018-12",
+        "description": "Planejamento e compra de mídia digital para contas de varejo."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Federal do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Comunicação Social",
+        "startYear": 2011,
+        "endYear": 2015
+      },
+      {
+        "school": "ESPM",
+        "degree": "Pós-graduação",
+        "fieldOfStudy": "Varejo e Consumo",
+        "startYear": 2018,
+        "endYear": 2019
+      }
+    ],
+    "skills": ["Retail media", "Google Ads", "Meta Ads", "Televendas", "CRM", "Fidelização"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:bruno-koga-mendes",
+    "fullName": "Bruno Koga Mendes",
+    "headline": "Product Marketing Manager | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/bruno-koga-mendes",
+    "summary": "Product marketing com foco em posicionamento, pesquisa e lançamento.",
+    "experiences": [
+      {
+        "title": "Product Marketing Manager",
+        "company": "Vetor Cloud",
+        "location": "Curitiba, PR",
+        "startDate": "2021-05",
+        "endDate": null,
+        "description": "Posicionamento, pesquisa de mercado, materiais de sales enablement para o time de inside sales e go-to-market de novos produtos. Não faço gestão de mídia paga."
+      },
+      {
+        "title": "Analista de Produto",
+        "company": "Meridiano Software",
+        "location": "Curitiba, PR",
+        "startDate": "2018-02",
+        "endDate": "2021-04",
+        "description": "Discovery, entrevistas com clientes e roadmap."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Pontifícia Universidade Católica do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Engenharia de Produção",
+        "startYear": 2012,
+        "endYear": 2017
+      }
+    ],
+    "skills": ["Product marketing", "Sales enablement", "Pesquisa de mercado", "Go-to-market", "Posicionamento"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:fernanda-quadros-lima",
+    "fullName": "Fernanda Quadros Lima",
+    "headline": "Gerente de Recursos Humanos | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/fernanda-quadros-lima",
+    "summary": "RH generalista com foco em atração e desenvolvimento.",
+    "experiences": [
+      {
+        "title": "Gerente de Recursos Humanos",
+        "company": "Indústria Ventania",
+        "location": "São José dos Pinhais, PR",
+        "startDate": "2018-01",
+        "endDate": null,
+        "description": "Recrutamento, cargos e salários, clima organizacional. Time de 7."
+      },
+      {
+        "title": "Coordenadora de RH",
+        "company": "Cooperativa Sul Paranaense",
+        "location": "Curitiba, PR",
+        "startDate": "2014-03",
+        "endDate": "2017-12",
+        "description": "Recrutamento e seleção, treinamento."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Positivo",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Psicologia",
+        "startYear": 2009,
+        "endYear": 2013
+      }
+    ],
+    "skills": ["Recrutamento", "Cargos e salários", "Clima organizacional", "Treinamento"],
+    "languages": ["Portuguese"]
+  },
+  {
+    "id": "sample:thiago-brandao-esteves",
+    "fullName": "Thiago Brandão Esteves",
+    "headline": "Marketing Manager | Media buying | Lisboa, Portugal",
+    "location": "Lisbon, Lisboa, Portugal",
+    "country": "Portugal",
+    "profileUrl": "https://example.invalid/in/thiago-brandao-esteves",
+    "summary": "Brazilian marketing manager based in Lisbon, running paid acquisition for European markets.",
+    "experiences": [
+      {
+        "title": "Marketing Manager",
+        "company": "Atlantic Commerce Group",
+        "location": "Lisbon, Portugal",
+        "startDate": "2021-09",
+        "endDate": null,
+        "description": "Owns €3M annual media budget across Google Ads, Meta Ads and programmatic. Manages a team of 4 including two media buyers. Coordinates with an inside sales team of 5 on high-ticket B2B leads."
+      },
+      {
+        "title": "Paid Media Lead",
+        "company": "Loja Sul Marketplace",
+        "location": "Curitiba, PR",
+        "startDate": "2018-04",
+        "endDate": "2021-08",
+        "description": "Led paid acquisition for the Brazilian marketplace before relocating to Portugal."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Federal do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Marketing",
+        "startYear": 2011,
+        "endYear": 2015
+      }
+    ],
+    "skills": ["Media buying", "Google Ads", "Meta Ads", "Programmatic", "Team leadership", "Inside sales alignment"],
+    "languages": ["Portuguese", "English", "Spanish"]
+  },
+  {
+    "id": "sample:sabrina-mattos-ribeiro",
+    "fullName": "Sabrina Mattos Ribeiro",
+    "headline": "Coordenadora de Marketing | Curitiba",
+    "location": "Colombo, Paraná, Brazil",
+    "country": "Brazil",
+    "summary": "Coordenadora de marketing em transição para gestão. Atuação em mídia paga e apoio comercial.",
+    "profileUrl": "https://example.invalid/in/sabrina-mattos-ribeiro",
+    "experiences": [
+      {
+        "title": "Coordenadora de Marketing",
+        "company": "Café Serrano",
+        "companyIndustry": "Alimentos e bebidas",
+        "location": "Colombo, PR",
+        "startDate": "2021-02",
+        "endDate": null,
+        "description": "Gestão de R$ 40k/mês em Meta Ads e Google Ads para o canal DTC. Apoio ao time de vendas internas de 3 pessoas no atendimento de leads. Equipe direta de 2 analistas."
+      },
+      {
+        "title": "Analista de Marketing Sênior",
+        "company": "Grupo Araucária Varejo",
+        "location": "Curitiba, PR",
+        "startDate": "2018-06",
+        "endDate": "2021-01",
+        "description": "Campanhas promocionais e gestão de redes sociais."
+      },
+      {
+        "title": "Assistente de Marketing",
+        "company": "Clínica Bem Viver",
+        "location": "Curitiba, PR",
+        "startDate": "2017-01",
+        "endDate": "2018-05",
+        "description": "Apoio administrativo e de comunicação."
+      }
+    ],
+    "educations": [
+      {
+        "school": "UniCuritiba",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Marketing",
+        "startYear": 2012,
+        "endYear": 2016
+      }
+    ],
+    "skills": ["Meta Ads", "Google Ads", "DTC", "Vendas internas", "Redes sociais"],
+    "languages": ["Portuguese"]
+  },
+  {
+    "id": "sample:eduardo-pilar-santoro",
+    "fullName": "Eduardo Pilar Santoro",
+    "headline": "Diretor de Marketing | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/eduardo-pilar-santoro",
+    "summary": "Diretor de marketing com 17 anos de carreira, atuação em indústria e serviços.",
+    "experiences": [
+      {
+        "title": "Diretor de Marketing",
+        "company": "Cooperativa Sul Paranaense",
+        "companySize": "3.000 funcionários",
+        "location": "Curitiba, PR",
+        "startDate": "2017-01",
+        "endDate": null,
+        "description": "Responsável por marketing, comunicação e inteligência de mercado. Estrutura de 22 pessoas e orçamento de R$ 18M. Supervisiono a área de performance digital através de dois gerentes, e o time de televendas através do comercial."
+      },
+      {
+        "title": "Gerente de Marketing",
+        "company": "Indústria Ventania",
+        "location": "São José dos Pinhais, PR",
+        "startDate": "2011-03",
+        "endDate": "2016-12",
+        "description": "Gestão de marca, mídia e trade marketing."
+      },
+      {
+        "title": "Coordenador de Marketing",
+        "company": "Grupo Araucária Varejo",
+        "location": "Curitiba, PR",
+        "startDate": "2008-02",
+        "endDate": "2011-02",
+        "description": "Campanhas de varejo e encartes."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Federal do Paraná",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Administração",
+        "startYear": 2003,
+        "endYear": 2007
+      },
+      {
+        "school": "FGV",
+        "degree": "MBA",
+        "fieldOfStudy": "Gestão Empresarial",
+        "startYear": 2012,
+        "endYear": 2014
+      }
+    ],
+    "skills": ["Estratégia de marketing", "Gestão de P&L", "Trade marketing", "Liderança", "Inteligência de mercado"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:naiara-figueiredo-costa",
+    "fullName": "Naiara Figueiredo Costa",
+    "headline": "Performance Marketing Manager | Remoto | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/naiara-figueiredo-costa",
+    "summary": "Gestora de performance atendendo empresas de tecnologia em regime remoto.",
+    "experiences": [
+      {
+        "title": "Performance Marketing Manager",
+        "company": "Northwind Analytics",
+        "companyIndustry": "B2B SaaS",
+        "location": "Remoto (empresa em Austin, EUA)",
+        "startDate": "2022-02",
+        "endDate": null,
+        "description": "Own paid acquisition across Google Ads, LinkedIn Ads and Meta Ads with a US$1.2M annual budget. Partner with a 9-person inside sales team on lead routing and SLA definition in HubSpot. Manage two contractors."
+      },
+      {
+        "title": "Especialista em Mídia Paga",
+        "company": "Vetor Cloud",
+        "location": "Curitiba, PR",
+        "startDate": "2019-03",
+        "endDate": "2022-01",
+        "description": "Campanhas de aquisição B2B e experimentação de canais."
+      },
+      {
+        "title": "Analista de Marketing Digital",
+        "company": "Agência Pinhão Digital",
+        "location": "Curitiba, PR",
+        "startDate": "2017-05",
+        "endDate": "2019-02",
+        "description": "Gestão de contas de performance de pequeno porte."
+      }
+    ],
+    "educations": [
+      {
+        "school": "Universidade Positivo",
+        "degree": "Bacharelado",
+        "fieldOfStudy": "Sistemas de Informação",
+        "startYear": 2012,
+        "endYear": 2016
+      }
+    ],
+    "certifications": [
+      { "name": "HubSpot Inbound Marketing", "issuer": "HubSpot", "year": 2023 },
+      { "name": "Google Analytics 4 Certification", "issuer": "Google", "year": 2022 }
+    ],
+    "skills": ["Google Ads", "LinkedIn Ads", "Meta Ads", "HubSpot", "Inside sales alignment", "Attribution", "SQL"],
+    "languages": ["Portuguese", "English"]
+  },
+  {
+    "id": "sample:otavio-lemes-de-farias",
+    "fullName": "Otávio Lemes de Farias",
+    "headline": "Estagiário de Marketing | Curitiba",
+    "location": "Curitiba, Paraná, Brazil",
+    "country": "Brazil",
+    "profileUrl": "https://example.invalid/in/otavio-lemes-de-farias",
+    "summary": "Estudante de publicidade em busca de oportunidades em mídia paga.",
+    "experiences": [
+      {
+        "title": "Estagiário de Marketing",
+        "company": "Agência Pinhão Digital",
+        "location": "Curitiba, PR",
+        "startDate": "2024-03",
+        "endDate": null,
+        "description": "Apoio na criação de campanhas em Meta Ads e relatórios de desempenho."
+      }
+    ],
+    "educations": [
+      {
+        "school": "UniCuritiba",
+        "degree": "Bacharelado em andamento",
+        "fieldOfStudy": "Publicidade e Propaganda",
+        "startYear": 2022
+      }
+    ],
+    "skills": ["Meta Ads", "Canva", "Excel"],
+    "languages": ["Portuguese"]
+  }
+]

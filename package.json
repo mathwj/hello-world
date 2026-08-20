@@ -1,0 +1,29 @@
+{
+  "name": "profile-sourcing-copilot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Natural-language candidate sourcing: describe the person you need, get a ranked shortlist with evidence-backed reasons.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node scripts/unit-check.mjs && node scripts/mock-api-check.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.5",
+    "@types/node": "^22.19.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

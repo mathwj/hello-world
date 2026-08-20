@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sourcing Copilot</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎯</text></svg>" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="brand">
+          <span class="brand-mark">◎</span>
+          <div>
+            <h1>Sourcing Copilot</h1>
+            <p>Describe the person you need. Get a ranked shortlist with the reasoning attached.</p>
+          </div>
+        </div>
+        <div class="mode-pill" id="modePill" hidden></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel search-panel">
+        <label class="field-label" for="brief">What are you looking for?</label>
+        <textarea
+          id="brief"
+          rows="4"
+          placeholder="e.g. I need an experienced marketing manager in Curitiba who has worked with media buying and inside sales"
+        ></textarea>
+
+        <div class="examples" id="examples">
+          <span class="examples-label">Try:</span>
+          <button type="button" class="chip chip-button" data-example="I need an experienced marketing manager in Curitiba that has experience working with media buying and inside sales">Marketing manager · Curitiba</button>
+          <button type="button" class="chip chip-button" data-example="Looking for a senior inside sales leader in Curitiba who has built an SDR team from scratch in B2B SaaS">Inside sales leader · Curitiba</button>
+          <button type="button" class="chip chip-button" data-example="Growth manager comfortable owning paid acquisition budgets over R$200k/month, Paraná region, open to hybrid">Growth manager · Paraná</button>
+        </div>
+
+        <details class="options">
+          <summary>Sources &amp; options</summary>
+          <div class="options-grid">
+            <fieldset>
+              <legend>Where to look</legend>
+              <div id="sourceList" class="source-list"></div>
+            </fieldset>
+            <fieldset>
+              <legend>Limits</legend>
+              <label class="slider-row">
+                <span>Max profiles to analyse</span>
+                <input type="range" id="maxProfiles" min="5" max="100" step="5" value="40" />
+                <output id="maxProfilesOut">40</output>
+              </label>
+              <label class="slider-row">
+                <span>Minimum score to shortlist</span>
+                <input type="range" id="minScore" min="0" max="90" step="5" value="40" />
+                <output id="minScoreOut">40</output>
+              </label>
+            </fieldset>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button id="runButton" class="primary">Find candidates</button>
+          <button id="cancelButton" class="ghost" hidden>Stop</button>
+          <a id="exportLink" class="ghost button-like" hidden download>Export CSV</a>
+        </div>
+      </section>
+
+      <section class="panel progress-panel" id="progressPanel" hidden>
+        <div class="progress-head">
+          <h2>Run log</h2>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+        <ol class="log" id="log"></ol>
+      </section>
+
+      <section class="panel criteria-panel" id="criteriaPanel" hidden>
+        <h2>Search plan</h2>
+        <div id="criteriaBody"></div>
+      </section>
+
+      <section class="warnings" id="warnings" hidden></section>
+
+      <section id="resultsSection" hidden>
+        <div class="results-head">
+          <h2 id="resultsTitle">Shortlist</h2>
+          <p id="resultsStats" class="muted"></p>
+        </div>
+        <div id="results" class="results"></div>
+      </section>
+
+      <section class="panel empty-state" id="emptyState">
+        <h2>How this works</h2>
+        <ol class="how">
+          <li><strong>Read the brief.</strong> Your sentence becomes a structured plan: target titles, adjacent titles worth including, local-language variants, location radius, seniority bar and weighted must-haves.</li>
+          <li><strong>Source profiles.</strong> Each enabled source returns candidates, which are merged and de-duplicated.</li>
+          <li><strong>Analyse each one.</strong> Every profile is read against the plan — work history, education, tenure, trajectory — and each requirement gets a verdict backed by a quote from the profile.</li>
+          <li><strong>Rank and explain.</strong> You get a score, the evidence, the gaps, and a paragraph you can paste into a shortlist.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Analysis is only as good as the data you feed it — always read the profile before contacting anyone.
+        Scores are decision support, not decisions.
+      </p>
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
