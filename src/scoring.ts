@@ -134,7 +134,7 @@ export async function assessProfile(
         '',
         `CANDIDATE PROFILE (source: ${profile.source}):\n"""\n${renderProfile(profile)}\n"""`,
       ].join('\n'),
-      effort: config.anthropic.analysisEffort,
+      effort: config.llm.analysisEffort,
       maxTokens: 8000,
     });
 

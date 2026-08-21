@@ -22,7 +22,8 @@ app.get('/api/config', (_req, res) => {
     sources: describeAdapters(),
     defaultSources: config.sources.default,
     analysisMode: llmEnabled() ? 'model' : 'heuristic',
-    model: config.anthropic.model,
+    provider: config.llm.provider,
+    model: config.llm.model,
     maxProfiles: config.limits.maxProfiles,
     showSyntheticBanner: config.showSyntheticBanner,
   });
@@ -146,6 +147,8 @@ app.get('/api/runs/:runId/export.csv', (req, res) => {
 app.listen(config.port, () => {
   console.log(`Sourcing copilot listening on http://localhost:${config.port}`);
   console.log(
-    `Analysis mode: ${llmEnabled() ? `model (${config.anthropic.model})` : 'heuristic (no ANTHROPIC_API_KEY set)'}`,
+    llmEnabled()
+      ? `Analysis mode: full (${config.llm.provider} · ${config.llm.model})`
+      : 'Analysis mode: keyword only — set OPENAI_API_KEY (or ANTHROPIC_API_KEY) for full analysis',
   );
 });

@@ -10,22 +10,52 @@ function int(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-export const config = {
-  port: int(process.env.PORT, 3000),
+type Provider = 'openai' | 'anthropic' | 'none';
 
-  anthropic: {
-    /** The SDK also resolves ANTHROPIC_AUTH_TOKEN / `ant auth login` profiles. */
-    hasCredentials: Boolean(
-      process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_AUTH_TOKEN,
-    ),
-    model: process.env.ANTHROPIC_MODEL ?? 'claude-opus-5',
+/**
+ * Which model provider to use. `LLM_PROVIDER` wins if set; otherwise whichever
+ * key is present, preferring OpenAI. With neither, the app runs in
+ * keyword-only mode rather than refusing to start.
+ */
+function resolveLlm() {
+  const openaiApiKey = process.env.OPENAI_API_KEY ?? '';
+  // The Anthropic SDK also resolves ANTHROPIC_AUTH_TOKEN / `ant auth login`.
+  const hasAnthropic = Boolean(
+    process.env.ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_AUTH_TOKEN,
+  );
+
+  const requested = process.env.LLM_PROVIDER?.toLowerCase();
+  const provider: Provider =
+    requested === 'openai' || requested === 'anthropic'
+      ? requested
+      : openaiApiKey
+        ? 'openai'
+        : hasAnthropic
+          ? 'anthropic'
+          : 'none';
+
+  const model =
+    provider === 'anthropic'
+      ? (process.env.ANTHROPIC_MODEL ?? 'claude-opus-5')
+      : (process.env.OPENAI_MODEL ?? 'gpt-5.5');
+
+  return {
+    provider,
+    model,
+    openaiApiKey,
     /** The brief is parsed once per run, so it can afford to think hard. */
     criteriaEffort: process.env.CRITERIA_EFFORT ?? 'high',
     /** Runs once per candidate — medium keeps a 50-profile sweep affordable. */
     analysisEffort: process.env.ANALYSIS_EFFORT ?? 'medium',
     /** Parallel candidate analyses in flight. */
     concurrency: int(process.env.ANALYSIS_CONCURRENCY, 6),
-  },
+  } as const;
+}
+
+export const config = {
+  port: int(process.env.PORT, 3000),
+
+  llm: resolveLlm(),
 
   sources: {
     /** Adapters enabled by default when the request doesn't name any. */

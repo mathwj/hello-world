@@ -52,7 +52,7 @@ the sweep is still running.
 
 ```bash
 npm install
-cp .env.example .env      # optional — see "Analysis modes" below
+cp .env.example .env      # add OPENAI_API_KEY — see "Analysis modes" below
 npm run build && npm start
 # → http://localhost:3000
 ```
@@ -65,16 +65,32 @@ a real source. During development, `npm run dev` reloads on change.
 
 | | Requires | What you get |
 |---|---|---|
-| **Full analysis** | `ANTHROPIC_API_KEY` | Everything above: title adjacency, multilingual profiles, evidence quotes, trajectory, red flags. |
+| **Full analysis** | `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` | Everything above: title adjacency, multilingual profiles, evidence quotes, trajectory, red flags. |
 | **Keyword scoring** | nothing | The app still runs. Weighted keyword matching over the same criteria — good enough to rank, not good enough to reason. Every card is marked `keyword score`. |
 
 The keyword tier is also the safety net: if a single candidate's analysis call
 fails, that candidate falls back rather than sinking the run.
 
-Model and effort are configurable (`ANTHROPIC_MODEL`, `CRITERIA_EFFORT`,
-`ANALYSIS_EFFORT`). The brief is parsed once so it runs at high effort;
-analysis runs once per candidate, so it defaults to medium to keep a wide
-sweep affordable.
+### Providers
+
+Either provider works — both are driven through their native structured-output
+API, so the pipeline gets a validated object back rather than loose JSON. Set
+one key and it's picked up automatically:
+
+```bash
+OPENAI_API_KEY=sk-...          # → OpenAI, default model gpt-5.5
+ANTHROPIC_API_KEY=sk-ant-...   # → Anthropic, default model claude-opus-5
+```
+
+With both set, OpenAI wins; pin it either way with `LLM_PROVIDER=openai` or
+`LLM_PROVIDER=anthropic`. Override the model with `OPENAI_MODEL` /
+`ANTHROPIC_MODEL` — `gpt-5.4-mini` is a cheaper, faster choice for wide sweeps.
+
+Effort is configurable too (`CRITERIA_EFFORT`, `ANALYSIS_EFFORT`), and maps
+onto each provider's own reasoning control. The brief is parsed once so it runs
+at high effort; analysis runs once per candidate, so it defaults to medium to
+keep a wide sweep affordable. On OpenAI, the reasoning parameter is only sent
+for models that accept it (the `gpt-5` / `o`-series families).
 
 ## Sources
 
@@ -145,7 +161,7 @@ src/
   scoring.ts         profile → evidence-backed assessment (+ keyword fallback)
   pipeline.ts        the sweep: criteria → source → dedupe → filter → analyse → rank
   profile-text.ts    tenure maths and the rendering the analyst reads
-  llm.ts             Anthropic client, structured output, bounded concurrency
+  llm.ts             OpenAI/Anthropic clients, structured output, concurrency
   server.ts          Express, SSE streaming, CSV export
   sources/           one file per adapter
 public/              the browser app (no build step, no framework)
@@ -158,9 +174,9 @@ npm test
 ```
 
 Runs offline checks over the CSV reader, tenure maths, the relevance gate and
-the deterministic scorer, then verifies the model path against a local stand-in
-for the Messages API — request shape and structured-response parsing, without
-spending credits.
+the deterministic scorer, then verifies the model path for **both** providers
+against a local stand-in for their APIs — request shape and structured-response
+parsing, without spending credits.
 
 ## Limits worth knowing
 

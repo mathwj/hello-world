@@ -117,7 +117,7 @@ export async function runSearch(
   let done = 0;
   const candidates = await mapWithConcurrency(
     toAnalyse,
-    config.anthropic.concurrency,
+    config.llm.concurrency,
     async ({ profile }): Promise<Candidate> => {
       const assessment = await assessProfile(profile, criteria, brief);
       done++;

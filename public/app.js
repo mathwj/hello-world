@@ -60,7 +60,7 @@ async function loadConfig() {
   if (cfg.analysisMode === 'model') {
     el.modePill.textContent = `Full analysis · ${cfg.model}`;
   } else {
-    el.modePill.textContent = 'Keyword scoring only — set ANTHROPIC_API_KEY';
+    el.modePill.textContent = 'Keyword scoring only — set OPENAI_API_KEY';
     el.modePill.classList.add('warn');
   }
 

@@ -85,7 +85,7 @@ export async function buildCriteria(brief: string): Promise<{
       const parsed = await parseStructured(CriteriaSchema, {
         system: SYSTEM,
         user: `Hiring brief:\n"""\n${brief.trim()}\n"""`,
-        effort: config.anthropic.criteriaEffort,
+        effort: config.llm.criteriaEffort,
       });
       return { criteria: normalise(parsed as SearchCriteria), warnings };
     } catch (error) {
@@ -96,8 +96,9 @@ export async function buildCriteria(brief: string): Promise<{
     }
   } else {
     warnings.push(
-      'No Anthropic credentials configured: using keyword parsing and ' +
-        'deterministic scoring. Set ANTHROPIC_API_KEY for full analysis.',
+      'No model credentials configured: using keyword parsing and ' +
+        'deterministic scoring. Set OPENAI_API_KEY (or ANTHROPIC_API_KEY) ' +
+        'for full analysis.',
     );
   }
 
