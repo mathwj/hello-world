@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { orderedTitles } from '../criteria.js';
 import type { Profile } from '../types.js';
 import type { SourceAdapter, SourceContext } from './types.js';
 
@@ -42,11 +43,7 @@ export const webSearchSource: SourceAdapter = {
       .filter(Boolean)
       .join(' ');
 
-    const titles = [
-      ...criteria.targetTitles,
-      ...criteria.adjacentTitles,
-      ...criteria.localLanguageTitles,
-    ].slice(0, 8);
+    const titles = orderedTitles(criteria, 8);
 
     const queries = titles.map(
       (title) => `site:linkedin.com/in "${title}"${location ? ` "${location}"` : ''}`,

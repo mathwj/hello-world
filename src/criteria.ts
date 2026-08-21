@@ -105,6 +105,25 @@ export async function buildCriteria(brief: string): Promise<{
   return { criteria: heuristicCriteria(brief), warnings };
 }
 
+/**
+ * The title list adapters should search, in priority order.
+ *
+ * Local-language variants come second, ahead of the English adjacent titles:
+ * every adapter caps how many titles it will send, and in a non-English market
+ * "Gerente de Marketing" finds more of the right people than a fourth English
+ * near-synonym. Concatenating in declaration order would let the adjacent list
+ * crowd them out entirely.
+ */
+export function orderedTitles(criteria: SearchCriteria, limit?: number): string[] {
+  const ordered = [
+    ...criteria.targetTitles,
+    ...criteria.localLanguageTitles,
+    ...criteria.adjacentTitles,
+  ];
+  const unique = [...new Map(ordered.map((title) => [title.toLowerCase(), title])).values()];
+  return limit === undefined ? unique : unique.slice(0, limit);
+}
+
 /** Clamp and de-duplicate whatever came back so downstream code can trust it. */
 function normalise(criteria: SearchCriteria): SearchCriteria {
   const dedupe = (values: string[]) => [

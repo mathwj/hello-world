@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { config } from '../config.js';
+import { orderedTitles } from '../criteria.js';
 import type { EducationEntry, ExperienceEntry, Profile, SearchCriteria } from '../types.js';
 import type { SourceAdapter, SourceContext } from './types.js';
 
@@ -200,11 +201,7 @@ export const ninjapearSource: SourceAdapter = {
     const companies = await loadCompanies(warn);
     if (companies.length === 0) return [];
 
-    const roles = [
-      ...criteria.targetTitles,
-      ...criteria.adjacentTitles,
-      ...criteria.localLanguageTitles,
-    ].slice(0, config.sources.ninjapearMaxRoles);
+    const roles = orderedTitles(criteria, config.sources.ninjapearMaxRoles);
 
     if (roles.length === 0) return [];
 

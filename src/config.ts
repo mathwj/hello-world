@@ -69,6 +69,20 @@ export const config = {
     /** Escape hatch for anyone with legacy access to the retired service. */
     proxycurlAllowLegacy: bool(process.env.PROXYCURL_ALLOW_LEGACY, false),
 
+    apifyToken: process.env.APIFY_TOKEN ?? '',
+    /** Actor ids are third-party, so keep them in config, not in code. */
+    apifySearchActor:
+      process.env.APIFY_SEARCH_ACTOR ?? 'scrapesage/linkedin-people-search-scraper',
+    /** Optional second pass for full work history. Empty = search only. */
+    apifyProfileActor: process.env.APIFY_PROFILE_ACTOR ?? '',
+    /** The profile actor's input field holding the list of URLs. */
+    apifyProfileInputKey: process.env.APIFY_PROFILE_INPUT_KEY ?? 'profileUrls',
+    apifyMaxTitles: int(process.env.APIFY_MAX_TITLES, 8),
+    apifyMaxLocations: int(process.env.APIFY_MAX_LOCATIONS, 4),
+    apifyMaxKeywords: int(process.env.APIFY_MAX_KEYWORDS, 6),
+    apifyPollMs: int(process.env.APIFY_POLL_MS, 5000),
+    apifyTimeoutMs: int(process.env.APIFY_TIMEOUT_MS, 600000),
+
     ninjapearApiKey: process.env.NINJAPEAR_API_KEY ?? '',
     ninjapearBaseUrl: process.env.NINJAPEAR_BASE_URL ?? 'https://nubela.co',
     /** Its search is keyed on company website, so a target list is required. */

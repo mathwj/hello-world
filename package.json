@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node scripts/unit-check.mjs && node scripts/ninjapear-check.mjs && node scripts/mock-api-check.mjs"
+    "test": "npm run build && node scripts/unit-check.mjs && node scripts/apify-check.mjs && node scripts/ninjapear-check.mjs && node scripts/mock-api-check.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

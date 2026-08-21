@@ -1,3 +1,4 @@
+import { apifySource } from './apify.js';
 import { csvSource } from './csv.js';
 import { ninjapearSource } from './ninjapear.js';
 import { proxycurlSource } from './proxycurl.js';
@@ -7,6 +8,7 @@ import { webSearchSource } from './websearch.js';
 
 export const adapters: SourceAdapter[] = [
   sampleSource,
+  apifySource,
   csvSource,
   ninjapearSource,
   webSearchSource,

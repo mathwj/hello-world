@@ -101,6 +101,7 @@ register it in `src/sources/index.ts`.
 |---|---|---|
 | `sample` | 16 bundled fictional profiles. No network, no real people. | — |
 | `csv` | Profile exports you already hold — ATS dumps, LinkedIn Recruiter project exports, licensed vendor deliveries. Drop `.csv` or `.json` into `data/imports/`. | — |
+| `apify` | **Searches LinkedIn by job title and location** through a hosted actor, then optionally opens each profile for the full work history. The closest thing to the original brief. | `APIFY_TOKEN` |
 | `ninjapear` | Searches **named companies** for people in a given role, then enriches each hit into a full profile. Account-based, billed per credit — see below. | `NINJAPEAR_API_KEY` + a company list |
 | `proxycurl` | **Retired.** Proxycurl shut down in July 2025 after LinkedIn sued its operator. Kept as a worked example of the adapter contract. | — |
 | `websearch` | Finds public profile pages through a search engine and builds stubs from the snippets. Discovery only — no work history, so pair it with an enrichment source. | `SERPAPI_API_KEY` |
@@ -141,6 +142,43 @@ What is deliberately not in here: LinkedIn session-cookie replay, headless
 browsers driving a logged-in account, and anti-bot evasion. If you have a data
 partner I haven't listed, the adapter interface is about 40 lines — point me at
 their API and I'll wire it in.
+
+### Using Apify (LinkedIn search)
+
+This is the source that answers "find me marketing managers in Curitiba".
+Apify hosts third-party actors that collect public LinkedIn data on their own
+infrastructure — your LinkedIn account is never used and no session cookie
+touches this app.
+
+```
+APIFY_TOKEN=your_token
+DEFAULT_SOURCES=apify
+APIFY_PROFILE_ACTOR=atomus/linkedin-profile-scraper
+```
+
+It runs in two stages, because the actors are split that way:
+
+1. **Search** — `APIFY_SEARCH_ACTOR` turns the brief's titles and locations
+   into a list of people. It returns each person's *current* role and company.
+2. **Enrich** — `APIFY_PROFILE_ACTOR` opens each profile URL for the full work
+   history. This is optional but close to essential: without it the analyst is
+   judging a career from one job title, and candidates score low-confidence by
+   construction.
+
+Titles are sent in priority order — target titles, then local-language
+variants, then English adjacent ones — so `APIFY_MAX_TITLES` trims the loosest
+matches first rather than dropping "Gerente de Marketing" in favour of a fourth
+English synonym.
+
+Actor ids live in config, not in code, because they are third-party: they get
+deprecated, repriced and replaced. If one dies, swap the id. If a replacement
+names its fields differently, the mapping already reads several spellings
+(`experience` / `experiences` / `positions`, `companyName` / `company`), and
+anything unrecognised is dropped rather than crashing the run.
+
+Pricing is per person found and varies by actor — roughly $1.50–$12 per 1,000
+profiles across the marketplace, on top of an Apify plan that acts as a
+spending floor. There is a free tier; test on it before running a wide sweep.
 
 ### Using NinjaPear
 
