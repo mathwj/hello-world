@@ -3,17 +3,25 @@ import type { EducationEntry, ExperienceEntry, Profile } from '../types.js';
 import type { SourceAdapter, SourceContext } from './types.js';
 
 /**
- * Adapter for Proxycurl, a licensed provider of LinkedIn-derived profile data.
+ * Adapter for Proxycurl, formerly a licensed provider of LinkedIn-derived
+ * profile data.
  *
- * Going through a licensed data provider is the supported way to get this data
- * at volume: they hold the agreements, they handle rate limiting, and your
- * account is the audit trail. This adapter does not log into LinkedIn, does
- * not replay session cookies and does not drive a browser.
+ * RETIRED: Proxycurl shut down on 2025-07-04 after LinkedIn and Microsoft sued
+ * its operator, Nubela, over large-scale scraping of member data. The endpoints
+ * below no longer answer. The successor product (NinjaPear) is not a drop-in:
+ * it drops LinkedIn as a source and keys person lookups on work email or
+ * company website rather than a profile URL, so it enriches people you can
+ * already name and cannot answer "who are the marketing managers in Curitiba".
+ *
+ * The adapter is kept as a worked example of the SourceAdapter contract — it
+ * shows the search-then-enrich shape most vendors use, and is a short edit away
+ * from targeting one that is still operating. It refuses to run rather than
+ * failing on a connection error, unless PROXYCURL_ALLOW_LEGACY=1 is set for
+ * someone with legacy access.
  *
  * Field mapping is deliberately tolerant — providers rename and version their
  * response fields, so anything unrecognised is dropped rather than crashing
- * the run. Check the response shape against the provider's current docs if a
- * field stops coming through.
+ * the run.
  */
 
 interface RawDate {
@@ -110,14 +118,26 @@ async function callApi(
 
 export const proxycurlSource: SourceAdapter = {
   id: 'proxycurl',
-  label: 'Proxycurl (licensed provider)',
+  label: 'Proxycurl (retired — service shut down 2025)',
   description:
-    'Searches a licensed LinkedIn-derived dataset by role, location and ' +
-    'keyword, then enriches each hit into a full profile. Billed per credit.',
-  isConfigured: () => Boolean(config.sources.proxycurlApiKey),
-  configHint: 'Set PROXYCURL_API_KEY in .env',
+    'Proxycurl shut down in July 2025 after LinkedIn sued its operator. This ' +
+    'adapter is kept as a template for wiring up a vendor that is still ' +
+    'operating; it will not return results on its own.',
+  isConfigured: () =>
+    Boolean(config.sources.proxycurlApiKey) && config.sources.proxycurlAllowLegacy,
+  configHint:
+    'Service discontinued. Use the `csv` source with a LinkedIn Recruiter ' +
+    'export, or adapt this file to a current vendor.',
 
   async search({ criteria, limit, warn, progress }: SourceContext): Promise<Profile[]> {
+    if (!config.sources.proxycurlAllowLegacy) {
+      warn(
+        'The Proxycurl source is retired: the service shut down on 2025-07-04 ' +
+          'and its endpoints no longer answer. No profiles were sourced from it.',
+      );
+      return [];
+    }
+
     const titles = [
       ...criteria.targetTitles,
       ...criteria.adjacentTitles,

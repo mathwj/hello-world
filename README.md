@@ -101,7 +101,7 @@ register it in `src/sources/index.ts`.
 |---|---|---|
 | `sample` | 16 bundled fictional profiles. No network, no real people. | — |
 | `csv` | Profile exports you already hold — ATS dumps, LinkedIn Recruiter project exports, licensed vendor deliveries. Drop `.csv` or `.json` into `data/imports/`. | — |
-| `proxycurl` | A licensed provider of LinkedIn-derived data. Searches by role/location/keyword, then enriches each hit. | `PROXYCURL_API_KEY` |
+| `proxycurl` | **Retired.** Proxycurl shut down in July 2025 after LinkedIn sued its operator. Kept as a worked example of the adapter contract — see below. | — |
 | `websearch` | Finds public profile pages through a search engine and builds stubs from the snippets. Discovery only — no work history, so pair it with an enrichment source. | `SERPAPI_API_KEY` |
 
 Enable them with `DEFAULT_SOURCES=sample,csv,proxycurl` or per-run in the UI.
@@ -120,14 +120,21 @@ data coming from a source you're entitled to use.
 
 That covers the same ground in practice:
 
-- **Licensed provider** (`proxycurl`) — LinkedIn-derived profile data at
-  volume, with the agreements and the rate limiting handled for you. This is
-  the closest thing to what you described, and it's the one to enable if you
-  want to run real searches today.
 - **LinkedIn Recruiter exports** (`csv`) — if your team already pays for
-  Recruiter, export the project and let this analyse it. Zero marginal cost.
+  Recruiter, export the project and let this analyse it. Zero marginal cost,
+  and the data is yours to use. This is the most practical route today.
+- **A licensed data vendor** — providers such as Coresignal, People Data Labs
+  and Bright Data still operate. None is wired up out of the box; `proxycurl.ts`
+  is kept as a template showing the search-then-enrich shape most of them use.
 - **Public search discovery** (`websearch`) — finds who exists; hand the URLs
   to a recruiter or to an enrichment source for the detail.
+
+The vendor landscape here is unstable, and that is the point rather than a
+footnote: **Proxycurl was the best-known LinkedIn-data API and it no longer
+exists** — LinkedIn and Microsoft sued its operator in January 2025 and it shut
+down that July. Its successor dropped LinkedIn as a source entirely. Assume any
+adapter you write against a scraping vendor has a limited shelf life, and keep
+the import path working as your fallback.
 
 What is deliberately not in here: LinkedIn session-cookie replay, headless
 browsers driving a logged-in account, and anti-bot evasion. If you have a data

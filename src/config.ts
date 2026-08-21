@@ -66,6 +66,8 @@ export const config = {
     /** Directory scanned by the CSV/JSON import adapter. */
     importDir: process.env.IMPORT_DIR ?? 'data/imports',
     proxycurlApiKey: process.env.PROXYCURL_API_KEY ?? '',
+    /** Escape hatch for anyone with legacy access to the retired service. */
+    proxycurlAllowLegacy: bool(process.env.PROXYCURL_ALLOW_LEGACY, false),
     proxycurlBaseUrl:
       process.env.PROXYCURL_BASE_URL ?? 'https://nubela.co/proxycurl/api',
     serpApiKey: process.env.SERPAPI_API_KEY ?? '',
