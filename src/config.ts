@@ -68,6 +68,21 @@ export const config = {
     proxycurlApiKey: process.env.PROXYCURL_API_KEY ?? '',
     /** Escape hatch for anyone with legacy access to the retired service. */
     proxycurlAllowLegacy: bool(process.env.PROXYCURL_ALLOW_LEGACY, false),
+
+    ninjapearApiKey: process.env.NINJAPEAR_API_KEY ?? '',
+    ninjapearBaseUrl: process.env.NINJAPEAR_BASE_URL ?? 'https://nubela.co',
+    /** Its search is keyed on company website, so a target list is required. */
+    ninjapearCompanies: (process.env.NINJAPEAR_COMPANIES ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    ninjapearCompanyFile: process.env.NINJAPEAR_COMPANY_FILE ?? 'data/companies.txt',
+    /** Role variants tried per company — the fan-out is companies × roles. */
+    ninjapearMaxRoles: int(process.env.NINJAPEAR_MAX_ROLES, 4),
+    /** Hard stop on estimated credit spend for a single run. */
+    ninjapearMaxCredits: int(process.env.NINJAPEAR_MAX_CREDITS, 200),
+    /** Spend 3 credits per person for full work history. Off = names only. */
+    ninjapearEnrich: bool(process.env.NINJAPEAR_ENRICH, true),
     proxycurlBaseUrl:
       process.env.PROXYCURL_BASE_URL ?? 'https://nubela.co/proxycurl/api',
     serpApiKey: process.env.SERPAPI_API_KEY ?? '',

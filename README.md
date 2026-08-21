@@ -101,7 +101,8 @@ register it in `src/sources/index.ts`.
 |---|---|---|
 | `sample` | 16 bundled fictional profiles. No network, no real people. | — |
 | `csv` | Profile exports you already hold — ATS dumps, LinkedIn Recruiter project exports, licensed vendor deliveries. Drop `.csv` or `.json` into `data/imports/`. | — |
-| `proxycurl` | **Retired.** Proxycurl shut down in July 2025 after LinkedIn sued its operator. Kept as a worked example of the adapter contract — see below. | — |
+| `ninjapear` | Searches **named companies** for people in a given role, then enriches each hit into a full profile. Account-based, billed per credit — see below. | `NINJAPEAR_API_KEY` + a company list |
+| `proxycurl` | **Retired.** Proxycurl shut down in July 2025 after LinkedIn sued its operator. Kept as a worked example of the adapter contract. | — |
 | `websearch` | Finds public profile pages through a search engine and builds stubs from the snippets. Discovery only — no work history, so pair it with an enrichment source. | `SERPAPI_API_KEY` |
 
 Enable them with `DEFAULT_SOURCES=sample,csv,proxycurl` or per-run in the UI.
@@ -140,6 +141,45 @@ What is deliberately not in here: LinkedIn session-cookie replay, headless
 browsers driving a logged-in account, and anti-bot evasion. If you have a data
 partner I haven't listed, the adapter interface is about 40 lines — point me at
 their API and I'll wire it in.
+
+### Using NinjaPear
+
+NinjaPear is the successor to Proxycurl, and it works differently in a way that
+changes how you search. Its employee search is keyed on **company website**,
+not on city — there is no "find marketing managers in Curitiba" endpoint. You
+name the companies; it finds the people inside them.
+
+So sourcing becomes account-based:
+
+```
+NINJAPEAR_API_KEY=your_key
+DEFAULT_SOURCES=ninjapear
+NINJAPEAR_COMPANIES=agencia-exemplo.com.br,Another Company Name
+```
+
+or, for a longer list, one company per line in `data/companies.txt` (copy
+`data/companies.example.txt`). A bare domain is used directly; a plain company
+name costs 1 credit to resolve to its website first.
+
+Each run then fans out over **companies × role variants**, and every call is
+billed:
+
+| Call | Cost |
+|---|---|
+| Website lookup (only for non-domain entries) | 1 credit |
+| Employee search, per company × role | 2 credits + 1 per person returned |
+| Profile enrichment, per person | 3 credits, charged even on a miss |
+
+20 companies × 4 roles returning 5 people each is roughly 180 credits of
+search plus 300 of enrichment. That climbs fast, so every call goes through a
+credit ledger that **stops the run at `NINJAPEAR_MAX_CREDITS`** (default 200)
+rather than draining the account. Start lower than you think — set
+`NINJAPEAR_MAX_CREDITS=30` and two or three companies for a first run, confirm
+the shape of what comes back, then open it up.
+
+`NINJAPEAR_ENRICH=0` skips the 3-credit enrichment and returns names and roles
+only. Cheap, but the analyst then has no work history to reason about, so those
+candidates score low-confidence by construction.
 
 ### Import file format
 

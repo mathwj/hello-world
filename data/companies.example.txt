@@ -1,0 +1,11 @@
+# Target companies for the NinjaPear source, one per line.
+#
+# NinjaPear's employee search is keyed on company website, not on city — you
+# name the companies, it finds the people inside them. Give a domain when you
+# know it (free); a plain company name costs 1 credit to resolve first.
+#
+# Copy this file to data/companies.txt and replace these with real targets:
+# the employers in your target market whose people you would actually hire.
+
+# example-agency.com.br
+# Agência Exemplo Curitiba

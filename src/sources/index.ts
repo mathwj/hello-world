@@ -1,4 +1,5 @@
 import { csvSource } from './csv.js';
+import { ninjapearSource } from './ninjapear.js';
 import { proxycurlSource } from './proxycurl.js';
 import { sampleSource } from './sample.js';
 import type { SourceAdapter } from './types.js';
@@ -7,8 +8,9 @@ import { webSearchSource } from './websearch.js';
 export const adapters: SourceAdapter[] = [
   sampleSource,
   csvSource,
-  proxycurlSource,
+  ninjapearSource,
   webSearchSource,
+  proxycurlSource,
 ];
 
 export function getAdapter(id: string): SourceAdapter | undefined {
