@@ -148,7 +148,44 @@ def test_cookies_are_passed_to_ytdlp_when_configured(tmp_path, monkeypatch):
     assert "cookiesfrombrowser" not in manager._ydl_options("job")
 
     monkeypatch.setenv("KARAOKE_COOKIES_FROM_BROWSER", "Safari")
+    monkeypatch.setattr(downloads.config, "cookie_problem", lambda: "")
     assert manager._ydl_options("job")["cookiesfrombrowser"] == ("safari",)
+
+
+def test_unreadable_cookies_are_dropped_rather_than_breaking_the_request(tmp_path, monkeypatch):
+    from karaoke import config
+
+    manager = DownloadManager(tmp_path, workers=1)
+    monkeypatch.setenv("KARAOKE_COOKIES_FROM_BROWSER", "safari")
+    monkeypatch.setattr(config, "cookie_problem", lambda: "macOS blocked access")
+    assert "cookiesfrombrowser" not in manager._ydl_options("job")
+
+
+def test_cookie_permission_errors_become_actionable_advice(monkeypatch):
+    from karaoke import config, cookies
+
+    assert cookies.is_permission_error("[Errno 1] Operation not permitted: 'Cookies.binarycookies'")
+    assert not cookies.is_permission_error("something else")
+
+    monkeypatch.setattr(config, "cookie_problem", lambda: "Grant Full Disk Access")
+    message = downloads.explain_error(
+        RuntimeError("[Errno 1] Operation not permitted: '/…/Cookies.binarycookies'")
+    )
+    assert message == "Grant Full Disk Access"
+
+
+def test_cookie_probe_reports_a_permission_failure(monkeypatch):
+    from karaoke import cookies
+
+    def denied(browser, logger=None, **kwargs):
+        raise PermissionError("[Errno 1] Operation not permitted: 'Cookies.binarycookies'")
+
+    monkeypatch.setattr("yt_dlp.cookies.extract_cookies_from_browser", denied)
+    cookies.probe.cache_clear()
+    usable, problem = cookies.probe("safari")
+    assert usable is False
+    assert "Full Disk Access" in problem and "chrome" in problem
+    cookies.probe.cache_clear()
 
 
 def test_ensure_ca_bundle_is_a_no_op_when_the_system_store_works(monkeypatch):

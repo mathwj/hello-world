@@ -70,8 +70,14 @@ KARAOKE_DIR=~/Music/Karaoke KARAOKE_PORT=9000 ./run.sh
 challenging the request. Point the app at a browser you are already signed into:
 
 ```sh
-KARAOKE_COOKIES_FROM_BROWSER=safari ./run.sh   # or chrome, firefox, edge, brave
+KARAOKE_COOKIES_FROM_BROWSER=chrome ./run.sh   # or firefox, edge, brave, safari
 ```
+
+Safari is the awkward one: macOS keeps its cookies in a protected container, so
+reading them needs Full Disk Access granted to Terminal (System Settings ›
+Privacy & Security › Full Disk Access — add Terminal and restart it). Chrome and
+Firefox need no such permission. If cookies cannot be read, KaraokeBox says so at
+startup and carries on without them rather than failing.
 
 **"Search failed: CERTIFICATE_VERIFY_FAILED".** Python installed from
 python.org does not use the macOS keychain, so it starts with an empty list of

@@ -35,6 +35,12 @@ def main() -> None:
     elif tls.system_ca_count() == 0:
         print("  certs   : WARNING no certificates found — searches will fail.")
         print("            Fix with:  .venv/bin/pip install certifi")
+    problem = config.cookie_problem()
+    if problem:
+        print(f"  cookies : IGNORED — {problem}")
+    elif config.cookies_from_browser():
+        print(f"  cookies : {config.cookies_from_browser()}")
+
     runtime = config.js_runtime()
     if runtime:
         print(f"  js      : {runtime[0]} ({runtime[1]})")

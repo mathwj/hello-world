@@ -121,6 +121,7 @@ def test_search_passes_browser_cookies_when_configured(monkeypatch):
         return captured["ydl"]
 
     monkeypatch.setenv("KARAOKE_COOKIES_FROM_BROWSER", "chrome")
+    monkeypatch.setattr("karaoke.config.cookie_problem", lambda: "")
     search("perfect", ydl_factory=factory)
     assert captured["ydl"].options["cookiesfrombrowser"] == ("chrome",)
 

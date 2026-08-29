@@ -229,6 +229,10 @@ def explain_error(exc: Exception) -> str:
         return BOT_CHECK_HINT
     if "Requested format is not available" in message:
         return NO_FORMAT_HINT
+    from .cookies import is_permission_error
+
+    if is_permission_error(message) and "ookie" in message:
+        return config.cookie_problem() or message
     if "Video unavailable" in message or "private video" in message.lower():
         return "That video is unavailable — try another result."
     # yt-dlp prefixes its own errors; the prefix adds nothing for the user.

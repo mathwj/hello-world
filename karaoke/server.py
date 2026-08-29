@@ -13,7 +13,7 @@ from flask import Flask, jsonify, render_template, request, send_from_directory
 
 from . import __version__, config
 from . import library
-from .downloads import DownloadManager
+from .downloads import DownloadManager, explain_error
 from .search import MAX_RESULTS, build_query, search
 
 mimetypes.add_type("video/mp4", ".m4v")
@@ -56,7 +56,7 @@ def create_app(download_dir: Path | None = None, manager: DownloadManager | None
         try:
             results = search(term, limit)
         except Exception as exc:
-            return jsonify({"error": f"Search failed: {exc}"}), 502
+            return jsonify({"error": f"Search failed: {explain_error(exc)}"}), 502
 
         return jsonify(
             {

@@ -51,10 +51,27 @@ def cookies_from_browser() -> str | None:
     return value or None
 
 
-def ydl_cookie_options() -> dict:
-    """yt-dlp options carrying the configured browser cookies (empty if unset)."""
+def cookie_problem() -> str:
+    """Why the configured cookies are unusable, or ``""`` when they are fine."""
     browser = cookies_from_browser()
-    return {"cookiesfrombrowser": (browser,)} if browser else {}
+    if not browser:
+        return ""
+    from .cookies import probe
+
+    usable, problem = probe(browser)
+    return "" if usable else problem
+
+
+def ydl_cookie_options() -> dict:
+    """yt-dlp options carrying the configured browser cookies.
+
+    Empty when none are configured, and also when they cannot be read: cookies
+    are an optional aid, so an unreadable cookie jar must not break searching.
+    """
+    browser = cookies_from_browser()
+    if not browser or cookie_problem():
+        return {}
+    return {"cookiesfrombrowser": (browser,)}
 
 
 #: JavaScript runtimes yt-dlp can drive. YouTube now hides its format URLs
