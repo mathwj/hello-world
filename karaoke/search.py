@@ -138,11 +138,9 @@ def search(
         if parsed is not None:
             results.append(parsed)
 
-    # Most-watched first. YouTube orders by its own idea of relevance, which
-    # scatters 20k-view uploads among the millions; for a backing track the view
-    # count is the best signal of which one is worth singing to. Unknown counts
-    # sort last, and Python's stable sort keeps YouTube's order within a tie.
-    results.sort(key=lambda result: result.view_count or 0, reverse=True)
+    # Left in YouTube's own order: its relevance ranking understands the query,
+    # where sorting by views just floats the most popular song that happens to
+    # share a word with it. The counts are still shown on each result.
     return results
 
 

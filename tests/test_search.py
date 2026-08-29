@@ -173,45 +173,29 @@ def test_video_details_reads_one_video():
     assert "dQw4w9WgXcQ" in captured["ydl"].requested
 
 
-def test_results_come_back_most_viewed_first():
+def test_results_keep_youtube_relevance_order():
+    """Deliberately not sorted by views: relevance understands the query."""
     entries = [
-        {"id": "a", "title": "twenty one thousand", "view_count": 21_000},
-        {"id": "b", "title": "twenty five million", "view_count": 25_100_000},
-        {"id": "c", "title": "ten million", "view_count": 10_700_000},
+        {"id": "a", "title": "most relevant", "view_count": 21_000},
+        {"id": "b", "title": "less relevant", "view_count": 25_100_000},
+        {"id": "c", "title": "least relevant", "view_count": 10_700_000},
     ]
 
     def factory(options):
         return FakeYDL(options, entries=entries)
 
     assert [r.title for r in search("what", ydl_factory=factory)] == [
-        "twenty five million",
-        "ten million",
-        "twenty one thousand",
+        "most relevant",
+        "less relevant",
+        "least relevant",
     ]
 
 
-def test_results_with_no_view_count_sort_last():
-    entries = [
-        {"id": "a", "title": "unknown"},
-        {"id": "b", "title": "a thousand", "view_count": 1000},
-    ]
+def test_view_counts_are_still_reported():
+    """The count is shown on each card even though it no longer sorts them."""
+    entries = [{"id": "a", "title": "a song", "view_count": 25_100_000}]
 
     def factory(options):
         return FakeYDL(options, entries=entries)
 
-    assert [r.title for r in search("what", ydl_factory=factory)] == ["a thousand", "unknown"]
-
-
-def test_ties_keep_youtube_own_ordering():
-    entries = [
-        {"id": "a", "title": "first from youtube", "view_count": 500},
-        {"id": "b", "title": "second from youtube", "view_count": 500},
-    ]
-
-    def factory(options):
-        return FakeYDL(options, entries=entries)
-
-    assert [r.title for r in search("what", ydl_factory=factory)] == [
-        "first from youtube",
-        "second from youtube",
-    ]
+    assert search("what", ydl_factory=factory)[0].view_count == 25_100_000
