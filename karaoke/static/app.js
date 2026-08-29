@@ -20,6 +20,11 @@ const state = {
   ytApi: null,
   pollTimer: null,
   volumeTimer: null,
+  // One fade per channel: where it came from, and the animation in flight.
+  fades: {
+    karaoke: { faded: false, restore: 85, frame: null },
+    music: { faded: false, restore: 60, frame: null },
+  },
 };
 
 /* ---------- helpers ---------- */
@@ -597,17 +602,115 @@ function sendVolume() {
   postJson("/api/stage", { volume }).catch(() => {});
 }
 
-function onFaderMoved(event) {
-  const isMusic = event.target.id === "vol-music";
-  $(isMusic ? "#vol-music-out" : "#vol-karaoke-out").textContent = event.target.value;
-  // The music plays on this machine, so its fader acts at once with no round
-  // trip. The karaoke fader has to reach the stage, hence the post below.
-  if (isMusic) {
-    if (IS_DESKTOP) applyMusicVolume(Number(event.target.value));
-    else if (state.player && state.playerReady) state.player.setVolume(Number(event.target.value));
+function faderFor(channel) {
+  return channel === "karaoke" ? $("#vol-karaoke") : $("#vol-music");
+}
+
+function readoutFor(channel) {
+  return channel === "karaoke" ? $("#vol-karaoke-out") : $("#vol-music-out");
+}
+
+/* The music plays on this machine, so it responds without a round trip; the
+   karaoke has to reach the stage, which is what sendVolume() is for. */
+function applyLocally(channel, value) {
+  if (channel !== "music") return;
+  if (IS_DESKTOP) applyMusicVolume(value);
+  else if (state.player && state.playerReady) state.player.setVolume(value);
+}
+
+function setChannel(channel, value) {
+  faderFor(channel).value = value;
+  readoutFor(channel).textContent = value;
+  applyLocally(channel, value);
+}
+
+function updateFadeButton(channel) {
+  const button = channel === "karaoke" ? $("#fade-karaoke") : $("#fade-music");
+  const faded = state.fades[channel].faded;
+  const what = channel === "karaoke" ? "karaoke" : "music";
+  button.classList.toggle("is-faded", faded);
+  button.innerHTML = faded ? "&#9650;" : "&#9660;";
+  const label = faded ? `Bring the ${what} back up` : `Fade the ${what} out`;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+}
+
+const FADE_MS = 1200;
+
+const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+/* Rides the fader down to silence, or back to where it was.
+
+   The karaoke goes as a single instruction — target and duration — because the
+   stage performs the ramp itself; streaming a dozen volume updates across the
+   network put the room's audio at the mercy of request timing, and it audibly
+   jumped. The music plays on this machine, so it is ridden here. The slider
+   animates locally either way, which is only cosmetic. */
+function toggleFade(channel) {
+  const fade = state.fades[channel];
+  if (fade.frame) cancelAnimationFrame(fade.frame);
+
+  const from = Number(faderFor(channel).value);
+  if (!fade.faded && from > 0) fade.restore = from;
+  const to = fade.faded ? fade.restore : 0;
+  fade.faded = !fade.faded;
+  updateFadeButton(channel);
+
+  // Proportional, so a short fade does not crawl at the same pace as a long one.
+  const duration = Math.max(200, FADE_MS * (Math.abs(to - from) / 100));
+
+  if (channel === "karaoke") {
+    // The id must be new to the stage, and the stage remembers the last one it
+    // saw across page loads. A per-page counter restarts at 1 and gets ignored
+    // as already-seen, which lands as an instant cut instead of a fade.
+    postJson("/api/stage", {
+      volume: { karaoke: to },
+      fade: { to, ms: duration, id: Date.now() },
+    }).catch(() => {});
   }
+
+  const started = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - started) / duration);
+    const value = Math.round(from + (to - from) * easeInOut(t));
+    faderFor(channel).value = value;
+    readoutFor(channel).textContent = value;
+    applyLocally(channel, value);
+
+    if (t < 1) {
+      fade.frame = requestAnimationFrame(step);
+    } else {
+      fade.frame = null;
+      if (channel === "music") sendVolume();   // karaoke already sent its target
+    }
+  }
+  fade.frame = requestAnimationFrame(step);
+}
+
+document.querySelectorAll(".fade-btn").forEach((button) => {
+  button.addEventListener("click", () => toggleFade(button.dataset.channel));
+});
+
+function onFaderMoved(event) {
+  const channel = event.target.id === "vol-music" ? "music" : "karaoke";
+  const value = Number(event.target.value);
+  const fade = state.fades[channel];
+
+  // Touching the fader takes the channel back off the fade button.
+  if (fade.frame) {
+    cancelAnimationFrame(fade.frame);
+    fade.frame = null;
+  }
+  if (value > 0) fade.restore = value;
+  if (fade.faded !== (value === 0)) {
+    fade.faded = value === 0;
+    updateFadeButton(channel);
+  }
+
+  readoutFor(channel).textContent = value;
+  applyLocally(channel, value);
   // Coalesce the flood of input events a dragged slider produces. Both faders
-  // are still stored server-side so a reloaded page comes back where it was.
+  // are stored server-side so a reloaded page comes back where it was.
   clearTimeout(state.volumeTimer);
   state.volumeTimer = setTimeout(sendVolume, 60);
 }
@@ -638,13 +741,20 @@ function renderStage(next) {
     : "No stage screen — click to open one on the second display";
 
   // Faders follow the stage, so a second operator window cannot fight this one.
-  if (document.activeElement !== $("#vol-karaoke")) {
-    $("#vol-karaoke").value = next.volume.karaoke;
-    $("#vol-karaoke-out").textContent = next.volume.karaoke;
-  }
-  if (document.activeElement !== $("#vol-music")) {
-    $("#vol-music").value = next.volume.music;
-    $("#vol-music-out").textContent = next.volume.music;
+  for (const channel of ["karaoke", "music"]) {
+    const input = faderFor(channel);
+    if (document.activeElement === input || state.fades[channel].frame) continue;
+    const level = next.volume[channel];
+    input.value = level;
+    readoutFor(channel).textContent = level;
+    // Keep the button honest: after a reload onto a channel that is already
+    // silent, it has to offer to bring it back, not to fade it again.
+    const fade = state.fades[channel];
+    if (fade.faded !== (level === 0)) {
+      fade.faded = level === 0;
+      updateFadeButton(channel);
+    }
+    if (level > 0) fade.restore = level;
   }
 
   const live = next.mode === "karaoke" && next.karaoke;

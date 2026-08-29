@@ -54,7 +54,7 @@ def create_app(
     def stage_update():
         """Partial state update — volume changes, pause, resume."""
         payload = request.get_json(silent=True) or {}
-        allowed = {"mode", "playing", "volume", "score", "karaoke"}
+        allowed = {"mode", "playing", "volume", "score", "karaoke", "fade"}
         changes = {key: value for key, value in payload.items() if key in allowed}
         if not changes:
             return jsonify({"error": "Nothing to change."}), 400

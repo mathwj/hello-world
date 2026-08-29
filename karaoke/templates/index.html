@@ -25,16 +25,20 @@
 
   <!-- The mixer lives in the top bar so it is reachable from every tab. -->
   <div class="mixer" id="mixer">
-    <label class="fader">
+    <div class="fader">
       <span class="fader-name">Karaoke</span>
       <input type="range" id="vol-karaoke" min="0" max="100" value="85" aria-label="Karaoke volume">
       <output id="vol-karaoke-out">85</output>
-    </label>
-    <label class="fader">
+      <button class="fade-btn" id="fade-karaoke" data-channel="karaoke"
+              title="Fade the karaoke out" aria-label="Fade the karaoke out">&#9660;</button>
+    </div>
+    <div class="fader">
       <span class="fader-name">Music</span>
       <input type="range" id="vol-music" min="0" max="100" value="60" aria-label="Music volume">
       <output id="vol-music-out">60</output>
-    </label>
+      <button class="fade-btn" id="fade-music" data-channel="music"
+              title="Fade the music out" aria-label="Fade the music out">&#9660;</button>
+    </div>
     <a class="stage-link" id="stage-link" href="/stage" target="_blank" rel="noopener">
       <span class="dot" id="stage-dot"></span><span id="stage-label">Stage</span>
     </a>

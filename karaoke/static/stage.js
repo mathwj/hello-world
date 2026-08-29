@@ -12,6 +12,8 @@ const scoreHost = $("#score-host");
 
 const stage = {
   applied: null,       // last state we acted on, to spot what actually changed
+  ramp: null,          // a fade in flight
+  fadeId: null,        // the last fade instruction acted on
   audioUnlocked: false,
 };
 
@@ -48,6 +50,28 @@ function needsUnlock() {
   showStatus("Click anywhere on this screen once to enable sound.");
 }
 
+/* ---------- volume ---------- */
+
+function setVolume(value) {
+  video.volume = Math.max(0, Math.min(1, value / 100));
+}
+
+/* Rides the karaoke volume to `to` over `ms`, here rather than across the
+   network, so the fade is smooth whatever the operator's laptop is doing. */
+function rampVolume(to, ms) {
+  if (stage.ramp) cancelAnimationFrame(stage.ramp);
+  const from = video.volume * 100;
+  const started = performance.now();
+
+  function step(now) {
+    const t = Math.min(1, (now - started) / Math.max(1, ms));
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    setVolume(from + (to - from) * eased);
+    stage.ramp = t < 1 ? requestAnimationFrame(step) : null;
+  }
+  stage.ramp = requestAnimationFrame(step);
+}
+
 /* ---------- applying state ---------- */
 
 function showWaiting(state) {
@@ -67,13 +91,14 @@ function applyKaraoke(state, restarted) {
   surface.hidden = false;
 
   const src = `/media/${encodeURIComponent(state.karaoke.name)}`;
+  // eslint-disable-next-line no-unused-vars
   if (restarted || !video.currentSrc.endsWith(encodeURIComponent(state.karaoke.name))) {
     scoreHost.hidden = true;
     hideScore();
     video.src = src;
     video.currentTime = 0;
   }
-  video.volume = Math.max(0, Math.min(1, state.volume.karaoke / 100));
+  if (!stage.ramp) setVolume(state.volume.karaoke);
 
   if (state.playing) {
     video.play().catch(() => needsUnlock());
@@ -88,7 +113,19 @@ function applyState(state, force = false) {
   stage.applied = state;
 
   // Volume always applies, whatever mode we are in — the mixer must stay live.
-  video.volume = Math.max(0, Math.min(1, state.volume.karaoke / 100));
+  // A new fade instruction is ridden down; anything else lands immediately.
+  const fade = state.fade;
+  // A fade left in the state from before we connected is history, not an
+  // instruction: adopt its id so the next real one still counts as new.
+  if (fade && previous === null) {
+    stage.fadeId = fade.id;
+  }
+  if (fade && fade.id !== stage.fadeId) {
+    stage.fadeId = fade.id;
+    rampVolume(state.volume.karaoke, fade.ms);
+  } else if (!stage.ramp) {
+    setVolume(state.volume.karaoke);
+  }
 
   if (state.mode === "karaoke" && state.karaoke) {
     applyKaraoke(state, restarted);

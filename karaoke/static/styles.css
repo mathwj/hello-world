@@ -615,3 +615,33 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - 150px); }
   .song-time { display: none; }
   .song-actions { grid-column: 1 / -1; }
 }
+
+/* ---------- fade buttons ---------- */
+
+.fade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fade-btn:hover { color: var(--text); border-color: var(--accent); }
+
+/* Faded out: the button holds the brand colour so the state is obvious across
+   the room-lit laptop, not just a subtle tint. */
+.fade-btn.is-faded {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.fader { position: relative; }

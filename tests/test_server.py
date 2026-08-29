@@ -255,3 +255,19 @@ def test_resolve_still_plays_when_the_lookup_fails(client, monkeypatch):
     assert body["video_id"] == "dQw4w9WgXcQ"
     assert "lookup exploded" in body["lookup_error"]
     assert body["thumbnail"].endswith("/dQw4w9WgXcQ/mqdefault.jpg")
+
+
+def test_a_fade_instruction_reaches_the_stage(client):
+    """The stage rides the fader itself; the operator only says where and how long."""
+    body = client.post("/api/stage", json={
+        "volume": {"karaoke": 0},
+        "fade": {"to": 0, "ms": 1020, "id": 1},
+    }).get_json()
+    assert body["volume"]["karaoke"] == 0
+    assert body["fade"] == {"to": 0, "ms": 1020, "id": 1}
+    # The music channel is untouched: fading one must not move the other.
+    assert body["volume"]["music"] == 60
+
+
+def test_the_stage_starts_with_no_fade_pending(client):
+    assert client.get("/api/stage").get_json()["fade"] is None

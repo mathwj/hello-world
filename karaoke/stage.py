@@ -36,6 +36,10 @@ DEFAULT_STATE = {
     "volume": {"karaoke": 85, "music": 60},
     # Set by the stage itself once a song finishes and the score is revealed.
     "score": None,
+    # A ride to a new karaoke level: {"to": 0, "ms": 1200, "id": n}. The stage
+    # performs the ramp itself. Sending it every step instead would put a dozen
+    # network round trips inside something the room can hear.
+    "fade": None,
 }
 
 
