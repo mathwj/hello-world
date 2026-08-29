@@ -109,20 +109,44 @@ def test_a_screen_connecting_wakes_the_operator():
 
 
 def test_the_beat_travels_on_its_own_channel():
-    """Kicks land several times a second; the main state must not churn for them."""
+    """Reports land several times a second; the main state must not churn."""
     stage = Stage()
     version = stage.snapshot()["version"]
-    stage.set_pulse(80)
+    stage.set_pulse({"period": 500, "bpm": 120, "confidence": 2.4, "anchor_age": 40})
     assert stage.snapshot()["version"] == version
-    assert stage.pulse() == {"intensity": 80, "seq": 1}
+
+    pulse = stage.pulse()
+    assert pulse["seq"] == 1
+    assert pulse["period"] == 500
+    assert pulse["bpm"] == 120
 
 
-def test_pulse_intensity_is_clamped():
+def test_the_anchor_ages_while_it_waits():
+    """The stage places the beat from its age, so a stale age would be late."""
+    import time
+
     stage = Stage()
-    stage.set_pulse(300)
-    assert stage.pulse()["intensity"] == 100
-    stage.set_pulse(-5)
-    assert stage.pulse()["intensity"] == 0
+    stage.set_pulse({"period": 500, "bpm": 120, "anchor_age": 40})
+    time.sleep(0.05)
+    assert stage.pulse()["anchor_age"] >= 85
+
+
+def test_band_levels_are_clamped():
+    stage = Stage()
+    stage.set_pulse({"period": 500, "low": 300, "mid": -5, "high": 42})
+    pulse = stage.pulse()
+    assert pulse["low"] == 100
+    assert pulse["mid"] == 0
+    assert pulse["high"] == 42
+
+
+def test_bands_travel_without_a_tempo():
+    """Music the tracker cannot lock onto still has to move the picture."""
+    stage = Stage()
+    stage.set_pulse({"low": 70, "mid": 30, "high": 12})
+    pulse = stage.pulse()
+    assert pulse["period"] == 0
+    assert pulse["low"] == 70
 
 
 def test_waiting_for_the_next_kick():
@@ -136,6 +160,6 @@ def test_waiting_for_the_next_kick():
     thread = threading.Thread(target=lambda: woke.append(stage.wait_pulse(seq, timeout=3)))
     thread.start()
     time.sleep(0.05)
-    stage.set_pulse(64)
+    stage.set_pulse({"period": 480, "bpm": 125, "low": 64})
     thread.join(timeout=3)
-    assert woke and woke[0]["intensity"] == 64
+    assert woke and woke[0]["bpm"] == 125

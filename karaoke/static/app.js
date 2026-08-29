@@ -344,7 +344,7 @@ const ENSURE_CHAIN = `
     filter.Q.value = 0.7;
     const level = ctx.createGain();
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 512;
+    analyser.fftSize = 1024;
     // Onset detection wants the opposite of a pretty meter. Heavy smoothing
     // averages away the very attack a kick is made of, and the default decibel
     // window pins loud music against the top of the byte range, leaving almost
@@ -390,10 +390,11 @@ const muffleScript = ({ frequency, gain }) => `(() => {
    short jump in low-end energy above its own recent average, and spotting that
    needs finer timing than anything sampled a dozen times a second could give.
    Only the hits travel — a few a second — rather than a continuous stream. */
-// One frame. Each kick waits here to be collected, so this interval is pure
-// jitter added between the sound and the picture — and jitter is what reads as
-// "out of time", far more than a steady delay does.
-const BEAT_POLL_MS = 16;
+/* The stage runs the beat off a grid it keeps itself, so this interval no
+   longer sits between the sound and the picture — it only refreshes the tempo
+   and its phase. Twice a second is plenty, and it costs almost nothing. */
+const BEAT_POLL_MS = 200;
+const BEAT_CONFIDENCE = 3.4;
 
 const BEAT_SCRIPT = `(() => {
   ${ENSURE_CHAIN}
@@ -405,45 +406,197 @@ const BEAT_SCRIPT = `(() => {
   if (!build(video)) return { state: "no-tap" };
 
   if (!store.beat) {
-    store.beat = { history: [], last: 0, pending: 0, bass: 0, avg: 0, thr: 0 };
+    store.beat = {
+      flux: [], times: [], previous: null,
+      period: 0, bpm: 0, confidence: 0, anchor: 0, analysedAt: 0,
+      recent: [], steady: false,
+      // Band levels, summed and peak-held between reports. Averaging alone
+      // would swallow a snare that lands between two reads; a peak alone would
+      // never come down. The stage gets both and uses each for a different job.
+      bands: { low: 0, mid: 0, high: 0, lowPeak: 0, midPeak: 0, highPeak: 0, frames: 0 },
+    };
+
+    /* Estimates the tempo the way beat trackers actually do it, rather than by
+       timing the gaps between detected thumps.
+
+       Counting gaps assumes every kick is found and nothing else is mistaken
+       for one. On real music neither holds: a bassline sits in the same octave
+       as the kick, patterns skip beats, and one spurious onset ruins the
+       estimate. Autocorrelating the onset envelope instead asks "at what
+       spacing does this signal most resemble itself", which survives missed
+       and extra onsets because it weighs the whole window at once. */
+    const analyse = (beat) => {
+      const count = beat.flux.length;
+      const span = beat.times[count - 1] - beat.times[0];
+      if (span <= 0) return;
+      const step = span / (count - 1);                 // ms per sample
+
+      /* Onsets, not loudness. Subtracting each sample's own neighbourhood and
+         keeping only what is left above it turns a busy envelope into a sparse
+         row of attacks, which is what has a tempo in it. Correlating the raw
+         envelope instead mostly correlates the arrangement getting louder and
+         quieter, and that is how a passage with no beat still scores well. */
+      const window = Math.max(3, Math.round(400 / step));
+      const onset = new Array(count);
+      let running = 0;
+      for (let i = 0; i < count; i += 1) {
+        running += beat.flux[i];
+        if (i >= window) running -= beat.flux[i - window];
+        const local = running / Math.min(i + 1, window);
+        onset[i] = Math.max(0, beat.flux[i] - local);
+      }
+
+      const mean = onset.reduce((a, b) => a + b, 0) / count;
+      const centred = onset.map((v) => v - mean);
+      const variance = centred.reduce((a, v) => a + v * v, 0) / count;
+      if (variance <= 0) return;
+
+      // Correlate well past the tempos we will consider: the harmonics of a
+      // candidate are what tell it apart from its own multiples.
+      const reach = Math.min(Math.floor(count / 2), Math.round(3200 / step));
+      const r = new Float64Array(reach + 1);
+      for (let lag = 1; lag <= reach; lag += 1) {
+        let sum = 0;
+        for (let i = 0; i + lag < count; i += 1) sum += centred[i] * centred[i + lag];
+        // Normalised by the signal's own variance, so it means "how alike"
+        // rather than "how loud" and is comparable between lags.
+        r[lag] = sum / ((count - lag) * variance);
+      }
+
+      const shortest = Math.max(2, Math.round(300 / step));           // 200 bpm
+      const longest = Math.min(Math.round(1050 / step), reach);       // 57 bpm
+      if (longest <= shortest) return;
+
+      const at = (lag) => (lag <= reach ? r[lag] : 0);
+      const score = new Float64Array(longest + 1);
+      for (let lag = shortest; lag <= longest; lag += 1) {
+        // A period repeats at twice and three times its length as well, so
+        // adding those in rewards the beat itself over the bar that contains
+        // it — the difference between a picture that moves on every beat and
+        // one that moves on every other.
+        const harmonics = at(lag) + 0.5 * at(lag * 2) + 0.25 * at(lag * 3);
+        const bpm = 60000 / (lag * step);
+        // A tempo prior, because ordinary music is not evenly spread across
+        // the range and autocorrelation on its own has no opinion.
+        const octaves = Math.log(bpm / 120) / Math.LN2;
+        score[lag] = harmonics * Math.exp(-0.5 * (octaves / 0.9) * (octaves / 0.9));
+      }
+
+      let bestLag = shortest;
+      for (let lag = shortest; lag <= longest; lag += 1) {
+        if (score[lag] > score[bestLag]) bestLag = lag;
+      }
+
+      // Sub-sample: one frame is 17ms, which is 4 bpm at dance tempos and
+      // enough drift to walk the grid off the beat within a few bars.
+      let refined = bestLag;
+      if (bestLag > shortest && bestLag < longest) {
+        const before = score[bestLag - 1], here = score[bestLag], after = score[bestLag + 1];
+        const curve = before - 2 * here + after;
+        if (curve < 0) refined = bestLag + Math.max(-0.5, Math.min(0.5, (before - after) / (2 * curve)));
+      }
+
+      let total = 0, lags = 0;
+      for (let lag = shortest; lag <= longest; lag += 1) { total += score[lag]; lags += 1; }
+      const average = total / lags;
+      let spread = 0;
+      for (let lag = shortest; lag <= longest; lag += 1) {
+        spread += (score[lag] - average) * (score[lag] - average);
+      }
+      spread = Math.sqrt(spread / lags);
+      // How far the winner stands out from every other spacing, in standard
+      // deviations: a steady beat towers over the field, noise does not.
+      beat.confidence = spread > 0 ? (score[bestLag] - average) / spread : 0;
+      beat.period = refined * step;
+      beat.bpm = Math.round(60000 / beat.period);
+
+      /* Phase, by comb rather than by the loudest recent onset.
+
+         Picking the biggest onset in the last period catches whatever happened
+         to be loudest — often a snare or a bass note, not the beat. Scoring
+         every possible offset by the energy landing on that whole grid asks
+         which alignment the entire window agrees with, which is the question
+         actually being asked. */
+      let bestOffset = 0, bestEnergy = -1;
+      for (let offset = 0; offset < bestLag; offset += 1) {
+        let sum = 0, hits = 0;
+        for (let k = 0; ; k += 1) {
+          const i = Math.round(count - 1 - offset - k * refined);
+          if (i < 0) break;
+          sum += onset[i];
+          hits += 1;
+        }
+        if (hits && sum / hits > bestEnergy) { bestEnergy = sum / hits; bestOffset = offset; }
+      }
+      beat.anchor = beat.times[count - 1 - bestOffset];
+
+      /* One reading is not a tempo.
+
+         Confidence alone cannot tell quiet music from a passage with no beat
+         in it — measured on realistic envelopes the two ranges overlap. What
+         does tell them apart is holding still: real music keeps the same
+         tempo from one look to the next, while a false peak wanders. */
+      beat.recent.push(beat.period);
+      if (beat.recent.length > 4) beat.recent.shift();
+      const sorted = [...beat.recent].sort((a, b) => a - b);
+      const middle = sorted[sorted.length >> 1];
+      beat.steady = beat.recent.length >= 3
+        && beat.recent.every((p) => Math.abs(p - middle) < middle * 0.04);
+    };
+
     const tick = () => {
       const current = playing();
-      // Look the chain up every frame: YouTube swaps the video element as you
-      // move around, and a captured analyser would go deaf after a navigation.
       if (current && current.__kbChain) {
         const analyser = current.__kbChain.analyser;
         const spectrum = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(spectrum);
 
-        // The first few bins are the kick's territory, roughly under 400Hz.
-        let sum = 0;
-        for (let bin = 1; bin <= 4; bin += 1) sum += spectrum[bin];
-        const bass = sum / 4;
-
         const beat = store.beat;
-        beat.history.push(bass);
-        if (beat.history.length > 90) beat.history.shift();   // about 1.5s
+        // Onset strength: how much low-end energy *rose* this frame. Only rises
+        // count — a note dying away is not the start of anything.
+        let flux = 0;
+        if (beat.previous) {
+          for (let bin = 1; bin <= 32; bin += 1) {     // up to about 1.5 kHz
+            const rise = spectrum[bin] - beat.previous[bin];
+            if (rise > 0) flux += rise;
+          }
+        }
+        beat.previous = spectrum;
 
-        const average = beat.history.reduce((a, b) => a + b, 0) / beat.history.length;
-        const spread = Math.sqrt(
-          beat.history.reduce((a, b) => a + (b - average) * (b - average), 0) / beat.history.length);
+        /* The rest of the music, not just the kick.
 
-        // Real music is compressed: its bass sits loud and steady, so a fixed
-        // "30% above average" almost never trips. Judging the rise against how
-        // much this track's bass normally moves adapts to both a bare thump and
-        // a wall of sound.
-        const threshold = average + Math.max(5, spread * 1.4);
+           A picture driven by the kick alone only moves a few times a bar and
+           ignores everything in between, which is why it reads as mechanical.
+           Splitting the spectrum into bass, body and air gives the waiting
+           screen three separate things to answer to: the low band thumps, the
+           mid band swells with the vocal and the snare, the high band shimmers
+           with the hats. */
+        const binHz = analyser.context.sampleRate / analyser.fftSize;
+        const band = (lowHz, highHz) => {
+          const from = Math.max(1, Math.round(lowHz / binHz));
+          const to = Math.min(spectrum.length - 1, Math.round(highHz / binHz));
+          let sum = 0;
+          for (let bin = from; bin <= to; bin += 1) sum += spectrum[bin];
+          return (sum / (to - from + 1)) * (100 / 255);
+        };
+        const low = band(40, 180);
+        const mid = band(200, 2000);
+        const high = band(2500, 9000);
+        const bands = beat.bands;
+        bands.low += low; bands.mid += mid; bands.high += high;
+        bands.lowPeak = Math.max(bands.lowPeak, low);
+        bands.midPeak = Math.max(bands.midPeak, mid);
+        bands.highPeak = Math.max(bands.highPeak, high);
+        bands.frames += 1;
+
         const now = performance.now();
+        beat.flux.push(flux);
+        beat.times.push(now);
+        if (beat.flux.length > 420) { beat.flux.shift(); beat.times.shift(); }
 
-        beat.bass = Math.round(bass);
-        beat.avg = Math.round(average);
-        beat.thr = Math.round(threshold);
-
-        if (bass > threshold && bass > 18 && now - beat.last > 180) {
-          beat.last = now;
-          // A floor, so a detected kick always reads as a flash rather than a flicker.
-          beat.pending = Math.max(beat.pending,
-            Math.round(Math.min(100, 55 + (bass / 255) * 60)));
+        if (now - beat.analysedAt > 500 && beat.flux.length > 180) {
+          beat.analysedAt = now;
+          analyse(beat);
         }
       }
       requestAnimationFrame(tick);
@@ -452,9 +605,33 @@ const BEAT_SCRIPT = `(() => {
   }
 
   const beat = store.beat;
-  const hit = beat.pending;
-  beat.pending = 0;
-  return { state: "ok", hit, bass: beat.bass, avg: beat.avg, thr: beat.thr };
+  // Reading the bands drains them: each report covers the frames since the
+  // last one, so a peak belongs to one report only and cannot linger.
+  const bands = beat.bands;
+  const frames = Math.max(1, bands.frames);
+  const levels = {
+    low: Math.round(bands.low / frames),
+    mid: Math.round(bands.mid / frames),
+    high: Math.round(bands.high / frames),
+    lowPeak: Math.round(bands.lowPeak),
+    midPeak: Math.round(bands.midPeak),
+    highPeak: Math.round(bands.highPeak),
+  };
+  beat.bands = { low: 0, mid: 0, high: 0, lowPeak: 0, midPeak: 0, highPeak: 0, frames: 0 };
+
+  return {
+    state: "ok",
+    levels,
+    bpm: beat.bpm,
+    confidence: +beat.confidence.toFixed(2),
+    steady: beat.steady,
+    period: Math.round(beat.period),
+    // Age rather than a timestamp: the two pages have unrelated clocks, but
+    // "this happened N milliseconds ago" travels between them intact, which is
+    // what lets the stage place the beat when it truly landed instead of when
+    // the message showed up.
+    anchorAge: beat.anchor ? Math.round(performance.now() - beat.anchor) : null,
+  };
 })()`;
 
 /* The detector runs inside another page, so without this its failures are
@@ -472,14 +649,21 @@ function showBeatState(report) {
   const dot = $("#beat-dot");
   if (!dot) return;
   const state = (report && report.state) || "error";
-  dot.classList.toggle("is-live", state === "ok");
-  if (state === "ok" && report.hit > 0) {
+  const locked = state === "ok" && report.steady
+    && report.confidence >= BEAT_CONFIDENCE && report.bpm;
+  dot.classList.toggle("is-live", Boolean(locked));
+  if (locked) {
     dot.classList.add("is-hit");
-    setTimeout(() => dot.classList.remove("is-hit"), 120);
+    setTimeout(() => dot.classList.remove("is-hit"), 140);
   }
-  const numbers = state === "ok" ? ` — bass ${report.bass}, needs ${report.thr}` : "";
-  dot.title = `Beat: ${BEAT_STATES[state] || state}${numbers}`;
-  $("#beat-label").textContent = state === "ok" ? "Beat" : BEAT_STATES[state] || state;
+  // The tempo it has settled on, so a wrong lock is obvious at a glance rather
+  // than something to be guessed at from how the screen looks.
+  dot.title = state === "ok"
+    ? `Beat: ${locked ? "locked" : "listening"} — ${report.bpm || "?"} BPM, confidence ${report.confidence}`
+    : `Beat: ${BEAT_STATES[state] || state}`;
+  $("#beat-label").textContent = locked
+    ? `${report.bpm} BPM`
+    : (state === "ok" ? "listening" : BEAT_STATES[state] || state);
 }
 
 function startBeatFeed() {
@@ -490,11 +674,34 @@ function startBeatFeed() {
     if (sampling || !view || typeof view.executeJavaScript !== "function") return;
     sampling = true;
     try {
+      const started = performance.now();
       const report = await view.executeJavaScript(BEAT_SCRIPT);
+      const roundTrip = performance.now() - started;
       showBeatState(report);
-      if (report && report.state === "ok" && report.hit > 0) {
-        await postJson("/api/stage/pulse", { intensity: report.hit });
-      }
+
+      if (!report || report.state !== "ok" || !report.levels) return;
+
+      // The tempo is only worth sending once the tracker is sure of it; the
+      // band levels are worth sending regardless, so music it cannot lock onto
+      // still moves the picture instead of leaving it still.
+      const locked = report.steady && report.confidence >= BEAT_CONFIDENCE
+        && report.period > 250 && report.anchorAge !== null;
+
+      await postJson("/api/stage/pulse", {
+        period: locked ? report.period : 0,
+        bpm: locked ? report.bpm : 0,
+        confidence: report.confidence,
+        // The guest measured this age when it was read, about half a round
+        // trip ago; carrying the age rather than a timestamp is what lets
+        // the stage put the beat where it actually happened.
+        anchor_age: locked ? Math.round(report.anchorAge + roundTrip / 2) : 0,
+        low: report.levels.low,
+        mid: report.levels.mid,
+        high: report.levels.high,
+        low_peak: report.levels.lowPeak,
+        mid_peak: report.levels.midPeak,
+        high_peak: report.levels.highPeak,
+      });
     } catch (error) {
       showBeatState({ state: "error" });
     } finally {

@@ -113,12 +113,20 @@ def create_app(
 
     @app.post("/api/stage/pulse")
     def stage_pulse():
-        """The operator's music player reporting a bass kick."""
+        """The operator's music player reporting what it is hearing.
+
+        A report without a tempo is still worth having: music the tracker
+        cannot lock onto still has bands moving, and the waiting screen has
+        parts that answer to those rather than to the beat.
+        """
         payload = request.get_json(silent=True) or {}
+        wanted = ("period", "low", "mid", "high")
+        if not isinstance(payload, dict) or not any(payload.get(k) for k in wanted):
+            return jsonify({"error": "Expected a beat report."}), 400
         try:
-            return jsonify({"seq": show.set_pulse(payload.get("intensity", 0))})
+            return jsonify({"seq": show.set_pulse(payload)})
         except (TypeError, ValueError):
-            return jsonify({"error": "Bad pulse."}), 400
+            return jsonify({"error": "Bad report."}), 400
 
     @app.get("/api/stage/pulse/events")
     def stage_pulse_events():

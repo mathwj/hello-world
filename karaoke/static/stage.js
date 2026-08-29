@@ -200,12 +200,50 @@ video.addEventListener("ended", reportProgress);
    handful of circles.
 
    Every blob follows its own pair of slow sines at frequencies that do not
-   divide into each other, so the mass never visibly repeats. The music arrives
-   as bass kicks found on the operator's laptop and pushed here: each one swells
-   the blobs and lifts their colour, then drains away, which is what makes the
-   whole thing look like it is breathing in time. */
+   divide into each other, so the mass never visibly repeats.
 
-const BLOB_COUNT = 7;
+   The blobs are not all listening to the same thing. A picture driven by the
+   kick alone only moves a few times a bar and sits dead in between, which is
+   exactly what makes it feel mechanical. So there are three families: heavy
+   slow shapes that ride the bass and the beat grid, middling ones that swell
+   with the vocal and the snare, and small quick ones that shimmer on the hats.
+   Together they cover the whole record rather than one drum in it. */
+
+const FAMILIES = [
+  {
+    band: "low",                       // kick and bass: the mass of the thing
+    count: 3,
+    radius: [0.26, 0.40],
+    drift: [0.10, 0.24],
+    speed: [0.010, 0.030],
+    swell: 0.55,                       // how much the band opens it up
+    core: "0, 255, 255",
+    edge: "0, 236, 236",
+    floor: 0.62,                       // never fades away entirely
+  },
+  {
+    band: "mid",                       // voice, snare, guitars
+    count: 4,
+    radius: [0.13, 0.22],
+    drift: [0.16, 0.34],
+    speed: [0.028, 0.070],
+    swell: 0.5,
+    core: "120, 255, 255",
+    edge: "0, 236, 236",
+    floor: 0.22,
+  },
+  {
+    band: "high",                      // hats and air: small, quick, bright
+    count: 4,
+    radius: [0.05, 0.11],
+    drift: [0.20, 0.40],
+    speed: [0.070, 0.150],
+    swell: 0.8,
+    core: "220, 255, 255",
+    edge: "0, 255, 255",
+    floor: 0.08,
+  },
+];
 
 /* Two envelopes per hit: a punch that snaps and disappears, and a body that
    follows through. One envelope alone either smears (too slow to read as a
@@ -215,92 +253,132 @@ const beat = {
   body: 0,        // drives size
   punch: 0,       // drives brightness
   seen: null,
-  lastFire: 0,    // last swell, predicted or real
-  lastKick: 0,    // last kick actually heard
-  gaps: [],       // recent intervals between kicks
-  period: 0,      // the tempo, once it is consistent
-  locked: false,
+  lastFire: 0,    // last swell
+  period: 0,      // one beat, in milliseconds
+  bpm: 0,
   nextAt: 0,      // when the next beat is due
+  locked: false,
+  lastGrid: 0,    // when the operator last reported a tempo
+  lastReport: 0,  // when anything at all last arrived
+  count: 0,
 };
+
+/* One envelope pair per band, alongside the beat's own.
+
+   ``level`` follows the band's loudness and gives each family something to do
+   between beats; ``hit`` catches the transients — a snare, a hat, a shouted
+   line — that a level average would smooth away. Rises are followed quickly
+   and falls slowly, so the shapes grow with the music and sink back rather
+   than twitching. */
+const bands = {
+  low: { level: 0, target: 0, hit: 0, base: 0, decay: 0.86 },
+  mid: { level: 0, target: 0, hit: 0, base: 0, decay: 0.82 },
+  high: { level: 0, target: 0, hit: 0, base: 0, decay: 0.74 },
+};
+
+const BAND_ATTACK = 0.30;
+const BAND_RELEASE = 0.07;
+
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+
+function applyLevels(payload) {
+  beat.lastReport = performance.now();
+  for (const name of ["low", "mid", "high"]) {
+    const band = bands[name];
+    band.target = clamp01((Number(payload[name]) || 0) / 100);
+    const peak = clamp01((Number(payload[name + "_peak"]) || 0) / 100);
+
+    // Judge a transient against what this band has been sitting at rather than
+    // against a fixed threshold: one number cannot suit both a quiet ballad and
+    // a mastered-loud dance track, and the second would simply stay lit.
+    band.base = band.base ? band.base * 0.88 + band.target * 0.12 : band.target;
+    const excess = (peak - band.base) / Math.max(band.base, 0.08);
+    if (excess > 0.3) band.hit = Math.max(band.hit, Math.min(1, excess * 0.8));
+  }
+}
+
+function advanceBands(now) {
+  // Nothing reported for a moment: the music stopped, so let it all settle.
+  const quiet = !beat.lastReport || now - beat.lastReport > 1200;
+  for (const name of ["low", "mid", "high"]) {
+    const band = bands[name];
+    const target = quiet ? 0 : band.target;
+    const rate = target > band.level ? BAND_ATTACK : BAND_RELEASE;
+    band.level += (target - band.level) * rate;
+    band.hit = band.hit < 0.01 ? 0 : band.hit * band.decay;
+  }
+}
 
 const BODY_DECAY = 0.90;
 const PUNCH_DECAY = 0.78;
 
+/* Fire a fraction early. The swell takes a frame or two to reach its peak, so
+   landing it exactly on the beat reads as slightly behind it. */
+const BEAT_LEAD = 10;
+
 function fire(strength) {
   const now = performance.now();
-  // A predicted beat and the real kick behind it must not fire twice.
   if (now - beat.lastFire < 110) return;
   beat.lastFire = now;
   beat.body = Math.max(beat.body, strength);
   beat.punch = Math.max(beat.punch, strength);
 }
 
-/* Learns the tempo and runs the animation off a predicted grid.
+/* Places the tempo grid the operator found.
 
-   Reacting to each kick as it arrives can only ever be late, and late by a
-   varying amount — the detector, the poll, the network and the frame all add
-   their own share. Once the beat is steady, following the predicted grid keeps
-   the picture on time regardless, and each real kick nudges the phase rather
-   than yanking it, so one late arrival does not make the whole thing lurch. */
-function onKick(intensity) {
+   The laptop does not send individual kicks — it sends the tempo it is hearing
+   plus how long ago the last strong onset happened. Only the age can travel:
+   the two pages run on unrelated clocks, so a timestamp from one is meaningless
+   in the other. From an age we can reconstruct where the beat sits on our own
+   clock, and from the tempo we know where every beat after it sits too, so the
+   animation runs off the grid and never waits for a message to arrive. */
+function applyGrid(payload) {
   const now = performance.now();
-  const strength = Math.max(0.35, Math.min(1, (intensity || 0) / 100));
-
-  if (beat.lastKick) {
-    const gap = now - beat.lastKick;
-    if (gap > 240 && gap < 1600) {           // roughly 37 to 250 bpm
-      beat.gaps.push(gap);
-      if (beat.gaps.length > 8) beat.gaps.shift();
-    } else if (gap >= 1600) {
-      beat.gaps.length = 0;                  // lost the thread; start again
-      beat.locked = false;
-    }
-  }
-  beat.lastKick = now;
-
-  if (beat.gaps.length >= 4) {
-    const sorted = [...beat.gaps].sort((a, b) => a - b);
-    const median = sorted[sorted.length >> 1];
-    // Only lock when the kicks genuinely agree; guessing a tempo that is not
-    // there would drift and look worse than simply reacting.
-    const agree = beat.gaps.filter((gap) => Math.abs(gap - median) < median * 0.16).length;
-    beat.locked = agree >= 4;
-    beat.period = median;
+  const period = Number(payload.period) || 0;
+  if (period < 300 || period > 1400) {          // outside 200–43 bpm: not a tempo
+    beat.locked = false;
+    return;
   }
 
-  if (beat.locked) {
-    // Locked: the grid alone drives the picture and the kick only steers it.
-    // Letting both fire produced doubles — a kick landing just after its own
-    // predicted beat triggered a second swell 170ms behind the first.
-    if (!beat.nextAt) {
-      beat.nextAt = now + beat.period;
-    } else {
-      // Nudge the grid toward the kick; never reschedule it. Setting the next
-      // beat to now+period instead pushed a beat that was about to fire almost
-      // a full period into the future, so the grid stalled and fired perhaps
-      // once a second.
-      const previous = beat.nextAt - beat.period;
-      const toPrevious = now - previous;
-      const toNext = now - beat.nextAt;
-      const error = Math.abs(toPrevious) <= Math.abs(toNext) ? toPrevious : toNext;
-      beat.nextAt += Math.max(-60, Math.min(60, error)) * 0.15;
-    }
+  beat.period = period;
+  beat.bpm = Number(payload.bpm) || 0;
+  beat.lastGrid = now;
+
+  const anchorAt = now - (Number(payload.anchor_age) || 0) - BEAT_LEAD;
+  // Walk the anchor forward to the first beat still ahead of us.
+  const target = anchorAt + Math.ceil((now - anchorAt) / period) * period;
+
+  if (!beat.locked) {
+    beat.nextAt = target;
+    beat.locked = true;
+    return;
+  }
+
+  // Already running: ease onto the reported grid rather than jumping to it, so
+  // a single noisy report cannot make the picture stutter. Phase is circular,
+  // so fold the error into the nearest half period first — otherwise a beat
+  // reported one slot over looks like a whole period of error.
+  let error = target - beat.nextAt;
+  while (error > period / 2) error -= period;
+  while (error < -period / 2) error += period;
+  if (Math.abs(error) > period * 0.3) {
+    beat.nextAt = target;                       // a real change: new song, new tempo
   } else {
-    beat.nextAt = now + beat.period;
-    fire(strength);
+    beat.nextAt += error * 0.25;
   }
 }
 
 function advanceBeat(now) {
-  // Silence for a moment means the music stopped: stop predicting a beat.
-  if (beat.lastKick && now - beat.lastKick > 2400) {
-    beat.locked = false;
-    beat.gaps.length = 0;
-  }
+  // No fresh report for a moment means the music stopped, or the tempo was
+  // lost: stop predicting rather than beating on over silence.
+  if (beat.locked && now - beat.lastGrid > 2500) beat.locked = false;
   if (!beat.locked || !beat.period) return;
 
   if (now >= beat.nextAt) {
-    fire(0.85);
+    // Every fourth beat swells harder, which is what makes a bar read as a bar
+    // instead of a metronome.
+    beat.count += 1;
+    fire(beat.count % 4 === 1 ? 1 : 0.82);
     beat.nextAt += beat.period;
     // If we ever fall a long way behind, rejoin the grid rather than catching up.
     if (now - beat.nextAt > beat.period) beat.nextAt = now + beat.period;
@@ -318,19 +396,24 @@ function buildSlime() {
   slime.canvas = $("#slime");
   slime.ctx = slime.canvas.getContext("2d");
 
-  slime.blobs = Array.from({ length: BLOB_COUNT }, () => ({
-    homeX: random(0.1, 0.9),
-    homeY: random(0.1, 0.9),
-    driftX: random(0.14, 0.34),
-    driftY: random(0.12, 0.3),
-    // Deliberately unrelated speeds, so the paths never fall into step.
-    speedX: random(0.017, 0.049),
-    speedY: random(0.013, 0.043),
-    phaseX: random(0, Math.PI * 2),
-    phaseY: random(0, Math.PI * 2),
-    radius: random(0.19, 0.34),
-    breath: random(0, Math.PI * 2),
-  }));
+  // Every family drawn from its own ranges, so a bass shape is unmistakably
+  // heavier and slower than a hat shape even before either of them moves.
+  slime.blobs = FAMILIES.flatMap((family) =>
+    Array.from({ length: family.count }, () => ({
+      family,
+      homeX: random(0.1, 0.9),
+      homeY: random(0.1, 0.9),
+      driftX: random(family.drift[0], family.drift[1]),
+      driftY: random(family.drift[0], family.drift[1]) * 0.9,
+      // Deliberately unrelated speeds, so the paths never fall into step.
+      speedX: random(family.speed[0], family.speed[1]),
+      speedY: random(family.speed[0], family.speed[1]) * 0.85,
+      phaseX: random(0, Math.PI * 2),
+      phaseY: random(0, Math.PI * 2),
+      radius: random(family.radius[0], family.radius[1]),
+      breath: random(0, Math.PI * 2),
+    })),
+  );
 
   sizeSlime();
   window.addEventListener("resize", sizeSlime);
@@ -346,10 +429,18 @@ function sizeSlime() {
 
 function drawSlime(now) {
   advanceBeat(now);
+  advanceBands(now);
   beat.body = beat.body < 0.01 ? 0 : beat.body * BODY_DECAY;
   beat.punch = beat.punch < 0.01 ? 0 : beat.punch * PUNCH_DECAY;
-  const body = beat.body;
-  const punch = beat.punch;
+
+  // What each family is answering to. The bass family takes the larger of the
+  // beat grid and the band itself: the grid keeps it in time when the tracker
+  // has the tempo, the band keeps it alive when it does not.
+  const drive = {
+    low: { level: Math.max(beat.body, bands.low.level * 0.85), punch: Math.max(beat.punch, bands.low.hit) },
+    mid: { level: bands.mid.level, punch: bands.mid.hit },
+    high: { level: bands.high.level, punch: bands.high.hit },
+  };
 
   const { ctx, width, height } = slime;
   const seconds = now / 1000;
@@ -362,14 +453,26 @@ function drawSlime(now) {
   // Additive, so overlaps brighten into one body instead of stacking edges.
   ctx.globalCompositeOperation = "lighter";
   for (const blob of slime.blobs) {
+    const family = blob.family;
+    const { level, punch } = drive[family.band];
+
     const x = width * (blob.homeX + blob.driftX * Math.sin(seconds * blob.speedX * 6.283 + blob.phaseX));
     const y = height * (blob.homeY + blob.driftY * Math.cos(seconds * blob.speedY * 6.283 + blob.phaseY));
-    const swell = 1 + 0.09 * Math.sin(seconds * 0.55 + blob.breath) + 0.62 * body;
+    const swell = 1 + 0.09 * Math.sin(seconds * 0.55 + blob.breath)
+      + family.swell * (level * 0.55 + punch * 0.75);
     const radius = reach * blob.radius * swell;
+    if (radius < 1) continue;
+
+    // Presence: a family with nothing in its band sinks back into the dark
+    // rather than sitting there lit, which is what keeps the mass reading as
+    // the music instead of as decoration.
+    const presence = family.floor + (1 - family.floor) * Math.min(1, level * 1.2 + punch);
+    const inner = (0.72 * presence + 0.28 * punch).toFixed(3);
+    const middle = (0.26 * presence + 0.38 * punch).toFixed(3);
 
     const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    gradient.addColorStop(0, `rgba(0, 255, 255, ${(0.74 + 0.26 * punch).toFixed(3)})`);
-    gradient.addColorStop(0.45, `rgba(0, 236, 236, ${(0.28 + 0.4 * punch).toFixed(3)})`);
+    gradient.addColorStop(0, `rgba(${family.core}, ${inner})`);
+    gradient.addColorStop(0.45, `rgba(${family.edge}, ${middle})`);
     gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
 
     ctx.fillStyle = gradient;
@@ -391,15 +494,12 @@ function subscribeBeat() {
     } catch (error) {
       return;
     }
-    // The first frame is whatever was last sent before we connected: history,
-    // not a beat, so adopt it rather than surging on a kick already past.
-    if (beat.seen === null) {
-      beat.seen = payload.seq;
-      return;
-    }
+    // Unlike a kick, a grid is current state rather than a past event, so the
+    // first frame after connecting is worth acting on.
     if (payload.seq === beat.seen) return;
     beat.seen = payload.seq;
-    onKick(payload.intensity);
+    applyLevels(payload);
+    applyGrid(payload);
   };
 }
 

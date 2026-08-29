@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import copy
 import threading
+import time
 from contextlib import contextmanager
 
 #: Nothing playing: the stage shows its waiting screen.
@@ -66,7 +67,8 @@ class Stage:
         # Bass kicks travel on their own channel: they land several times a
         # second, and pushing them through the main state would wake every
         # subscriber for something only the waiting screen cares about.
-        self._pulse = 0
+        self._pulse = {}
+        self._pulse_at = 0.0
         self._pulse_seq = 0
         self._pulse_condition = threading.Condition()
 
@@ -105,28 +107,62 @@ class Stage:
 
     # -- the beat -----------------------------------------------------------
 
-    def set_pulse(self, intensity) -> int:
-        """Record a bass kick heard by the operator's music player."""
-        value = max(0, min(100, int(intensity)))
+    def set_pulse(self, grid: dict) -> int:
+        """Record what the operator's music player is hearing.
+
+        Two different things travel together here: the tempo grid, which the
+        waiting screen runs its beat off, and the level of each frequency band,
+        which drives the parts of the picture that answer to something other
+        than the kick. They arrive in one report because they are measured from
+        the same frames, and one message is one wake-up for the subscribers.
+        """
+
+        def level(key: str) -> float:
+            return max(0.0, min(100.0, float(grid.get(key) or 0)))
+
+        cleaned = {
+            "period": float(grid.get("period") or 0),
+            "bpm": int(grid.get("bpm") or 0),
+            "confidence": float(grid.get("confidence") or 0),
+            "anchor_age": float(grid.get("anchor_age") or 0),
+            "low": level("low"),
+            "mid": level("mid"),
+            "high": level("high"),
+            "low_peak": level("low_peak"),
+            "mid_peak": level("mid_peak"),
+            "high_peak": level("high_peak"),
+        }
         with self._pulse_condition:
-            self._pulse = value
+            self._pulse = cleaned
+            self._pulse_at = time.monotonic()
             self._pulse_seq += 1
             self._pulse_condition.notify_all()
             return self._pulse_seq
 
     def pulse(self) -> dict:
         with self._pulse_condition:
-            return {"intensity": self._pulse, "seq": self._pulse_seq}
+            return self._pulse_payload()
+
+    def _pulse_payload(self) -> dict:
+        payload = dict(self._pulse)
+        if payload.get("period"):
+            # The anchor keeps ageing while it sits here, so bring it up to date
+            # on the way out; a stage connecting late must not place the beat
+            # where it was when the grid was first reported.
+            payload["anchor_age"] = payload.get("anchor_age", 0) + (
+                time.monotonic() - self._pulse_at) * 1000
+        payload["seq"] = self._pulse_seq
+        return payload
 
     def wait_pulse(self, since: int, timeout: float = 5.0) -> dict | None:
-        """Block until the next kick. ``None`` on timeout."""
+        """Block until the grid changes. ``None`` on timeout."""
         with self._pulse_condition:
             if self._pulse_seq != since:
-                return {"intensity": self._pulse, "seq": self._pulse_seq}
+                return self._pulse_payload()
             self._pulse_condition.wait(timeout)
             if self._pulse_seq == since:
                 return None
-            return {"intensity": self._pulse, "seq": self._pulse_seq}
+            return self._pulse_payload()
 
     def reveal_score(self) -> dict:
         """End the song where it is and put the score up."""

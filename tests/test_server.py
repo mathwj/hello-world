@@ -346,3 +346,23 @@ def test_a_supplied_logo_replaces_the_wordmark_on_both_screens(client, static_di
         assert b"waiting-mark" not in stage
     finally:
         logo.unlink()
+
+
+def test_a_beat_report_carries_the_grid_and_the_bands(client):
+    response = client.post(
+        "/api/stage/pulse",
+        json={"period": 468, "bpm": 128, "confidence": 4.1, "anchor_age": 30,
+              "low": 62, "mid": 40, "high": 18},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["seq"] == 1
+
+
+def test_bands_are_accepted_without_a_tempo(client):
+    """Music the tracker cannot lock onto still has to move the waiting screen."""
+    response = client.post("/api/stage/pulse", json={"low": 55, "mid": 20, "high": 9})
+    assert response.status_code == 200
+
+
+def test_an_empty_beat_report_is_refused(client):
+    assert client.post("/api/stage/pulse", json={}).status_code == 400
