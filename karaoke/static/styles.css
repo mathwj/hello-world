@@ -706,3 +706,35 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
 /* Sized by height so any aspect ratio sits correctly on the bar. */
 .brand-logo { height: 34px; width: auto; max-width: 340px; object-fit: contain; display: block; }
 .brand-sub-alone { margin: 0; align-self: center; }
+
+/* ---------- beat indicator ---------- */
+
+.beat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.beat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: transform 0.1s ease, background 0.2s ease;
+}
+
+/* Listening but between beats. */
+.beat-dot.is-live { background: rgba(0, 255, 255, 0.35); }
+
+/* Each detected kick, so the operator can see detection working at a glance. */
+.beat-dot.is-live.is-hit {
+  background: var(--accent);
+  transform: scale(1.9);
+  box-shadow: 0 0 10px var(--accent);
+}

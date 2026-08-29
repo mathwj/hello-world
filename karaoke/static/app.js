@@ -321,12 +321,14 @@ const OPEN = { frequency: 22000, gain: 1 };
 const ENSURE_CHAIN = `
   const store = (window.__karaokebox = window.__karaokebox || {});
   const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return "unsupported";
+  if (!Ctx) return { state: "unsupported" };
   if (!store.ctx) store.ctx = new Ctx();
   const ctx = store.ctx;
   if (ctx.state === "suspended") ctx.resume();
   // Routing into a context that will not start would silence the music.
-  if (ctx.state !== "running") return "blocked";
+  // resume() is asynchronous: the state will not have flipped yet on the call
+  // that starts it, so this reports "starting" and the next poll proceeds.
+  if (ctx.state !== "running") return { state: "starting" };
 
   const build = (video) => {
     if (video.__kbChain) return video.__kbChain;
@@ -343,7 +345,14 @@ const ENSURE_CHAIN = `
     const level = ctx.createGain();
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 512;
-    analyser.smoothingTimeConstant = 0.6;
+    // Onset detection wants the opposite of a pretty meter. Heavy smoothing
+    // averages away the very attack a kick is made of, and the default decibel
+    // window pins loud music against the top of the byte range, leaving almost
+    // no room between the bass and its own peaks — measured on real-shaped
+    // audio, the whole spread was two counts out of 255.
+    analyser.smoothingTimeConstant = 0.15;
+    analyser.minDecibels = -95;
+    analyser.maxDecibels = -12;
     source.connect(filter);
     filter.connect(level);
     level.connect(analyser);
@@ -369,7 +378,7 @@ const muffleScript = ({ frequency, gain }) => `(() => {
     level.gain.linearRampToValueAtTime(${gain}, now + seconds);
     touched += 1;
   }
-  return touched ? "ok" : "no-audio";
+  return { state: touched ? "ok" : "no-audio" };
 })()`;
 
 /* ---------- the beat behind the waiting screen ----------
@@ -381,7 +390,7 @@ const muffleScript = ({ frequency, gain }) => `(() => {
    short jump in low-end energy above its own recent average, and spotting that
    needs finer timing than anything sampled a dozen times a second could give.
    Only the hits travel — a few a second — rather than a continuous stream. */
-const BEAT_POLL_MS = 80;
+const BEAT_POLL_MS = 40;   // halves the timing jitter between kick and flash
 
 const BEAT_SCRIPT = `(() => {
   ${ENSURE_CHAIN}
@@ -389,10 +398,11 @@ const BEAT_SCRIPT = `(() => {
     .find((v) => !v.paused && !v.ended && v.readyState > 2);
 
   const video = playing();
-  if (!video || !build(video)) return null;
+  if (!video) return { state: "no-audio" };
+  if (!build(video)) return { state: "no-tap" };
 
   if (!store.beat) {
-    store.beat = { history: [], last: 0, pending: 0 };
+    store.beat = { history: [], last: 0, pending: 0, bass: 0, avg: 0, thr: 0 };
     const tick = () => {
       const current = playing();
       // Look the chain up every frame: YouTube swaps the video element as you
@@ -409,15 +419,28 @@ const BEAT_SCRIPT = `(() => {
 
         const beat = store.beat;
         beat.history.push(bass);
-        if (beat.history.length > 45) beat.history.shift();   // about 0.75s
-        const average = beat.history.reduce((a, b) => a + b, 0) / beat.history.length;
+        if (beat.history.length > 90) beat.history.shift();   // about 1.5s
 
+        const average = beat.history.reduce((a, b) => a + b, 0) / beat.history.length;
+        const spread = Math.sqrt(
+          beat.history.reduce((a, b) => a + (b - average) * (b - average), 0) / beat.history.length);
+
+        // Real music is compressed: its bass sits loud and steady, so a fixed
+        // "30% above average" almost never trips. Judging the rise against how
+        // much this track's bass normally moves adapts to both a bare thump and
+        // a wall of sound.
+        const threshold = average + Math.max(5, spread * 1.4);
         const now = performance.now();
-        // A jump above the recent average, loud enough to be a kick and not a
-        // hi-hat, with a gate so one kick is not counted several times.
-        if (bass > average * 1.3 && bass > 42 && now - beat.last > 200) {
+
+        beat.bass = Math.round(bass);
+        beat.avg = Math.round(average);
+        beat.thr = Math.round(threshold);
+
+        if (bass > threshold && bass > 18 && now - beat.last > 180) {
           beat.last = now;
-          beat.pending = Math.max(beat.pending, Math.round((bass / 255) * 100));
+          // A floor, so a detected kick always reads as a flash rather than a flicker.
+          beat.pending = Math.max(beat.pending,
+            Math.round(Math.min(100, 55 + (bass / 255) * 60)));
         }
       }
       requestAnimationFrame(tick);
@@ -425,10 +448,36 @@ const BEAT_SCRIPT = `(() => {
     requestAnimationFrame(tick);
   }
 
-  const hit = store.beat.pending;
-  store.beat.pending = 0;
-  return hit;
+  const beat = store.beat;
+  const hit = beat.pending;
+  beat.pending = 0;
+  return { state: "ok", hit, bass: beat.bass, avg: beat.avg, thr: beat.thr };
 })()`;
+
+/* The detector runs inside another page, so without this its failures are
+   invisible: the screen simply never flashes and there is nothing to look at. */
+const BEAT_STATES = {
+  ok: "listening",
+  starting: "waiting for sound",
+  "no-audio": "nothing playing",
+  "no-tap": "cannot read this player",
+  unsupported: "no audio support",
+  error: "not responding",
+};
+
+function showBeatState(report) {
+  const dot = $("#beat-dot");
+  if (!dot) return;
+  const state = (report && report.state) || "error";
+  dot.classList.toggle("is-live", state === "ok");
+  if (state === "ok" && report.hit > 0) {
+    dot.classList.add("is-hit");
+    setTimeout(() => dot.classList.remove("is-hit"), 120);
+  }
+  const numbers = state === "ok" ? ` — bass ${report.bass}, needs ${report.thr}` : "";
+  dot.title = `Beat: ${BEAT_STATES[state] || state}${numbers}`;
+  $("#beat-label").textContent = state === "ok" ? "Beat" : BEAT_STATES[state] || state;
+}
 
 function startBeatFeed() {
   let sampling = false;
@@ -438,12 +487,13 @@ function startBeatFeed() {
     if (sampling || !view || typeof view.executeJavaScript !== "function") return;
     sampling = true;
     try {
-      const hit = await view.executeJavaScript(BEAT_SCRIPT);
-      if (typeof hit === "number" && hit > 0) {
-        await postJson("/api/stage/pulse", { intensity: hit });
+      const report = await view.executeJavaScript(BEAT_SCRIPT);
+      showBeatState(report);
+      if (report && report.state === "ok" && report.hit > 0) {
+        await postJson("/api/stage/pulse", { intensity: report.hit });
       }
     } catch (error) {
-      /* the next tick will try again */
+      showBeatState({ state: "error" });
     } finally {
       sampling = false;
     }
@@ -464,7 +514,7 @@ async function applyMuffle() {
   if (!view || typeof view.executeJavaScript !== "function") return;
   try {
     const result = await view.executeJavaScript(muffleScript(state.muffled ? MUFFLED : OPEN));
-    if (result === "blocked") {
+    if (result && result.state === "starting") {
       toast("Click once inside the music page, then try Muffle again.", true);
     }
   } catch (error) {
@@ -1070,8 +1120,10 @@ if (IS_DESKTOP) {
   setUpYouTubeView();
   startBeatFeed();
 } else {
-  // Nothing to filter: in a browser the music sits in a cross-origin frame.
+  // Nothing to filter or listen to: in a browser the music sits in a
+  // cross-origin frame whose audio cannot be reached.
   $("#muffle").hidden = true;
+  $("#beat").hidden = true;
 }
 updateCrossfadeLabel();
 loadLibrary();
