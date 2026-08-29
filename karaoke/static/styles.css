@@ -545,3 +545,73 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 
 body.is-browsing main { max-width: none; padding: 14px 18px 18px; }
 body.is-browsing .panel.is-browser.is-active { height: calc(100vh - 150px); }
+
+/* ---------- my songs: a list, not a grid ---------- */
+
+.songlist {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-raised);
+}
+
+.song {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.song:last-child { border-bottom: 0; }
+.song:hover { background: var(--bg-hover); }
+
+.song-thumb {
+  width: 72px;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+  flex: none;
+}
+
+.song-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(1); }
+.song:hover .song-thumb img { filter: grayscale(0.55); }
+
+.song-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.song-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  /* One line per song is what makes the list scannable. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-live {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.song-time { color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.song-actions { display: flex; gap: 8px; }
+.song-actions .btn { padding: 8px 14px; font-size: 13px; }
+
+/* The row that is on the stage keeps a cyan edge, as the card used to. */
+.song.is-live { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+
+@media (max-width: 720px) {
+  .song { grid-template-columns: 56px 1fr; row-gap: 10px; }
+  .song-time { display: none; }
+  .song-actions { grid-column: 1 / -1; }
+}

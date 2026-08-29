@@ -502,7 +502,9 @@ $("#clear-downloads").addEventListener("click", async () => {
 
 /* ---------- library ---------- */
 
-function libraryCard(song) {
+/* The library is a set list, not a shop window: rows scan faster than tiles
+   when you are looking for the one song somebody just asked for. */
+function libraryRow(song) {
   const thumb = song.thumbnail
     ? `<img src="/media/${encodeURIComponent(song.thumbnail)}" alt="" loading="lazy">`
     : "";
@@ -512,20 +514,18 @@ function libraryCard(song) {
     && state.stage.karaoke.name === song.name;
 
   return `
-    <article class="card${onStage ? " is-live" : ""}">
-      <div class="card-thumb">
-        ${thumb}
-        <span class="card-duration">${escapeHtml(song.duration_label)}</span>
-        ${onStage ? '<span class="card-live">On stage</span>' : ""}
+    <article class="song${onStage ? " is-live" : ""}">
+      <div class="song-thumb">${thumb}</div>
+      <div class="song-main">
+        <h3 class="song-title">${escapeHtml(song.title)}</h3>
+        ${onStage ? '<span class="song-live">On stage</span>' : ""}
       </div>
-      <div class="card-body">
-        <h3 class="card-title">${escapeHtml(song.title)}</h3>
-        <div class="card-actions">
-          <button class="btn btn-primary" data-play="${escapeHtml(song.name)}"
-                  data-title="${escapeHtml(song.title)}">Play on stage</button>
-          <button class="btn btn-danger" data-delete="${escapeHtml(song.name)}"
-                  data-title="${escapeHtml(song.title)}">Delete</button>
-        </div>
+      <span class="song-time">${escapeHtml(song.duration_label)}</span>
+      <div class="song-actions">
+        <button class="btn btn-primary" data-play="${escapeHtml(song.name)}"
+                data-title="${escapeHtml(song.title)}">Play on stage</button>
+        <button class="btn btn-danger" data-delete="${escapeHtml(song.name)}"
+                data-title="${escapeHtml(song.title)}">Delete</button>
       </div>
     </article>`;
 }
@@ -536,7 +536,7 @@ function renderLibrary() {
     ? state.library.filter((song) => song.title.toLowerCase().includes(filter))
     : state.library;
 
-  $("#library-results").innerHTML = songs.map(libraryCard).join("");
+  $("#library-results").innerHTML = songs.map(libraryRow).join("");
   $("#library-count").textContent = state.library.length;
   $("#library-empty").hidden = songs.length > 0;
   $("#library-empty").textContent = state.library.length
