@@ -616,32 +616,94 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - 150px); }
   .song-actions { grid-column: 1 / -1; }
 }
 
-/* ---------- fade buttons ---------- */
 
-.fade-btn {
+/* ---------- crossfade ---------- */
+
+.crossfade {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crossfade:hover { background: var(--accent); color: var(--on-accent); }
+.crossfade-arrows { font-size: 15px; line-height: 1; color: var(--accent); }
+.crossfade:hover .crossfade-arrows { color: var(--on-accent); }
+
+/* ---------- now playing: progress and transport ---------- */
+
+.now-progress { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 160px; }
+
+.track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  /* Position arrives twice a second; the transition carries it between. */
+  transition: width 1s linear;
+}
+
+.now-time { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--bg);
-  color: var(--text-dim);
-  font-size: 10px;
-  line-height: 1;
+  border-radius: 9px;
+  background: var(--bg-raised);
+  color: var(--text);
   cursor: pointer;
 }
 
-.fade-btn:hover { color: var(--text); border-color: var(--accent); }
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.icon-btn svg { width: 16px; height: 16px; fill: currentColor; }
+#now-reveal:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
-/* Faded out: the button holds the brand colour so the state is obvious across
-   the room-lit laptop, not just a subtle tint. */
-.fade-btn.is-faded {
-  background: var(--accent);
+/* ---------- download progress on the button ---------- */
+
+.btn.is-downloading {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-hover);
   border-color: var(--accent);
-  color: var(--on-accent);
+  color: var(--text);
 }
 
-.fader { position: relative; }
+/* A translucent fill, so the percentage stays readable across the whole sweep
+   rather than turning dark-on-cyan halfway. */
+.btn.is-downloading::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--progress, 0%);
+  background: rgba(0, 255, 255, 0.32);
+  transition: width 0.4s ease;
+}
+
+.btn.is-downloading span { position: relative; }
+
+.muffle { border-color: var(--border); background: var(--bg-raised); }
+.muffle:hover { border-color: var(--accent); background: var(--bg-hover); color: var(--text); }
+.muffle.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }

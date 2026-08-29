@@ -13,18 +13,33 @@ const state = {
   jobs: [],
   queued: new Set(),  // video ids queued this session, to disable their buttons
   stage: null,        // the stage's last reported state
+  muffled: false,     // the music filtered down, as if through a wall
   watching: null,     // the video playing on the music page
   player: null,       // the YouTube player, once its API has loaded
   playerReady: false,
   pendingVideo: null, // asked for before the player finished loading
   ytApi: null,
   pollTimer: null,
+  progressTimer: null,
   volumeTimer: null,
   // One fade per channel: where it came from, and the animation in flight.
   fades: {
-    karaoke: { faded: false, restore: 85, frame: null },
-    music: { faded: false, restore: 60, frame: null },
+    karaoke: { restore: 85, frame: null },
+    music: { restore: 60, frame: null },
   },
+};
+
+/* ---------- icons ---------- */
+
+const icon = (path) =>
+  `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${path}"/></svg>`;
+
+const ICONS = {
+  play: icon("M8 5v14l11-7z"),
+  pause: icon("M6 5h4v14H6zm8 0h4v14h-4z"),
+  stop: icon("M7 7h10v10H7z"),
+  // A star for the score: the reveal, not the stopping.
+  score: icon("M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"),
 };
 
 /* ---------- helpers ---------- */
@@ -33,6 +48,13 @@ function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   })[ch]);
+}
+
+/* mm:ss, zero-padded, so the clock does not jitter in width as it counts. */
+function clock(seconds) {
+  const total = Math.max(0, Math.floor(seconds || 0));
+  const minutes = Math.floor(total / 60);
+  return `${String(minutes).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
 function formatViews(count) {
@@ -129,6 +151,7 @@ function searchCard(result) {
 function renderSearch(results) {
   state.results = results;
   $("#search-results").innerHTML = results.map(searchCard).join("");
+  syncDownloadButtons();          // a card re-rendered mid-download keeps its bar
   $("#search-empty").hidden = results.length > 0;
   if (!results.length) $("#search-empty").textContent = "No karaoke versions found. Try different words.";
 }
@@ -166,7 +189,9 @@ $("#search-results").addEventListener("click", async (event) => {
   if (!button) return;
 
   button.disabled = true;
-  button.textContent = "Queued…";
+  button.classList.add("is-downloading");
+  button.style.setProperty("--progress", "0%");
+  button.innerHTML = "<span>Waiting…</span>";
   state.queued.add(button.dataset.download);
 
   try {
@@ -180,6 +205,8 @@ $("#search-results").addEventListener("click", async (event) => {
   } catch (error) {
     state.queued.delete(button.dataset.download);
     button.disabled = false;
+    button.classList.remove("is-downloading");
+    button.style.removeProperty("--progress");
     button.textContent = "Download";
     toast(error.message, true);
   }
@@ -260,12 +287,102 @@ function setUpYouTubeView() {
   const showUrl = () => { $("#yt-url").textContent = view.getURL(); };
   // YouTube swaps the video element on every navigation, so the fader has to be
   // re-applied rather than set once.
-  const reapply = () => { showUrl(); applyMusicVolume(Number($("#vol-music").value)); };
+  // YouTube swaps the video element on every navigation, so both the volume
+  // and the muffle have to be laid on again rather than set once.
+  const reapply = () => {
+    showUrl();
+    applyMusicVolume(Number($("#vol-music").value));
+    if (state.muffled) applyMuffle();
+  };
   view.addEventListener("did-navigate", reapply);
   view.addEventListener("did-navigate-in-page", reapply);
   view.addEventListener("media-started-playing", reapply);
   view.addEventListener("did-finish-load", reapply);
 }
+
+/* ---------- muffle ----------
+
+   Runs inside the embedded browser, where the video element is same-origin and
+   can be routed through a Web Audio graph — from the operator page it is behind
+   a cross-origin boundary and untouchable. A lowpass filter takes the top off,
+   so the music sounds like it is coming through a wall, and both the cutoff and
+   a little level are ramped rather than switched, so it breathes in and out.
+
+   The source node is created once per video element: calling
+   createMediaElementSource twice on the same element throws, and a failed
+   attempt would leave the music routed into a graph that never plays. */
+const MUFFLE_MS = 700;
+const MUFFLED = { frequency: 420, gain: 0.72 };
+const OPEN = { frequency: 22000, gain: 1 };
+
+const muffleScript = ({ frequency, gain }) => `(() => {
+  const store = (window.__karaokebox = window.__karaokebox || {});
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return "unsupported";
+  if (!store.ctx) store.ctx = new Ctx();
+  const ctx = store.ctx;
+  if (ctx.state === "suspended") ctx.resume();
+  // Routing into a context that will not start would silence the music.
+  if (ctx.state !== "running") return "blocked";
+
+  let touched = 0;
+  for (const video of Array.from(document.querySelectorAll("video"))) {
+    if (!video.__kbChain) {
+      let source;
+      try {
+        source = ctx.createMediaElementSource(video);
+      } catch (error) {
+        continue;
+      }
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = ${OPEN.frequency};
+      filter.Q.value = 0.7;
+      const level = ctx.createGain();
+      source.connect(filter);
+      filter.connect(level);
+      level.connect(ctx.destination);
+      video.__kbChain = { filter, level };
+    }
+    const { filter, level } = video.__kbChain;
+    const now = ctx.currentTime;
+    const seconds = ${MUFFLE_MS} / 1000;
+    filter.frequency.cancelScheduledValues(now);
+    filter.frequency.setValueAtTime(filter.frequency.value, now);
+    filter.frequency.exponentialRampToValueAtTime(${frequency}, now + seconds);
+    level.gain.cancelScheduledValues(now);
+    level.gain.setValueAtTime(level.gain.value, now);
+    level.gain.linearRampToValueAtTime(${gain}, now + seconds);
+    touched += 1;
+  }
+  return touched ? "ok" : "no-audio";
+})()`;
+
+function updateMuffleButton() {
+  const button = $("#muffle");
+  button.classList.toggle("is-on", state.muffled);
+  button.setAttribute("aria-pressed", String(state.muffled));
+  button.textContent = state.muffled ? "Muffled" : "Muffle";
+}
+
+async function applyMuffle() {
+  const view = $("#yt-view");
+  if (!view || typeof view.executeJavaScript !== "function") return;
+  try {
+    const result = await view.executeJavaScript(muffleScript(state.muffled ? MUFFLED : OPEN));
+    if (result === "blocked") {
+      toast("Click once inside the music page, then try Muffle again.", true);
+    }
+  } catch (error) {
+    toast("Could not reach the music player to muffle it.", true);
+  }
+}
+
+$("#muffle").addEventListener("click", () => {
+  state.muffled = !state.muffled;
+  updateMuffleButton();
+  applyMuffle();
+});
 
 /* Sets the volume of whatever is playing inside the embedded browser. */
 function applyMusicVolume(value) {
@@ -466,6 +583,35 @@ function jobRow(job) {
     </div>`;
 }
 
+/* A search card follows its own download, so the button becomes the progress
+   bar rather than sitting on "Queued…" for the whole two minutes. */
+function syncDownloadButtons() {
+  for (const job of state.jobs) {
+    if (!job.video_id) continue;
+    const button = document.querySelector(`[data-download="${CSS.escape(job.video_id)}"]`);
+    if (!button) continue;
+
+    if (job.status === "queued" || job.status === "downloading") {
+      const percent = job.status === "queued" ? 0 : Math.round(job.progress || 0);
+      button.disabled = true;
+      button.classList.add("is-downloading");
+      button.style.setProperty("--progress", `${percent}%`);
+      button.innerHTML = `<span>${job.status === "queued" ? "Waiting…" : `${percent}%`}</span>`;
+    } else if (job.status === "done") {
+      button.classList.remove("is-downloading");
+      button.style.removeProperty("--progress");
+      button.disabled = true;
+      button.textContent = "Downloaded";
+    } else if (job.status === "failed") {
+      button.classList.remove("is-downloading");
+      button.style.removeProperty("--progress");
+      button.disabled = false;
+      button.textContent = "Download";
+      state.queued.delete(job.video_id);
+    }
+  }
+}
+
 function renderJobs() {
   $("#download-list").innerHTML = state.jobs.map(jobRow).join("");
   $("#downloads-empty").hidden = state.jobs.length > 0;
@@ -479,6 +625,7 @@ async function pollJobs() {
     const data = await api("/api/downloads");
     state.jobs = data.jobs;
     renderJobs();
+    syncDownloadButtons();
 
     for (const job of state.jobs) {
       const was = previous.get(job.id);
@@ -624,88 +771,85 @@ function setChannel(channel, value) {
   applyLocally(channel, value);
 }
 
-function updateFadeButton(channel) {
-  const button = channel === "karaoke" ? $("#fade-karaoke") : $("#fade-music");
-  const faded = state.fades[channel].faded;
-  const what = channel === "karaoke" ? "karaoke" : "music";
-  button.classList.toggle("is-faded", faded);
-  button.innerHTML = faded ? "&#9650;" : "&#9660;";
-  const label = faded ? `Bring the ${what} back up` : `Fade the ${what} out`;
-  button.title = label;
-  button.setAttribute("aria-label", label);
-}
-
 const FADE_MS = 1200;
 
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
-/* Rides the fader down to silence, or back to where it was.
+/* Which source is live right now — whichever is louder. */
+function karaokeIsLive() {
+  return Number($("#vol-karaoke").value) >= Number($("#vol-music").value);
+}
 
-   The karaoke goes as a single instruction — target and duration — because the
-   stage performs the ramp itself; streaming a dozen volume updates across the
-   network put the room's audio at the mercy of request timing, and it audibly
-   jumped. The music plays on this machine, so it is ridden here. The slider
-   animates locally either way, which is only cosmetic. */
-function toggleFade(channel) {
-  const fade = state.fades[channel];
-  if (fade.frame) cancelAnimationFrame(fade.frame);
+function updateCrossfadeLabel() {
+  // The button names where the next tap takes you, not where you are.
+  const goingToMusic = karaokeIsLive();
+  $("#crossfade-label").textContent = goingToMusic ? "Music" : "Karaoke";
+  const label = goingToMusic ? "Crossfade to the music" : "Crossfade to the karaoke";
+  $("#crossfade").title = label;
+  $("#crossfade").setAttribute("aria-label", label);
+}
 
-  const from = Number(faderFor(channel).value);
-  if (!fade.faded && from > 0) fade.restore = from;
-  const to = fade.faded ? fade.restore : 0;
-  fade.faded = !fade.faded;
-  updateFadeButton(channel);
+/* One tap swaps the room over: one source rides down to silence as the other
+   comes up to where its fader was last left. */
+function crossfade() {
+  const fades = state.fades;
+  if (fades.karaoke.frame) cancelAnimationFrame(fades.karaoke.frame);
+  if (fades.music.frame) cancelAnimationFrame(fades.music.frame);
 
-  // Proportional, so a short fade does not crawl at the same pace as a long one.
-  const duration = Math.max(200, FADE_MS * (Math.abs(to - from) / 100));
-
-  if (channel === "karaoke") {
-    // The id must be new to the stage, and the stage remembers the last one it
-    // saw across page loads. A per-page counter restarts at 1 and gets ignored
-    // as already-seen, which lands as an instant cut instead of a fade.
-    postJson("/api/stage", {
-      volume: { karaoke: to },
-      fade: { to, ms: duration, id: Date.now() },
-    }).catch(() => {});
+  const from = { karaoke: Number($("#vol-karaoke").value), music: Number($("#vol-music").value) };
+  // Remember where each was before it gets dropped, so it comes back the same.
+  for (const channel of ["karaoke", "music"]) {
+    if (from[channel] > 0) fades[channel].restore = from[channel];
   }
+
+  const toMusic = karaokeIsLive();
+  const to = {
+    karaoke: toMusic ? 0 : fades.karaoke.restore || 85,
+    music: toMusic ? fades.music.restore || 60 : 0,
+  };
+
+  // The karaoke plays on the stage, so it goes as a single instruction and the
+  // stage rides the fader itself; the music plays here and is ridden here.
+  postJson("/api/stage", {
+    volume: { karaoke: to.karaoke, music: to.music },
+    fade: { to: to.karaoke, ms: FADE_MS, id: Date.now() },
+  }).catch(() => {});
 
   const started = performance.now();
   function step(now) {
-    const t = Math.min(1, (now - started) / duration);
-    const value = Math.round(from + (to - from) * easeInOut(t));
-    faderFor(channel).value = value;
-    readoutFor(channel).textContent = value;
-    applyLocally(channel, value);
-
+    const t = Math.min(1, (now - started) / FADE_MS);
+    const eased = easeInOut(t);
+    for (const channel of ["karaoke", "music"]) {
+      const value = Math.round(from[channel] + (to[channel] - from[channel]) * eased);
+      faderFor(channel).value = value;
+      readoutFor(channel).textContent = value;
+      applyLocally(channel, value);
+    }
     if (t < 1) {
-      fade.frame = requestAnimationFrame(step);
+      fades.karaoke.frame = requestAnimationFrame(step);
     } else {
-      fade.frame = null;
-      if (channel === "music") sendVolume();   // karaoke already sent its target
+      fades.karaoke.frame = null;
+      updateCrossfadeLabel();
     }
   }
-  fade.frame = requestAnimationFrame(step);
+  fades.karaoke.frame = requestAnimationFrame(step);
 }
 
-document.querySelectorAll(".fade-btn").forEach((button) => {
-  button.addEventListener("click", () => toggleFade(button.dataset.channel));
-});
+$("#crossfade").addEventListener("click", crossfade);
 
 function onFaderMoved(event) {
   const channel = event.target.id === "vol-music" ? "music" : "karaoke";
   const value = Number(event.target.value);
-  const fade = state.fades[channel];
 
-  // Touching the fader takes the channel back off the fade button.
-  if (fade.frame) {
-    cancelAnimationFrame(fade.frame);
-    fade.frame = null;
+  // A hand on a fader interrupts a crossfade in progress.
+  for (const other of ["karaoke", "music"]) {
+    if (state.fades[other].frame) {
+      cancelAnimationFrame(state.fades[other].frame);
+      state.fades[other].frame = null;
+    }
   }
-  if (value > 0) fade.restore = value;
-  if (fade.faded !== (value === 0)) {
-    fade.faded = value === 0;
-    updateFadeButton(channel);
-  }
+  if (value > 0) state.fades[channel].restore = value;
+  updateCrossfadeLabel();
 
   readoutFor(channel).textContent = value;
   applyLocally(channel, value);
@@ -729,6 +873,36 @@ $("#now-stop").addEventListener("click", () => {
   api("/api/stage/stop", { method: "POST" }).catch((e) => toast(e.message, true));
 });
 
+$("#now-reveal").addEventListener("click", () => {
+  api("/api/stage/score", { method: "POST" }).catch((e) => toast(e.message, true));
+});
+
+$("#now-stop").innerHTML = ICONS.stop;
+$("#now-reveal").innerHTML = ICONS.score;
+
+function renderProgress(progress) {
+  const position = (progress && progress.position) || 0;
+  const duration = (progress && progress.duration) || 0;
+  const percent = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
+  $("#now-fill").style.width = `${percent}%`;
+  $("#now-time").textContent = `${clock(position)} / ${clock(duration)}`;
+}
+
+/* Position is polled rather than pushed: it changes twice a second, and waking
+   every subscriber that often would drown the stream carrying real decisions. */
+async function pollProgress() {
+  const live = Boolean(state.stage) && state.stage.mode === "karaoke";
+  if (live) {
+    try {
+      renderProgress((await api("/api/stage")).progress);
+    } catch (error) {
+      /* the next tick will try again */
+    }
+  }
+  clearTimeout(state.progressTimer);
+  state.progressTimer = setTimeout(pollProgress, live ? 1000 : 2000);
+}
+
 function renderStage(next) {
   const previous = state.stage;
   state.stage = next;
@@ -747,21 +921,19 @@ function renderStage(next) {
     const level = next.volume[channel];
     input.value = level;
     readoutFor(channel).textContent = level;
-    // Keep the button honest: after a reload onto a channel that is already
-    // silent, it has to offer to bring it back, not to fade it again.
-    const fade = state.fades[channel];
-    if (fade.faded !== (level === 0)) {
-      fade.faded = level === 0;
-      updateFadeButton(channel);
-    }
-    if (level > 0) fade.restore = level;
+    if (level > 0) state.fades[channel].restore = level;
   }
+  updateCrossfadeLabel();
 
   const live = next.mode === "karaoke" && next.karaoke;
   $("#nowbar").hidden = !live;
   if (live) {
     $("#now-title").textContent = next.karaoke.title;
-    $("#now-toggle").textContent = next.playing ? "Pause" : "Resume";
+    $("#now-toggle").innerHTML = next.playing ? ICONS.pause : ICONS.play;
+    const label = next.playing ? "Pause" : "Resume";
+    $("#now-toggle").title = label;
+    $("#now-toggle").setAttribute("aria-label", label);
+    if (!previous || previous.mode !== "karaoke") pollProgress();
   }
 
   const score = next.score;
@@ -789,7 +961,13 @@ function subscribeToStage() {
 
 /* ---------- boot ---------- */
 
-if (IS_DESKTOP) setUpYouTubeView();
+if (IS_DESKTOP) {
+  setUpYouTubeView();
+} else {
+  // Nothing to filter: in a browser the music sits in a cross-origin frame.
+  $("#muffle").hidden = true;
+}
+updateCrossfadeLabel();
 loadLibrary();
 pollJobs();
 subscribeToStage();

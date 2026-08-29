@@ -52,6 +52,7 @@ class Job:
     url: str
     title: str
     thumbnail: str = ""
+    video_id: str = ""      # so the search card can show this job's progress
     status: str = QUEUED
     progress: float = 0.0
     downloaded_bytes: int = 0
@@ -83,9 +84,10 @@ class DownloadManager:
     def target_dir(self) -> Path:
         return self._dir
 
-    def enqueue(self, url: str, title: str = "", thumbnail: str = "") -> Job:
+    def enqueue(self, url: str, title: str = "", thumbnail: str = "", video_id: str = "") -> Job:
         """Add a video to the queue and make sure a worker is alive to take it."""
-        job = Job(id=uuid.uuid4().hex, url=url, title=title or url, thumbnail=thumbnail)
+        job = Job(id=uuid.uuid4().hex, url=url, title=title or url,
+                  thumbnail=thumbnail, video_id=video_id)
         with self._lock:
             self._jobs[job.id] = job
         self._ensure_workers()

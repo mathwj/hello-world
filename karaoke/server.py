@@ -90,6 +90,21 @@ def create_app(
             }
         return jsonify(result)
 
+    @app.post("/api/stage/progress")
+    def stage_progress():
+        """The stage reporting where it is in the song."""
+        payload = request.get_json(silent=True) or {}
+        try:
+            show.set_progress(payload.get("position", 0), payload.get("duration", 0))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Bad progress."}), 400
+        return jsonify({"ok": True})
+
+    @app.post("/api/stage/score")
+    def stage_reveal():
+        """Cut the song short and reveal the score."""
+        return jsonify(show.reveal_score())
+
     @app.post("/api/stage/stop")
     def stage_stop():
         return jsonify(show.stop())
@@ -175,6 +190,7 @@ def create_app(
             url,
             title=(payload.get("title") or "").strip(),
             thumbnail=(payload.get("thumbnail") or "").strip(),
+            video_id=video_id,
         )
         return jsonify(job.as_dict()), 202
 

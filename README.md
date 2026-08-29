@@ -62,8 +62,8 @@ Either way the console stays free to search and download while something runs.
 ## Using it
 
 1. **Karaoke** — search for a song (`perfect`, `bohemian rhapsody`). Results are
-   karaoke versions only. *Download* queues it in the background; the
-   *Downloads* tab shows live progress, and you can keep working while it runs.
+   karaoke versions only. *Download* turns the button into its own progress bar
+   and counts up as it goes; you can keep working while it runs.
 2. **My songs** — your library. *Play on stage* starts the song on the audience
    screen and marks the card *On stage*. When it ends, the score screen and its
    drum roll play there too — for the room, not for you.
@@ -78,10 +78,19 @@ Either way the console stays free to search and download while something runs.
    In a **browser** it falls back to searching YouTube, opening links you paste,
    and playing them in YouTube's embedded player, since a tab cannot show the
    site itself.
-4. **The mixer** sits in the top bar of every tab: one fader for the karaoke, one
-   for the music, so you can duck the record as the next singer steps up.
-5. The bar under the header shows what is playing, with *Pause* and *Stop*, and
-   the score once a song finishes.
+4. **The mixer** sits in the top bar of every tab: a fader each for the karaoke
+   and the music, plus two buttons.
+
+   - **Crossfade** swaps the room over in one tap — whichever source is live
+     rides down to silence as the other comes up to where its fader was left.
+     The button names where the next tap will take you.
+   - **Muffle** filters the music down as if it were playing in the next room,
+     fading in and out rather than switching. Desktop app only: in a browser the
+     music sits in a cross-origin frame whose audio cannot be reached.
+
+5. The bar under the header shows what is playing, with a progress bar and clock,
+   play/pause, **Score** — which ends the song where it is and puts the number up
+   on the stage — and stop.
 
 Songs are saved to `~/Movies/Karaoke` by default.
 

@@ -40,6 +40,8 @@ DEFAULT_STATE = {
     # performs the ramp itself. Sending it every step instead would put a dozen
     # network round trips inside something the room can hear.
     "fade": None,
+    # Ends the song early and reveals the score: {"id": n}.
+    "reveal": None,
 }
 
 
@@ -60,6 +62,7 @@ class Stage:
         self._version = 1
         self._condition = threading.Condition()
         self._viewers = 0
+        self._progress = {"position": 0.0, "duration": 0.0}
 
     # -- reading ------------------------------------------------------------
 
@@ -71,6 +74,7 @@ class Stage:
         payload = copy.deepcopy(self._state)
         payload["version"] = self._version
         payload["viewers"] = self._viewers
+        payload["progress"] = dict(self._progress)
         return payload
 
     # -- writing ------------------------------------------------------------
@@ -83,6 +87,25 @@ class Stage:
             self._condition.notify_all()
             return self._payload()
 
+    def set_progress(self, position: float, duration: float) -> None:
+        """Record how far into the song the stage is.
+
+        Deliberately does not bump the version: this arrives a couple of times a
+        second, and waking every subscriber that often would drown the stream
+        that carries actual decisions. The operator reads it by polling instead.
+        """
+        with self._condition:
+            self._progress = {"position": float(position), "duration": float(duration)}
+
+    def reveal_score(self) -> dict:
+        """End the song where it is and put the score up."""
+        with self._condition:
+            self._state["playing"] = False
+            self._state["reveal"] = {"id": self._version + 1}
+            self._version += 1
+            self._condition.notify_all()
+            return self._payload()
+
     def play_karaoke(self, name: str, title: str) -> dict:
         """Start a karaoke video from the top."""
         with self._condition:
@@ -90,7 +113,9 @@ class Stage:
             self._state["karaoke"] = {"name": name, "title": title}
             self._state["playing"] = True
             self._state["score"] = None
+            self._state["reveal"] = None
             self._state["nonce"] += 1
+            self._progress = {"position": 0.0, "duration": 0.0}
             self._version += 1
             self._condition.notify_all()
             return self._payload()

@@ -14,6 +14,8 @@ const stage = {
   applied: null,       // last state we acted on, to spot what actually changed
   ramp: null,          // a fade in flight
   fadeId: null,        // the last fade instruction acted on
+  revealId: null,      // the last "show the score now" instruction acted on
+  lastReport: 0,
   audioUnlocked: false,
 };
 
@@ -132,11 +134,22 @@ function applyState(state, force = false) {
   } else {
     showWaiting(state);
   }
+
+  // "Score" from the operator: end the song where it is and put the number up.
+  // Checked after the mode above, which would otherwise pause over the top.
+  const reveal = state.reveal;
+  if (reveal && previous === null) {
+    stage.revealId = reveal.id;      // history, not an instruction
+  } else if (reveal && reveal.id !== stage.revealId) {
+    stage.revealId = reveal.id;
+    video.pause();
+    revealScore();
+  }
 }
 
 /* ---------- the song ending ---------- */
 
-video.addEventListener("ended", () => {
+function revealScore() {
   scoreHost.hidden = false;
   showScore((score, rank) => {
     // Tell the operator what the room just saw.
@@ -146,7 +159,38 @@ video.addEventListener("ended", () => {
       body: JSON.stringify({ score: { value: score, rank }, playing: false }),
     }).catch(() => {});
   });
+}
+
+video.addEventListener("ended", revealScore);
+
+/* ---------- reporting where we are ---------- */
+
+function reportProgress() {
+  fetch("/api/stage/progress", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      position: video.currentTime || 0,
+      duration: Number.isFinite(video.duration) ? video.duration : 0,
+    }),
+  }).catch(() => {});
+}
+
+// timeupdate fires about four times a second; once is plenty for a progress bar,
+// and every extra report is a request competing with the ones that carry
+// decisions — a crossfade instruction arriving late is audible.
+video.addEventListener("timeupdate", () => {
+  const now = performance.now();
+  if (now - stage.lastReport < 1000) return;
+  stage.lastReport = now;
+  reportProgress();
 });
+
+// The duration is worth sending the moment it is known, and again when the
+// song is paused or finishes, so the operator's clock settles on the truth.
+video.addEventListener("loadedmetadata", reportProgress);
+video.addEventListener("pause", reportProgress);
+video.addEventListener("ended", reportProgress);
 
 /* ---------- staying in sync ---------- */
 

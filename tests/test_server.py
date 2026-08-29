@@ -14,8 +14,9 @@ class StubManager(DownloadManager):
         super().__init__(target_dir, workers=1)
         self.enqueued = []
 
-    def enqueue(self, url, title="", thumbnail=""):
-        job = Job(id=f"job{len(self.enqueued)}", url=url, title=title or url, thumbnail=thumbnail)
+    def enqueue(self, url, title="", thumbnail="", video_id=""):
+        job = Job(id=f"job{len(self.enqueued)}", url=url, title=title or url,
+                  thumbnail=thumbnail, video_id=video_id)
         self.enqueued.append(job)
         self._jobs[job.id] = job
         return job
@@ -271,3 +272,45 @@ def test_a_fade_instruction_reaches_the_stage(client):
 
 def test_the_stage_starts_with_no_fade_pending(client):
     assert client.get("/api/stage").get_json()["fade"] is None
+
+
+def test_a_download_job_remembers_its_video(client, manager):
+    """The search card follows its own job by id, to show progress on the button."""
+    client.post("/api/downloads", json={"video_id": "abc123", "title": "Perfect"})
+    assert manager.enqueued[0].video_id == "abc123"
+    assert client.get("/api/downloads").get_json()["jobs"][0]["video_id"] == "abc123"
+
+
+def test_progress_is_reported_without_waking_every_subscriber(client):
+    """Position arrives twice a second; versioning it would drown the stream."""
+    before = client.get("/api/stage").get_json()["version"]
+    client.post("/api/stage/progress", json={"position": 42.5, "duration": 204.0})
+    after = client.get("/api/stage").get_json()
+
+    assert after["progress"] == {"position": 42.5, "duration": 204.0}
+    assert after["version"] == before, "progress must not bump the version"
+
+
+def test_progress_resets_when_a_new_song_starts(client):
+    client.post("/api/stage/progress", json={"position": 42.5, "duration": 204.0})
+    client.post("/api/stage/karaoke", json={"name": "Perfect [abc123].mp4", "title": "Perfect"})
+    assert client.get("/api/stage").get_json()["progress"] == {"position": 0.0, "duration": 0.0}
+
+
+def test_revealing_the_score_stops_the_song(client):
+    client.post("/api/stage/karaoke", json={"name": "Perfect [abc123].mp4", "title": "Perfect"})
+    body = client.post("/api/stage/score").get_json()
+    assert body["playing"] is False
+    assert body["reveal"] is not None
+
+    # A second reveal must look new to the stage, or it would be ignored.
+    first = body["reveal"]["id"]
+    assert client.post("/api/stage/score").get_json()["reveal"]["id"] != first
+
+
+def test_starting_a_song_clears_a_previous_reveal(client):
+    client.post("/api/stage/karaoke", json={"name": "Perfect [abc123].mp4", "title": "Perfect"})
+    client.post("/api/stage/score")
+    body = client.post("/api/stage/karaoke",
+                       json={"name": "Perfect [abc123].mp4", "title": "Perfect"}).get_json()
+    assert body["reveal"] is None

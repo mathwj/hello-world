@@ -29,16 +29,19 @@
       <span class="fader-name">Karaoke</span>
       <input type="range" id="vol-karaoke" min="0" max="100" value="85" aria-label="Karaoke volume">
       <output id="vol-karaoke-out">85</output>
-      <button class="fade-btn" id="fade-karaoke" data-channel="karaoke"
-              title="Fade the karaoke out" aria-label="Fade the karaoke out">&#9660;</button>
     </div>
     <div class="fader">
       <span class="fader-name">Music</span>
       <input type="range" id="vol-music" min="0" max="100" value="60" aria-label="Music volume">
       <output id="vol-music-out">60</output>
-      <button class="fade-btn" id="fade-music" data-channel="music"
-              title="Fade the music out" aria-label="Fade the music out">&#9660;</button>
     </div>
+
+    <button class="crossfade" id="crossfade" title="Crossfade between the two">
+      <span class="crossfade-arrows">&#8646;</span><span id="crossfade-label">Music</span>
+    </button>
+
+    <button class="crossfade muffle" id="muffle" title="Muffle the music, as if it were in the next room"
+            aria-pressed="false">Muffle</button>
     <a class="stage-link" id="stage-link" href="/stage" target="_blank" rel="noopener">
       <span class="dot" id="stage-dot"></span><span id="stage-label">Stage</span>
     </a>
@@ -57,10 +60,16 @@
 <div class="nowbar" id="nowbar" hidden>
   <span class="now-kind">Singing</span>
   <span class="now-title" id="now-title"></span>
+  <div class="now-progress">
+    <div class="track" id="now-track"><span id="now-fill"></span></div>
+    <span class="now-time" id="now-time">00:00 / 00:00</span>
+  </div>
   <span class="now-score" id="now-score" hidden></span>
   <div class="now-actions">
-    <button class="btn btn-ghost" id="now-toggle">Pause</button>
-    <button class="btn btn-ghost" id="now-stop">Stop</button>
+    <button class="icon-btn" id="now-toggle" title="Pause" aria-label="Pause"></button>
+    <button class="icon-btn" id="now-reveal" title="End the song and show the score"
+            aria-label="End the song and show the score"></button>
+    <button class="icon-btn" id="now-stop" title="Stop" aria-label="Stop"></button>
   </div>
 </div>
 
