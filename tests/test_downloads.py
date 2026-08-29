@@ -1,3 +1,5 @@
+import os
+
 import time
 
 from karaoke import downloads
@@ -147,3 +149,25 @@ def test_cookies_are_passed_to_ytdlp_when_configured(tmp_path, monkeypatch):
 
     monkeypatch.setenv("KARAOKE_COOKIES_FROM_BROWSER", "Safari")
     assert manager._ydl_options("job")["cookiesfrombrowser"] == ("safari",)
+
+
+def test_ensure_ca_bundle_is_a_no_op_when_the_system_store_works(monkeypatch):
+    from karaoke import tls
+
+    monkeypatch.setattr(tls, "system_ca_count", lambda: 150)
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    assert tls.ensure_ca_bundle() is None
+    assert "SSL_CERT_FILE" not in os.environ
+
+
+def test_ensure_ca_bundle_falls_back_to_certifi_on_an_empty_store(monkeypatch):
+    from karaoke import tls
+
+    monkeypatch.setattr(tls, "system_ca_count", lambda: 0)
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+
+    bundle = tls.ensure_ca_bundle()
+    assert bundle and bundle.endswith(".pem")
+    assert os.environ["SSL_CERT_FILE"] == bundle
+    assert os.environ["REQUESTS_CA_BUNDLE"] == bundle

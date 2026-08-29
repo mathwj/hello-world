@@ -1,2 +1,5 @@
 flask>=3.0
 yt-dlp>=2024.1.0
+# yt-dlp treats certifi as optional, but Python installed from python.org has an
+# empty trust store without it, so every download fails. Keep it required.
+certifi>=2024.2.2

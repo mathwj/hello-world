@@ -6,7 +6,7 @@ import os
 import threading
 import webbrowser
 
-from . import __version__, config
+from . import __version__, config, tls
 from .server import create_app
 
 
@@ -15,8 +15,15 @@ def main() -> None:
     target = config.download_dir()
     url = f"http://{host}:{port}/"
 
+    bundle = tls.ensure_ca_bundle()
+
     print(f"KaraokeBox {__version__}")
     print(f"  library : {target}")
+    if bundle:
+        print("  certs   : using bundled certificates (system trust store is empty)")
+    elif tls.system_ca_count() == 0:
+        print("  certs   : WARNING no certificates found — searches will fail.")
+        print("            Fix with:  .venv/bin/pip install certifi")
     if config.ffmpeg_path() is None:
         print("  ffmpeg  : not found — downloads fall back to lower quality.")
         print("            Install it with:  brew install ffmpeg")

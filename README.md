@@ -68,6 +68,19 @@ challenging the request. Point the app at a browser you are already signed into:
 KARAOKE_COOKIES_FROM_BROWSER=safari ./run.sh   # or chrome, firefox, edge, brave
 ```
 
+**"Search failed: CERTIFICATE_VERIFY_FAILED".** Python installed from
+python.org does not use the macOS keychain, so it starts with an empty list of
+trusted certificate authorities. KaraokeBox ships `certifi` to cover this, but
+an older copy of the app may be missing it:
+
+```sh
+.venv/bin/pip install certifi
+```
+
+Then restart the app. To fix it for every Python program on your Mac, not just
+this one, double-click **Install Certificates.command** inside your
+`/Applications/Python 3.x/` folder.
+
 **A download fails but the search worked.** YouTube changes often and yt-dlp
 tracks those changes. `run.sh` updates yt-dlp on every launch, so quitting and
 relaunching usually fixes it.
