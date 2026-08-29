@@ -106,3 +106,36 @@ def test_a_screen_connecting_wakes_the_operator():
 
     assert woke and woke[0] is not None
     assert woke[0]["viewers"] == 1
+
+
+def test_levels_travel_on_their_own_channel():
+    """They arrive many times a second; the main state must not churn for them."""
+    stage = Stage()
+    version = stage.snapshot()["version"]
+    stage.set_levels([10, 50, 90])
+    assert stage.snapshot()["version"] == version
+    assert stage.levels() == {"bands": [10, 50, 90], "seq": 1}
+
+
+def test_levels_are_clamped_and_capped():
+    stage = Stage()
+    stage.set_levels([-20, 5.7, 300] + [1] * 100)
+    bands = stage.levels()["bands"]
+    assert bands[:3] == [0, 5, 100]
+    assert len(bands) == 64, "a runaway payload should not be stored whole"
+
+
+def test_waiting_for_a_newer_sample():
+    import threading, time
+
+    stage = Stage()
+    seq = stage.levels()["seq"]
+    assert stage.wait_levels(seq, timeout=0.15) is None       # nothing new yet
+
+    woke = []
+    thread = threading.Thread(target=lambda: woke.append(stage.wait_levels(seq, timeout=3)))
+    thread.start()
+    time.sleep(0.05)
+    stage.set_levels([42])
+    thread.join(timeout=3)
+    assert woke and woke[0]["bands"] == [42]

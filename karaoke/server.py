@@ -111,6 +111,40 @@ def create_app(
             return jsonify({"error": "Bad progress."}), 400
         return jsonify({"ok": True})
 
+    @app.post("/api/stage/levels")
+    def stage_levels():
+        """The operator's music player reporting its spectrum."""
+        payload = request.get_json(silent=True) or {}
+        bands = payload.get("bands")
+        if not isinstance(bands, list):
+            return jsonify({"error": "Expected a list of bands."}), 400
+        try:
+            return jsonify({"seq": show.set_levels(bands)})
+        except (TypeError, ValueError):
+            return jsonify({"error": "Bad levels."}), 400
+
+    @app.get("/api/stage/levels/events")
+    def stage_level_events():
+        """Pushed to the waiting screen, so the bars move without it polling."""
+
+        def stream():
+            payload = show.levels()
+            yield f"data: {json.dumps(payload)}\n\n"
+            seq = payload["seq"]
+            while True:
+                payload = show.wait_levels(seq)
+                if payload is None:
+                    yield ": keepalive\n\n"
+                else:
+                    seq = payload["seq"]
+                    yield f"data: {json.dumps(payload)}\n\n"
+
+        return Response(
+            stream(),
+            mimetype="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     @app.post("/api/stage/score")
     def stage_reveal():
         """Cut the song short and reveal the score."""

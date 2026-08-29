@@ -187,7 +187,8 @@ karaoke/
   library.py     reads the download folder + yt-dlp's .info.json sidecars
   config.py      locates ffmpeg and a JavaScript runtime, bundled or your own
   diagnose.py    the --doctor report
-  stage.py       the karaoke state both screens agree on, pushed to watchers
+  stage.py       the karaoke state both screens agree on, pushed to watchers,
+                 plus the music's audio levels on a channel of their own
   server.py      Flask JSON API and media streaming (HTTP Range, so seeking works)
   static/        app.js is the console, stage.js the audience screen,
                  score.js the reveal they share

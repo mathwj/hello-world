@@ -63,6 +63,12 @@ class Stage:
         self._condition = threading.Condition()
         self._viewers = 0
         self._progress = {"position": 0.0, "duration": 0.0}
+        # Audio levels travel on their own channel: they arrive many times a
+        # second, and pushing them through the main state would wake every
+        # subscriber for something only the waiting screen cares about.
+        self._levels = []
+        self._levels_seq = 0
+        self._levels_condition = threading.Condition()
 
     # -- reading ------------------------------------------------------------
 
@@ -96,6 +102,31 @@ class Stage:
         """
         with self._condition:
             self._progress = {"position": float(position), "duration": float(duration)}
+
+    # -- audio levels -------------------------------------------------------
+
+    def set_levels(self, bands: list) -> int:
+        """Record the newest spectrum from the operator's music player."""
+        cleaned = [max(0, min(100, int(value))) for value in bands][:64]
+        with self._levels_condition:
+            self._levels = cleaned
+            self._levels_seq += 1
+            self._levels_condition.notify_all()
+            return self._levels_seq
+
+    def levels(self) -> dict:
+        with self._levels_condition:
+            return {"bands": list(self._levels), "seq": self._levels_seq}
+
+    def wait_levels(self, since: int, timeout: float = 5.0) -> dict | None:
+        """Block until a newer sample arrives. ``None`` on timeout."""
+        with self._levels_condition:
+            if self._levels_seq != since:
+                return {"bands": list(self._levels), "seq": self._levels_seq}
+            self._levels_condition.wait(timeout)
+            if self._levels_seq == since:
+                return None
+            return {"bands": list(self._levels), "seq": self._levels_seq}
 
     def reveal_score(self) -> dict:
         """End the song where it is and put the score up."""

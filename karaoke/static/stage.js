@@ -192,6 +192,60 @@ video.addEventListener("loadedmetadata", reportProgress);
 video.addEventListener("pause", reportProgress);
 video.addEventListener("ended", reportProgress);
 
+/* ---------- the soundwave ----------
+
+   The music plays on the operator's laptop, so these levels are measured there
+   and pushed here. They arrive about twelve times a second; the bars are eased
+   toward each new sample every frame so the movement reads as continuous
+   rather than as twelve steps, and they sink back to rest when the music stops
+   or the feed goes quiet. */
+
+const WAVE_BARS = 16;
+const wave = { bars: [], target: [], shown: [], lastAt: 0 };
+
+function buildWave() {
+  const host = $("#wave");
+  for (let i = 0; i < WAVE_BARS; i += 1) {
+    const bar = document.createElement("span");
+    host.appendChild(bar);
+    wave.bars.push(bar);
+    wave.target.push(0);
+    wave.shown.push(0);
+  }
+  requestAnimationFrame(drawWave);
+}
+
+function drawWave(now) {
+  // No sample for a moment means silence, not a frozen picture.
+  const stale = now - wave.lastAt > 1200;
+  for (let i = 0; i < WAVE_BARS; i += 1) {
+    const target = stale ? 0 : wave.target[i];
+    // Rise quickly to catch a beat, fall more slowly, the way a meter behaves.
+    const ease = target > wave.shown[i] ? 0.35 : 0.12;
+    wave.shown[i] += (target - wave.shown[i]) * ease;
+    wave.bars[i].style.height = `${6 + wave.shown[i] * 0.74}px`;
+  }
+  requestAnimationFrame(drawWave);
+}
+
+function subscribeLevels() {
+  const events = new EventSource("/api/stage/levels/events");
+  events.onmessage = (event) => {
+    let bands;
+    try {
+      bands = JSON.parse(event.data).bands;
+    } catch (error) {
+      return;
+    }
+    if (!Array.isArray(bands) || !bands.length) return;
+    for (let i = 0; i < WAVE_BARS; i += 1) {
+      // Tolerate a different band count rather than assuming both sides match.
+      wave.target[i] = bands[Math.floor((i / WAVE_BARS) * bands.length)] || 0;
+    }
+    wave.lastAt = performance.now();
+  };
+}
+
 /* ---------- staying in sync ---------- */
 
 function subscribe() {
@@ -223,4 +277,6 @@ function subscribe() {
 }
 
 $("#waiting-hint").textContent = "Click anywhere once to enable sound, then leave this screen alone.";
+buildWave();
+subscribeLevels();
 subscribe();

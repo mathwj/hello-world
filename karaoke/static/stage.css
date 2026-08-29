@@ -73,3 +73,23 @@
      its transparency — so a white logo still reads against the cyan. */
   filter: brightness(0);
 }
+
+/* ---------- soundwave ---------- */
+
+.wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 96px;
+  margin-top: 26px;
+}
+
+/* Black, like the logo: the cyan card is the only colour on this screen. */
+.wave span {
+  width: 9px;
+  height: 6px;
+  border-radius: 5px;
+  background: #141414;
+  opacity: 0.85;
+}

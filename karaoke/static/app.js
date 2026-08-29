@@ -315,7 +315,10 @@ const MUFFLE_MS = 700;
 const MUFFLED = { frequency: 420, gain: 0.72 };
 const OPEN = { frequency: 22000, gain: 1 };
 
-const muffleScript = ({ frequency, gain }) => `(() => {
+/* Builds the audio graph inside the embedded browser, once per video element.
+   Both the muffle and the soundwave hang off it, so it lives in one place —
+   the wave has to work whether or not the operator ever taps Muffle. */
+const ENSURE_CHAIN = `
   const store = (window.__karaokebox = window.__karaokebox || {});
   const Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return "unsupported";
@@ -325,25 +328,36 @@ const muffleScript = ({ frequency, gain }) => `(() => {
   // Routing into a context that will not start would silence the music.
   if (ctx.state !== "running") return "blocked";
 
+  const build = (video) => {
+    if (video.__kbChain) return video.__kbChain;
+    let source;
+    try {
+      source = ctx.createMediaElementSource(video);
+    } catch (error) {
+      return null;                       // a second attempt on one element throws
+    }
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = ${OPEN.frequency};
+    filter.Q.value = 0.7;
+    const level = ctx.createGain();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.6;
+    source.connect(filter);
+    filter.connect(level);
+    level.connect(analyser);
+    analyser.connect(ctx.destination);
+    video.__kbChain = { filter, level, analyser };
+    return video.__kbChain;
+  };
+`;
+
+const muffleScript = ({ frequency, gain }) => `(() => {
+  ${ENSURE_CHAIN}
   let touched = 0;
   for (const video of Array.from(document.querySelectorAll("video"))) {
-    if (!video.__kbChain) {
-      let source;
-      try {
-        source = ctx.createMediaElementSource(video);
-      } catch (error) {
-        continue;
-      }
-      const filter = ctx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.value = ${OPEN.frequency};
-      filter.Q.value = 0.7;
-      const level = ctx.createGain();
-      source.connect(filter);
-      filter.connect(level);
-      level.connect(ctx.destination);
-      video.__kbChain = { filter, level };
-    }
+    if (!build(video)) continue;
     const { filter, level } = video.__kbChain;
     const now = ctx.currentTime;
     const seconds = ${MUFFLE_MS} / 1000;
@@ -357,6 +371,70 @@ const muffleScript = ({ frequency, gain }) => `(() => {
   }
   return touched ? "ok" : "no-audio";
 })()`;
+
+/* ---------- the waiting screen's soundwave ----------
+
+   The music plays here on the laptop and the stage is a separate window, so
+   the levels have to be measured where the sound is and carried across. This
+   reads the analyser inside the embedded browser and posts a small summary;
+   the stage receives it pushed, and smooths between samples. Twelve a second
+   is enough to look alive without adding traffic to a server that has already
+   shown it can delay a crossfade when it gets busy. */
+const LEVEL_BANDS = 16;
+const LEVEL_HZ = 12;
+
+const LEVELS_SCRIPT = `(() => {
+  ${ENSURE_CHAIN}
+  const video = Array.from(document.querySelectorAll("video"))
+    .find((v) => !v.paused && !v.ended && v.readyState > 2);
+  if (!video || !build(video)) return null;
+
+  const analyser = video.__kbChain.analyser;
+  const spectrum = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(spectrum);
+
+  // Music lives in the lower bins; the top of the range is mostly silence, so
+  // spreading bands evenly across everything would leave half of them dead.
+  const usable = Math.floor(spectrum.length * 0.62);
+  const bands = [];
+  for (let i = 0; i < ${LEVEL_BANDS}; i += 1) {
+    const from = Math.floor((i / ${LEVEL_BANDS}) * usable);
+    const to = Math.max(from + 1, Math.floor(((i + 1) / ${LEVEL_BANDS}) * usable));
+    let sum = 0;
+    for (let bin = from; bin < to; bin += 1) sum += spectrum[bin];
+    bands.push(Math.round((sum / (to - from)) * (100 / 255)));
+  }
+  return bands;
+})()`;
+
+function startLevelFeed() {
+  let sampling = false;
+  let sentSilence = true;
+
+  async function sample() {
+    const view = $("#yt-view");
+    if (sampling || !view || typeof view.executeJavaScript !== "function") return;
+    sampling = true;
+    try {
+      const bands = await view.executeJavaScript(LEVELS_SCRIPT);
+      if (Array.isArray(bands)) {
+        sentSilence = false;
+        await postJson("/api/stage/levels", { bands });
+      } else if (!sentSilence) {
+        // Nothing playing: one flat frame so the bars settle instead of
+        // freezing mid-beat, then stop until there is sound again.
+        sentSilence = true;
+        await postJson("/api/stage/levels", { bands: new Array(LEVEL_BANDS).fill(0) });
+      }
+    } catch (error) {
+      /* the next tick will try again */
+    } finally {
+      sampling = false;
+    }
+  }
+
+  setInterval(sample, Math.round(1000 / LEVEL_HZ));
+}
 
 function updateMuffleButton() {
   const button = $("#muffle");
@@ -974,6 +1052,7 @@ function trackTopbarHeight() {
 trackTopbarHeight();
 if (IS_DESKTOP) {
   setUpYouTubeView();
+  startLevelFeed();
 } else {
   // Nothing to filter: in a browser the music sits in a cross-origin frame.
   $("#muffle").hidden = true;
