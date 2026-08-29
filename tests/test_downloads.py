@@ -303,3 +303,51 @@ def test_downloads_and_search_both_get_the_js_runtime(tmp_path, monkeypatch):
 def test_explain_error_points_at_the_js_runtime_when_no_format_matched():
     message = downloads.explain_error(RuntimeError("ERROR: Requested format is not available"))
     assert "JavaScript" in message
+
+
+def _youtube_shaped_formats():
+    """A video YouTube serves only as separate streams, as seen in the wild."""
+    formats = [{"format_id": "sb0", "ext": "mhtml", "vcodec": "none", "acodec": "none",
+                "url": "u", "protocol": "mhtml"}]
+    for fid, height in (("160", 144), ("134", 360), ("137", 1080)):
+        formats.append({"format_id": fid, "ext": "mp4", "vcodec": "avc1", "acodec": "none",
+                        "height": height, "tbr": height * 2, "url": "u", "protocol": "https"})
+    formats.append({"format_id": "251", "ext": "webm", "vcodec": "none", "acodec": "opus",
+                    "abr": 160, "url": "u", "protocol": "https"})
+    return formats
+
+
+def _select(format_string, extra=None):
+    from yt_dlp import YoutubeDL
+
+    with YoutubeDL({"quiet": True, "simulate": True, **(extra or {})}) as ydl:
+        try:
+            chosen = list(ydl.build_format_selector(format_string)(
+                {"formats": _youtube_shaped_formats(), "incomplete_formats": False}))
+        except Exception:
+            return None
+        return chosen[0] if chosen else None
+
+
+def test_ffmpeg_chain_merges_separate_streams():
+    chosen = _select(downloads.FORMAT_WITH_FFMPEG, {"merge_output_format": "mp4"})
+    assert chosen is not None
+    assert chosen["format_id"] == "137+251"
+
+
+def test_ffmpeg_free_chain_never_yields_a_stream_without_video():
+    # The whole point of the app is a video to sing along to; an audio-only
+    # match would be saved as a silent, pictureless song.
+    chosen = _select(downloads.FORMAT_NO_FFMPEG)
+    assert chosen is None, f"selected {chosen and chosen['format_id']} with no video"
+
+
+def test_ffmpeg_free_chain_still_takes_a_genuinely_combined_stream():
+    from yt_dlp import YoutubeDL
+
+    combined = [{"format_id": "18", "ext": "mp4", "vcodec": "avc1", "acodec": "mp4a.40.2",
+                 "height": 360, "tbr": 700, "url": "u", "protocol": "https"}]
+    with YoutubeDL({"quiet": True, "simulate": True}) as ydl:
+        chosen = list(ydl.build_format_selector(downloads.FORMAT_NO_FFMPEG)(
+            {"formats": combined, "incomplete_formats": False}))
+    assert chosen[0]["format_id"] == "18"

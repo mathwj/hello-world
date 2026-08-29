@@ -34,7 +34,13 @@ FORMAT_WITH_FFMPEG = (
     "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
     "/bestvideo*+bestaudio/best/best*"
 )
-FORMAT_NO_FFMPEG = "best[ext=mp4]/best/best*"
+#: Without ffmpeg nothing can be merged, so demand a stream that already holds
+#: both. `best*` must NOT appear here: on a video served only as separate
+#: streams it happily matches an audio-only format, and the app would save a
+#: silent, pictureless "video". Better to fail and let NO_FORMAT_HINT explain.
+FORMAT_NO_FFMPEG = (
+    "best[ext=mp4][vcodec!=none][acodec!=none]/best[vcodec!=none][acodec!=none]"
+)
 
 #: ``%(title).120B`` truncates on byte boundaries, so long titles stay valid.
 OUTPUT_TEMPLATE = "%(title).120B [%(id)s].%(ext)s"
