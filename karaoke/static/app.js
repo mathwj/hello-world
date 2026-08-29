@@ -6,6 +6,7 @@ const state = {
   results: [],       // last search results, re-rendered when the library changes
   library: [],
   jobs: [],
+  scoreFrame: null,   // in-flight requestAnimationFrame for the score roll
   queued: new Set(),   // video ids queued this session, to disable their buttons
   pollTimer: null,
 };
@@ -289,9 +290,111 @@ $("#library-results").addEventListener("click", async (event) => {
   }
 });
 
+/* ---------- score screen ---------- */
+
+/* Bands are read top-down: the first whose minimum the score clears wins. */
+const SCORE_BANDS = [
+  { min: 95, band: "legend", rank: "Legendary. Someone call a record label." },
+  { min: 85, band: "great",  rank: "Superstar!" },
+  { min: 70, band: "great",  rank: "Crowd pleaser." },
+  { min: 50, band: "ok",     rank: "Not bad at all." },
+  { min: 30, band: "rough",  rank: "The crowd is being polite." },
+  { min: 0,  band: "rough",  rank: "Brave. Very brave." },
+];
+
+function bandFor(score) {
+  return SCORE_BANDS.find((entry) => score >= entry.min);
+}
+
+function randomScore() {
+  return Math.floor(Math.random() * 101); // 0–100 inclusive
+}
+
+const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* Spins the digits, slowing down and closing in on the final score. */
+function rollScore(finalScore, onSettled) {
+  const el = $("#score-number");
+  const duration = 2800;
+  const start = performance.now();
+  let lastTick = 0;
+  let gap = 45;
+
+  function frame(now) {
+    const progress = Math.min(1, (now - start) / duration);
+    if (progress >= 1) {
+      el.textContent = finalScore;
+      onSettled();
+      return;
+    }
+    if (now - lastTick >= gap) {
+      lastTick = now;
+      // Ticks get slower and the guesses close in, so it visibly settles.
+      gap = 45 + 250 * Math.pow(progress, 3);
+      let guess;
+      if (progress < 0.7) {
+        // Spin the whole range first. Converging from the start would clamp
+        // against 0 or 100 and show the same digits over and over.
+        guess = Math.floor(Math.random() * 101);
+      } else {
+        const closing = (progress - 0.7) / 0.3;
+        const spread = Math.max(1, Math.round(45 * (1 - closing)));
+        guess = finalScore + Math.round((Math.random() * 2 - 1) * spread);
+      }
+      el.textContent = Math.max(0, Math.min(100, guess));
+    }
+    state.scoreFrame = requestAnimationFrame(frame);
+  }
+  state.scoreFrame = requestAnimationFrame(frame);
+}
+
+function showScore() {
+  const score = randomScore();
+  const { band, rank } = bandFor(score);
+  const panel = $("#score");
+
+  panel.dataset.band = band;
+  panel.classList.remove("is-final");
+  $("#score-rank").textContent = "";
+  $("#score-number").textContent = "0";
+  panel.hidden = false;
+
+  const settle = () => {
+    $("#score-rank").textContent = rank;
+    panel.classList.add("is-final");
+  };
+
+  if (prefersReducedMotion()) {
+    $("#score-number").textContent = score;
+    settle();
+  } else {
+    rollScore(score, settle);
+  }
+}
+
+function hideScore() {
+  if (state.scoreFrame) cancelAnimationFrame(state.scoreFrame);
+  state.scoreFrame = null;
+  $("#score").hidden = true;
+  $("#score").classList.remove("is-final");
+}
+
+$("#player-video").addEventListener("ended", showScore);
+
+$("#score-again").addEventListener("click", () => {
+  hideScore();
+  const video = $("#player-video");
+  video.currentTime = 0;
+  video.play().catch(() => {});
+});
+
+$("#score-done").addEventListener("click", () => closePlayer());
+
 /* ---------- player ---------- */
 
 function openPlayer(name, title) {
+  hideScore();
   const video = $("#player-video");
   $("#player-title").textContent = title;
   video.src = `/media/${encodeURIComponent(name)}`;
@@ -300,6 +403,7 @@ function openPlayer(name, title) {
 }
 
 function closePlayer() {
+  hideScore();
   const video = $("#player-video");
   video.pause();
   video.removeAttribute("src");

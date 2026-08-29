@@ -59,7 +59,19 @@
       <h3 id="player-title"></h3>
       <button class="btn btn-ghost" id="player-close" aria-label="Close player">Close</button>
     </div>
-    <video id="player-video" controls playsinline></video>
+    <div class="player-stage">
+      <video id="player-video" controls playsinline></video>
+
+      <div class="score" id="score" hidden>
+        <p class="score-label">Your score</p>
+        <div class="score-number" id="score-number">0</div>
+        <p class="score-rank" id="score-rank"></p>
+        <div class="score-actions">
+          <button class="btn btn-primary" id="score-again">Sing it again</button>
+          <button class="btn btn-ghost" id="score-done">Done</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

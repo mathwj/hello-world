@@ -269,3 +269,83 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 }
 
 .toast.is-error { border-color: var(--err); }
+
+/* ---------- score screen ---------- */
+
+/* The score sits over the video only, so the title and Close stay usable. */
+.player-stage { position: relative; }
+
+.score {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 38%, #35174a, #0b0716 72%);
+  border-radius: var(--radius);
+  animation: score-in 0.35s ease both;
+}
+
+@keyframes score-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.score-label {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.score-number {
+  font-size: clamp(90px, 20vw, 190px);
+  font-weight: 800;
+  line-height: 1;
+  /* Tabular figures stop the digits jittering as the number rolls. */
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  text-shadow: 0 0 46px var(--accent-soft);
+}
+
+.score.is-final .score-number { animation: score-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+
+@keyframes score-pop {
+  from { transform: scale(1); }
+  45%  { transform: scale(1.16); }
+  to   { transform: scale(1); }
+}
+
+.score-rank {
+  margin: 6px 0 0;
+  min-height: 26px;
+  font-size: 20px;
+  font-weight: 600;
+  opacity: 0;
+}
+
+.score.is-final .score-rank { animation: score-fade 0.45s 0.1s ease both; }
+
+@keyframes score-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.score-actions { display: flex; gap: 10px; margin-top: 24px; opacity: 0; }
+.score.is-final .score-actions { animation: score-fade 0.45s 0.25s ease both; }
+
+/* Bands give the number a colour that matches how well it went. */
+.score[data-band="legend"]  .score-number { color: #ffd166; text-shadow: 0 0 50px rgba(255, 209, 102, 0.3); }
+.score[data-band="great"]   .score-number { color: #4ade80; text-shadow: 0 0 50px rgba(74, 222, 128, 0.28); }
+.score[data-band="ok"]      .score-number { color: #60a5fa; text-shadow: 0 0 50px rgba(96, 165, 250, 0.28); }
+.score[data-band="rough"]   .score-number { color: #f87171; text-shadow: 0 0 50px rgba(248, 113, 113, 0.26); }
+
+@media (prefers-reduced-motion: reduce) {
+  .score, .score.is-final .score-number,
+  .score.is-final .score-rank, .score.is-final .score-actions { animation: none; }
+  .score-rank, .score-actions { opacity: 1; }
+}
