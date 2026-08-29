@@ -111,28 +111,25 @@ def create_app(
             return jsonify({"error": "Bad progress."}), 400
         return jsonify({"ok": True})
 
-    @app.post("/api/stage/levels")
-    def stage_levels():
-        """The operator's music player reporting its spectrum."""
+    @app.post("/api/stage/pulse")
+    def stage_pulse():
+        """The operator's music player reporting a bass kick."""
         payload = request.get_json(silent=True) or {}
-        bands = payload.get("bands")
-        if not isinstance(bands, list):
-            return jsonify({"error": "Expected a list of bands."}), 400
         try:
-            return jsonify({"seq": show.set_levels(bands)})
+            return jsonify({"seq": show.set_pulse(payload.get("intensity", 0))})
         except (TypeError, ValueError):
-            return jsonify({"error": "Bad levels."}), 400
+            return jsonify({"error": "Bad pulse."}), 400
 
-    @app.get("/api/stage/levels/events")
-    def stage_level_events():
-        """Pushed to the waiting screen, so the bars move without it polling."""
+    @app.get("/api/stage/pulse/events")
+    def stage_pulse_events():
+        """Pushed to the waiting screen, so it flashes without polling for it."""
 
         def stream():
-            payload = show.levels()
+            payload = show.pulse()
             yield f"data: {json.dumps(payload)}\n\n"
             seq = payload["seq"]
             while True:
-                payload = show.wait_levels(seq)
+                payload = show.wait_pulse(seq)
                 if payload is None:
                     yield ": keepalive\n\n"
                 else:

@@ -15,8 +15,20 @@
   justify-content: center;
   gap: 10px;
   text-align: center;
-  background: linear-gradient(150deg, #00ffff 0%, #00eded 100%);
+  background: #141414;
 }
+
+/* The brand colour arrives on the kick and drains away between beats. */
+.waiting::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(150deg, #00ffff 0%, #00eded 100%);
+  opacity: var(--kick, 0);
+}
+
+/* Everything sits above that layer rather than being washed out by it. */
+.waiting > * { position: relative; z-index: 1; }
 
 .waiting-mark { font-size: clamp(60px, 11vw, 130px); animation: sway 4s ease-in-out infinite; }
 
@@ -72,24 +84,4 @@
   /* Renders the artwork solid black whatever colour it was drawn in, keeping
      its transparency — so a white logo still reads against the cyan. */
   filter: brightness(0);
-}
-
-/* ---------- soundwave ---------- */
-
-.wave {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  height: 96px;
-  margin-top: 26px;
-}
-
-/* Black, like the logo: the cyan card is the only colour on this screen. */
-.wave span {
-  width: 9px;
-  height: 6px;
-  border-radius: 5px;
-  background: #141414;
-  opacity: 0.85;
 }

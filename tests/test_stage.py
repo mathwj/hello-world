@@ -108,34 +108,34 @@ def test_a_screen_connecting_wakes_the_operator():
     assert woke[0]["viewers"] == 1
 
 
-def test_levels_travel_on_their_own_channel():
-    """They arrive many times a second; the main state must not churn for them."""
+def test_the_beat_travels_on_its_own_channel():
+    """Kicks land several times a second; the main state must not churn for them."""
     stage = Stage()
     version = stage.snapshot()["version"]
-    stage.set_levels([10, 50, 90])
+    stage.set_pulse(80)
     assert stage.snapshot()["version"] == version
-    assert stage.levels() == {"bands": [10, 50, 90], "seq": 1}
+    assert stage.pulse() == {"intensity": 80, "seq": 1}
 
 
-def test_levels_are_clamped_and_capped():
+def test_pulse_intensity_is_clamped():
     stage = Stage()
-    stage.set_levels([-20, 5.7, 300] + [1] * 100)
-    bands = stage.levels()["bands"]
-    assert bands[:3] == [0, 5, 100]
-    assert len(bands) == 64, "a runaway payload should not be stored whole"
+    stage.set_pulse(300)
+    assert stage.pulse()["intensity"] == 100
+    stage.set_pulse(-5)
+    assert stage.pulse()["intensity"] == 0
 
 
-def test_waiting_for_a_newer_sample():
+def test_waiting_for_the_next_kick():
     import threading, time
 
     stage = Stage()
-    seq = stage.levels()["seq"]
-    assert stage.wait_levels(seq, timeout=0.15) is None       # nothing new yet
+    seq = stage.pulse()["seq"]
+    assert stage.wait_pulse(seq, timeout=0.15) is None      # no beat yet
 
     woke = []
-    thread = threading.Thread(target=lambda: woke.append(stage.wait_levels(seq, timeout=3)))
+    thread = threading.Thread(target=lambda: woke.append(stage.wait_pulse(seq, timeout=3)))
     thread.start()
     time.sleep(0.05)
-    stage.set_levels([42])
+    stage.set_pulse(64)
     thread.join(timeout=3)
-    assert woke and woke[0]["bands"] == [42]
+    assert woke and woke[0]["intensity"] == 64

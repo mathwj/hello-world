@@ -192,57 +192,63 @@ video.addEventListener("loadedmetadata", reportProgress);
 video.addEventListener("pause", reportProgress);
 video.addEventListener("ended", reportProgress);
 
-/* ---------- the soundwave ----------
+/* ---------- the beat ----------
 
-   The music plays on the operator's laptop, so these levels are measured there
-   and pushed here. They arrive about twelve times a second; the bars are eased
-   toward each new sample every frame so the movement reads as continuous
-   rather than as twelve steps, and they sink back to rest when the music stops
-   or the feed goes quiet. */
+   The waiting screen rests at #141414 and flashes the brand gradient on each
+   bass kick, which is found on the operator's laptop where the music actually
+   plays and pushed here. The type and the logo travel with it: at rest they
+   are light against the dark, and on the kick they turn to ink against the
+   cyan — a white logo would disappear the instant the screen lit up. */
 
-const WAVE_BARS = 16;
-const wave = { bars: [], target: [], shown: [], lastAt: 0 };
+const beat = { level: 0, seen: null };
 
-function buildWave() {
-  const host = $("#wave");
-  for (let i = 0; i < WAVE_BARS; i += 1) {
-    const bar = document.createElement("span");
-    host.appendChild(bar);
-    wave.bars.push(bar);
-    wave.target.push(0);
-    wave.shown.push(0);
-  }
-  requestAnimationFrame(drawWave);
+const INK = [20, 20, 20];
+const PAPER = [255, 255, 255];
+const mix = (from, to, t) => from.map((v, i) => Math.round(v + (to[i] - v) * t));
+const rgba = (channels, alpha) => `rgba(${channels.join(",")},${alpha})`;
+
+function paintBeat() {
+  // Decay per frame. Gentle enough that at dance tempo the screen breathes
+  // between kicks rather than strobing between full cyan and full black —
+  // this is a wall-sized, very high contrast surface a whole room is facing.
+  // Lower the multiplier for a snappier flash, raise it for a slower swell.
+  beat.level = beat.level < 0.01 ? 0 : beat.level * 0.93;
+  const kick = beat.level;
+
+  waiting.style.setProperty("--kick", kick.toFixed(3));
+
+  const ink = mix(PAPER, INK, kick);
+  const title = $(".waiting-title");
+  if (title) title.style.color = rgba(ink, 1);
+  $("#waiting-sub").style.color = rgba(ink, 0.72);
+  $("#waiting-hint").style.color = rgba(ink, 0.62);
+
+  const logo = $(".waiting-logo");
+  // brightness(0) blackens the artwork; the invert then lifts it back to white
+  // as the cyan drains, so it stays legible at both ends.
+  if (logo) logo.style.filter = `brightness(0) invert(${(1 - kick).toFixed(3)})`;
+
+  requestAnimationFrame(paintBeat);
 }
 
-function drawWave(now) {
-  // No sample for a moment means silence, not a frozen picture.
-  const stale = now - wave.lastAt > 1200;
-  for (let i = 0; i < WAVE_BARS; i += 1) {
-    const target = stale ? 0 : wave.target[i];
-    // Rise quickly to catch a beat, fall more slowly, the way a meter behaves.
-    const ease = target > wave.shown[i] ? 0.35 : 0.12;
-    wave.shown[i] += (target - wave.shown[i]) * ease;
-    wave.bars[i].style.height = `${6 + wave.shown[i] * 0.74}px`;
-  }
-  requestAnimationFrame(drawWave);
-}
-
-function subscribeLevels() {
-  const events = new EventSource("/api/stage/levels/events");
+function subscribeBeat() {
+  const events = new EventSource("/api/stage/pulse/events");
   events.onmessage = (event) => {
-    let bands;
+    let payload;
     try {
-      bands = JSON.parse(event.data).bands;
+      payload = JSON.parse(event.data);
     } catch (error) {
       return;
     }
-    if (!Array.isArray(bands) || !bands.length) return;
-    for (let i = 0; i < WAVE_BARS; i += 1) {
-      // Tolerate a different band count rather than assuming both sides match.
-      wave.target[i] = bands[Math.floor((i / WAVE_BARS) * bands.length)] || 0;
+    // The first frame is whatever was last sent before we connected: history,
+    // not a beat, so adopt it rather than flashing on a kick already past.
+    if (beat.seen === null) {
+      beat.seen = payload.seq;
+      return;
     }
-    wave.lastAt = performance.now();
+    if (payload.seq === beat.seen) return;
+    beat.seen = payload.seq;
+    beat.level = Math.max(beat.level, Math.min(1, (payload.intensity || 0) / 100));
   };
 }
 
@@ -277,6 +283,6 @@ function subscribe() {
 }
 
 $("#waiting-hint").textContent = "Click anywhere once to enable sound, then leave this screen alone.";
-buildWave();
-subscribeLevels();
+subscribeBeat();
+requestAnimationFrame(paintBeat);
 subscribe();

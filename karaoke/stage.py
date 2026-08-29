@@ -63,12 +63,12 @@ class Stage:
         self._condition = threading.Condition()
         self._viewers = 0
         self._progress = {"position": 0.0, "duration": 0.0}
-        # Audio levels travel on their own channel: they arrive many times a
+        # Bass kicks travel on their own channel: they land several times a
         # second, and pushing them through the main state would wake every
         # subscriber for something only the waiting screen cares about.
-        self._levels = []
-        self._levels_seq = 0
-        self._levels_condition = threading.Condition()
+        self._pulse = 0
+        self._pulse_seq = 0
+        self._pulse_condition = threading.Condition()
 
     # -- reading ------------------------------------------------------------
 
@@ -103,30 +103,30 @@ class Stage:
         with self._condition:
             self._progress = {"position": float(position), "duration": float(duration)}
 
-    # -- audio levels -------------------------------------------------------
+    # -- the beat -----------------------------------------------------------
 
-    def set_levels(self, bands: list) -> int:
-        """Record the newest spectrum from the operator's music player."""
-        cleaned = [max(0, min(100, int(value))) for value in bands][:64]
-        with self._levels_condition:
-            self._levels = cleaned
-            self._levels_seq += 1
-            self._levels_condition.notify_all()
-            return self._levels_seq
+    def set_pulse(self, intensity) -> int:
+        """Record a bass kick heard by the operator's music player."""
+        value = max(0, min(100, int(intensity)))
+        with self._pulse_condition:
+            self._pulse = value
+            self._pulse_seq += 1
+            self._pulse_condition.notify_all()
+            return self._pulse_seq
 
-    def levels(self) -> dict:
-        with self._levels_condition:
-            return {"bands": list(self._levels), "seq": self._levels_seq}
+    def pulse(self) -> dict:
+        with self._pulse_condition:
+            return {"intensity": self._pulse, "seq": self._pulse_seq}
 
-    def wait_levels(self, since: int, timeout: float = 5.0) -> dict | None:
-        """Block until a newer sample arrives. ``None`` on timeout."""
-        with self._levels_condition:
-            if self._levels_seq != since:
-                return {"bands": list(self._levels), "seq": self._levels_seq}
-            self._levels_condition.wait(timeout)
-            if self._levels_seq == since:
+    def wait_pulse(self, since: int, timeout: float = 5.0) -> dict | None:
+        """Block until the next kick. ``None`` on timeout."""
+        with self._pulse_condition:
+            if self._pulse_seq != since:
+                return {"intensity": self._pulse, "seq": self._pulse_seq}
+            self._pulse_condition.wait(timeout)
+            if self._pulse_seq == since:
                 return None
-            return {"bands": list(self._levels), "seq": self._levels_seq}
+            return {"intensity": self._pulse, "seq": self._pulse_seq}
 
     def reveal_score(self) -> dict:
         """End the song where it is and put the score up."""

@@ -372,59 +372,75 @@ const muffleScript = ({ frequency, gain }) => `(() => {
   return touched ? "ok" : "no-audio";
 })()`;
 
-/* ---------- the waiting screen's soundwave ----------
+/* ---------- the beat behind the waiting screen ----------
 
-   The music plays here on the laptop and the stage is a separate window, so
-   the levels have to be measured where the sound is and carried across. This
-   reads the analyser inside the embedded browser and posts a small summary;
-   the stage receives it pushed, and smooths between samples. Twelve a second
-   is enough to look alive without adding traffic to a server that has already
-   shown it can delay a crossfade when it gets busy. */
-const LEVEL_BANDS = 16;
-const LEVEL_HZ = 12;
+   The waiting screen flashes on the bass kick, and the music plays here on the
+   laptop, so the beat has to be found here and carried across.
 
-const LEVELS_SCRIPT = `(() => {
+   Detection runs inside the embedded browser at full frame rate: a kick is a
+   short jump in low-end energy above its own recent average, and spotting that
+   needs finer timing than anything sampled a dozen times a second could give.
+   Only the hits travel — a few a second — rather than a continuous stream. */
+const BEAT_POLL_MS = 80;
+
+const BEAT_SCRIPT = `(() => {
   ${ENSURE_CHAIN}
-  const video = Array.from(document.querySelectorAll("video"))
+  const playing = () => Array.from(document.querySelectorAll("video"))
     .find((v) => !v.paused && !v.ended && v.readyState > 2);
+
+  const video = playing();
   if (!video || !build(video)) return null;
 
-  const analyser = video.__kbChain.analyser;
-  const spectrum = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(spectrum);
+  if (!store.beat) {
+    store.beat = { history: [], last: 0, pending: 0 };
+    const tick = () => {
+      const current = playing();
+      // Look the chain up every frame: YouTube swaps the video element as you
+      // move around, and a captured analyser would go deaf after a navigation.
+      if (current && current.__kbChain) {
+        const analyser = current.__kbChain.analyser;
+        const spectrum = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(spectrum);
 
-  // Music lives in the lower bins; the top of the range is mostly silence, so
-  // spreading bands evenly across everything would leave half of them dead.
-  const usable = Math.floor(spectrum.length * 0.62);
-  const bands = [];
-  for (let i = 0; i < ${LEVEL_BANDS}; i += 1) {
-    const from = Math.floor((i / ${LEVEL_BANDS}) * usable);
-    const to = Math.max(from + 1, Math.floor(((i + 1) / ${LEVEL_BANDS}) * usable));
-    let sum = 0;
-    for (let bin = from; bin < to; bin += 1) sum += spectrum[bin];
-    bands.push(Math.round((sum / (to - from)) * (100 / 255)));
+        // The first few bins are the kick's territory, roughly under 400Hz.
+        let sum = 0;
+        for (let bin = 1; bin <= 4; bin += 1) sum += spectrum[bin];
+        const bass = sum / 4;
+
+        const beat = store.beat;
+        beat.history.push(bass);
+        if (beat.history.length > 45) beat.history.shift();   // about 0.75s
+        const average = beat.history.reduce((a, b) => a + b, 0) / beat.history.length;
+
+        const now = performance.now();
+        // A jump above the recent average, loud enough to be a kick and not a
+        // hi-hat, with a gate so one kick is not counted several times.
+        if (bass > average * 1.3 && bass > 42 && now - beat.last > 200) {
+          beat.last = now;
+          beat.pending = Math.max(beat.pending, Math.round((bass / 255) * 100));
+        }
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
-  return bands;
+
+  const hit = store.beat.pending;
+  store.beat.pending = 0;
+  return hit;
 })()`;
 
-function startLevelFeed() {
+function startBeatFeed() {
   let sampling = false;
-  let sentSilence = true;
 
-  async function sample() {
+  async function drain() {
     const view = $("#yt-view");
     if (sampling || !view || typeof view.executeJavaScript !== "function") return;
     sampling = true;
     try {
-      const bands = await view.executeJavaScript(LEVELS_SCRIPT);
-      if (Array.isArray(bands)) {
-        sentSilence = false;
-        await postJson("/api/stage/levels", { bands });
-      } else if (!sentSilence) {
-        // Nothing playing: one flat frame so the bars settle instead of
-        // freezing mid-beat, then stop until there is sound again.
-        sentSilence = true;
-        await postJson("/api/stage/levels", { bands: new Array(LEVEL_BANDS).fill(0) });
+      const hit = await view.executeJavaScript(BEAT_SCRIPT);
+      if (typeof hit === "number" && hit > 0) {
+        await postJson("/api/stage/pulse", { intensity: hit });
       }
     } catch (error) {
       /* the next tick will try again */
@@ -433,7 +449,7 @@ function startLevelFeed() {
     }
   }
 
-  setInterval(sample, Math.round(1000 / LEVEL_HZ));
+  setInterval(drain, BEAT_POLL_MS);
 }
 
 function updateMuffleButton() {
@@ -1052,7 +1068,7 @@ function trackTopbarHeight() {
 trackTopbarHeight();
 if (IS_DESKTOP) {
   setUpYouTubeView();
-  startLevelFeed();
+  startBeatFeed();
 } else {
   // Nothing to filter: in a browser the music sits in a cross-origin frame.
   $("#muffle").hidden = true;
