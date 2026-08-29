@@ -657,9 +657,6 @@ $("#clear-downloads").addEventListener("click", async () => {
 /* The library is a set list, not a shop window: rows scan faster than tiles
    when you are looking for the one song somebody just asked for. */
 function libraryRow(song) {
-  const thumb = song.thumbnail
-    ? `<img src="/media/${encodeURIComponent(song.thumbnail)}" alt="" loading="lazy">`
-    : "";
   const onStage = state.stage
     && state.stage.mode === "karaoke"
     && state.stage.karaoke
@@ -667,7 +664,6 @@ function libraryRow(song) {
 
   return `
     <article class="song${onStage ? " is-live" : ""}">
-      <div class="song-thumb">${thumb}</div>
       <div class="song-main">
         <h3 class="song-title">${escapeHtml(song.title)}</h3>
         ${onStage ? '<span class="song-live">On stage</span>' : ""}
