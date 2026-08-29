@@ -206,7 +206,106 @@ video.addEventListener("ended", reportProgress);
    whole thing look like it is breathing in time. */
 
 const BLOB_COUNT = 7;
-const beat = { level: 0, seen: null };
+
+/* Two envelopes per hit: a punch that snaps and disappears, and a body that
+   follows through. One envelope alone either smears (too slow to read as a
+   beat) or flickers (too fast to look like slime); together they land like a
+   drum and settle like liquid. */
+const beat = {
+  body: 0,        // drives size
+  punch: 0,       // drives brightness
+  seen: null,
+  lastFire: 0,    // last swell, predicted or real
+  lastKick: 0,    // last kick actually heard
+  gaps: [],       // recent intervals between kicks
+  period: 0,      // the tempo, once it is consistent
+  locked: false,
+  nextAt: 0,      // when the next beat is due
+};
+
+const BODY_DECAY = 0.90;
+const PUNCH_DECAY = 0.78;
+
+function fire(strength) {
+  const now = performance.now();
+  // A predicted beat and the real kick behind it must not fire twice.
+  if (now - beat.lastFire < 110) return;
+  beat.lastFire = now;
+  beat.body = Math.max(beat.body, strength);
+  beat.punch = Math.max(beat.punch, strength);
+}
+
+/* Learns the tempo and runs the animation off a predicted grid.
+
+   Reacting to each kick as it arrives can only ever be late, and late by a
+   varying amount — the detector, the poll, the network and the frame all add
+   their own share. Once the beat is steady, following the predicted grid keeps
+   the picture on time regardless, and each real kick nudges the phase rather
+   than yanking it, so one late arrival does not make the whole thing lurch. */
+function onKick(intensity) {
+  const now = performance.now();
+  const strength = Math.max(0.35, Math.min(1, (intensity || 0) / 100));
+
+  if (beat.lastKick) {
+    const gap = now - beat.lastKick;
+    if (gap > 240 && gap < 1600) {           // roughly 37 to 250 bpm
+      beat.gaps.push(gap);
+      if (beat.gaps.length > 8) beat.gaps.shift();
+    } else if (gap >= 1600) {
+      beat.gaps.length = 0;                  // lost the thread; start again
+      beat.locked = false;
+    }
+  }
+  beat.lastKick = now;
+
+  if (beat.gaps.length >= 4) {
+    const sorted = [...beat.gaps].sort((a, b) => a - b);
+    const median = sorted[sorted.length >> 1];
+    // Only lock when the kicks genuinely agree; guessing a tempo that is not
+    // there would drift and look worse than simply reacting.
+    const agree = beat.gaps.filter((gap) => Math.abs(gap - median) < median * 0.16).length;
+    beat.locked = agree >= 4;
+    beat.period = median;
+  }
+
+  if (beat.locked) {
+    // Locked: the grid alone drives the picture and the kick only steers it.
+    // Letting both fire produced doubles — a kick landing just after its own
+    // predicted beat triggered a second swell 170ms behind the first.
+    if (!beat.nextAt) {
+      beat.nextAt = now + beat.period;
+    } else {
+      // Nudge the grid toward the kick; never reschedule it. Setting the next
+      // beat to now+period instead pushed a beat that was about to fire almost
+      // a full period into the future, so the grid stalled and fired perhaps
+      // once a second.
+      const previous = beat.nextAt - beat.period;
+      const toPrevious = now - previous;
+      const toNext = now - beat.nextAt;
+      const error = Math.abs(toPrevious) <= Math.abs(toNext) ? toPrevious : toNext;
+      beat.nextAt += Math.max(-60, Math.min(60, error)) * 0.15;
+    }
+  } else {
+    beat.nextAt = now + beat.period;
+    fire(strength);
+  }
+}
+
+function advanceBeat(now) {
+  // Silence for a moment means the music stopped: stop predicting a beat.
+  if (beat.lastKick && now - beat.lastKick > 2400) {
+    beat.locked = false;
+    beat.gaps.length = 0;
+  }
+  if (!beat.locked || !beat.period) return;
+
+  if (now >= beat.nextAt) {
+    fire(0.85);
+    beat.nextAt += beat.period;
+    // If we ever fall a long way behind, rejoin the grid rather than catching up.
+    if (now - beat.nextAt > beat.period) beat.nextAt = now + beat.period;
+  }
+}
 const slime = { canvas: null, ctx: null, blobs: [], width: 0, height: 0 };
 
 // Rendered well below screen resolution: it is blurred past recognition
@@ -246,9 +345,11 @@ function sizeSlime() {
 }
 
 function drawSlime(now) {
-  // A kick lands hard and drains away before the next one.
-  beat.level = beat.level < 0.01 ? 0 : beat.level * 0.93;
-  const kick = beat.level;
+  advanceBeat(now);
+  beat.body = beat.body < 0.01 ? 0 : beat.body * BODY_DECAY;
+  beat.punch = beat.punch < 0.01 ? 0 : beat.punch * PUNCH_DECAY;
+  const body = beat.body;
+  const punch = beat.punch;
 
   const { ctx, width, height } = slime;
   const seconds = now / 1000;
@@ -263,12 +364,12 @@ function drawSlime(now) {
   for (const blob of slime.blobs) {
     const x = width * (blob.homeX + blob.driftX * Math.sin(seconds * blob.speedX * 6.283 + blob.phaseX));
     const y = height * (blob.homeY + blob.driftY * Math.cos(seconds * blob.speedY * 6.283 + blob.phaseY));
-    const swell = 1 + 0.09 * Math.sin(seconds * 0.55 + blob.breath) + 0.4 * kick;
+    const swell = 1 + 0.09 * Math.sin(seconds * 0.55 + blob.breath) + 0.62 * body;
     const radius = reach * blob.radius * swell;
 
     const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    gradient.addColorStop(0, `rgba(0, 255, 255, ${(0.78 + 0.22 * kick).toFixed(3)})`);
-    gradient.addColorStop(0.45, `rgba(0, 236, 236, ${(0.34 + 0.26 * kick).toFixed(3)})`);
+    gradient.addColorStop(0, `rgba(0, 255, 255, ${(0.74 + 0.26 * punch).toFixed(3)})`);
+    gradient.addColorStop(0.45, `rgba(0, 236, 236, ${(0.28 + 0.4 * punch).toFixed(3)})`);
     gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
 
     ctx.fillStyle = gradient;
@@ -298,7 +399,7 @@ function subscribeBeat() {
     }
     if (payload.seq === beat.seen) return;
     beat.seen = payload.seq;
-    beat.level = Math.max(beat.level, Math.min(1, (payload.intensity || 0) / 100));
+    onKick(payload.intensity);
   };
 }
 

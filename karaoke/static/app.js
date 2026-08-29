@@ -390,7 +390,10 @@ const muffleScript = ({ frequency, gain }) => `(() => {
    short jump in low-end energy above its own recent average, and spotting that
    needs finer timing than anything sampled a dozen times a second could give.
    Only the hits travel — a few a second — rather than a continuous stream. */
-const BEAT_POLL_MS = 40;   // halves the timing jitter between kick and flash
+// One frame. Each kick waits here to be collected, so this interval is pure
+// jitter added between the sound and the picture — and jitter is what reads as
+// "out of time", far more than a steady delay does.
+const BEAT_POLL_MS = 16;
 
 const BEAT_SCRIPT = `(() => {
   ${ENSURE_CHAIN}
