@@ -55,8 +55,11 @@ stays free for you to work on while a song is running.
 2. **My songs** — your library. *Play on stage* starts the song on the audience
    screen and marks the card *On stage*. When it ends, the score screen and its
    drum roll play there too — for the room, not for you.
-3. **Music** — searches all of YouTube, not just karaoke, for something to put on
-   between singers. *Play on stage* plays it on the audience screen.
+3. **Music** — a YouTube browser for the records between singers. Search, or
+   paste any YouTube link. *Open* gives you the real YouTube player to preview
+   in (silent by default, so it cannot fight the stage — there is a *Sound*
+   toggle), with more from the same channel underneath to keep browsing.
+   *Play on stage* sends it to the audience screen.
 4. **The mixer** sits in the top bar of every tab: one fader for the karaoke, one
    for the music, so you can duck the record as the next singer steps up.
 5. The bar under the header shows what is playing, with *Pause* and *Stop*, and

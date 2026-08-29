@@ -232,3 +232,31 @@ def test_score_reported_by_the_stage_reaches_the_operator(client):
     body = client.post("/api/stage/karaoke",
                        json={"name": "Perfect [abc123].mp4", "title": "Perfect"}).get_json()
     assert body["score"] is None
+
+
+def test_resolve_accepts_a_pasted_link(client, monkeypatch):
+    monkeypatch.setattr(
+        "karaoke.server.video_details",
+        lambda vid: search_module.SearchResult(vid, "A Record", "u", 212, "3:32", "Someone", "t", 9),
+    )
+    body = client.get("/api/music/resolve?url=https://youtu.be/dQw4w9WgXcQ").get_json()
+    assert body["video_id"] == "dQw4w9WgXcQ"
+    assert body["title"] == "A Record"
+
+
+def test_resolve_rejects_something_that_is_not_a_youtube_link(client):
+    response = client.get("/api/music/resolve?url=https://vimeo.com/12345")
+    assert response.status_code == 400
+
+
+def test_resolve_still_plays_when_the_lookup_fails(client, monkeypatch):
+    """A valid id is playable even if the metadata request falls over."""
+
+    def boom(video_id):
+        raise RuntimeError("ERROR: lookup exploded")
+
+    monkeypatch.setattr("karaoke.server.video_details", boom)
+    body = client.get("/api/music/resolve?url=dQw4w9WgXcQ").get_json()
+    assert body["video_id"] == "dQw4w9WgXcQ"
+    assert "lookup exploded" in body["lookup_error"]
+    assert body["thumbnail"].endswith("/dQw4w9WgXcQ/mqdefault.jpg")

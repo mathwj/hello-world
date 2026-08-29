@@ -15,7 +15,7 @@ from flask import Flask, Response, jsonify, render_template, request, send_from_
 from . import __version__, config
 from . import library
 from .downloads import DownloadManager, explain_error
-from .search import MAX_RESULTS, build_query, search
+from .search import MAX_RESULTS, build_query, parse_video_id, search, video_details
 from .stage import Stage
 
 from contextlib import nullcontext as _nothing
@@ -68,6 +68,27 @@ def create_app(
             return jsonify({"error": "That song is not in the library."}), 404
         title = (payload.get("title") or name).strip()
         return jsonify(show.play_karaoke(name, title))
+
+    @app.get("/api/music/resolve")
+    def resolve_music():
+        """Turn a pasted YouTube link (or bare id) into something playable."""
+        raw = (request.args.get("url") or "").strip()
+        video_id = parse_video_id(raw)
+        if not video_id:
+            return jsonify({"error": "That does not look like a YouTube link."}), 400
+        try:
+            result = video_details(video_id).as_dict()
+        except Exception as exc:
+            # The id is valid even if the lookup failed, so it can still play.
+            result = {
+                "video_id": video_id,
+                "title": f"YouTube video {video_id}",
+                "channel": "",
+                "duration_label": "--:--",
+                "thumbnail": f"https://i.ytimg.com/vi/{video_id}/mqdefault.jpg",
+                "lookup_error": explain_error(exc),
+            }
+        return jsonify(result)
 
     @app.post("/api/stage/music")
     def stage_play_music():

@@ -128,3 +128,46 @@ def test_search_passes_browser_cookies_when_configured(monkeypatch):
     monkeypatch.delenv("KARAOKE_COOKIES_FROM_BROWSER")
     search("perfect", ydl_factory=factory)
     assert "cookiesfrombrowser" not in captured["ydl"].options
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s", "dQw4w9WgXcQ"),
+        ("https://youtu.be/dQw4w9WgXcQ?si=abc", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/shorts/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("  dQw4w9WgXcQ  ", "dQw4w9WgXcQ"),
+        ("https://vimeo.com/12345", None),
+        ("just some words", None),
+        ("", None),
+    ],
+)
+def test_parse_video_id(text, expected):
+    from karaoke.search import parse_video_id
+
+    assert parse_video_id(text) == expected
+
+
+def test_video_details_reads_one_video():
+    from karaoke.search import video_details
+
+    def factory(options):
+        return FakeYDL(options, entries=[])
+
+    class Single(FakeYDL):
+        def extract_info(self, url, download=False):
+            self.requested = url
+            return {"id": "dQw4w9WgXcQ", "title": "A Record", "channel": "Someone", "duration": 212}
+
+    captured = {}
+
+    def single_factory(options):
+        captured["ydl"] = Single(options)
+        return captured["ydl"]
+
+    result = video_details("dQw4w9WgXcQ", ydl_factory=single_factory)
+    assert result.title == "A Record"
+    assert result.duration_label == "3:32"
+    assert "dQw4w9WgXcQ" in captured["ydl"].requested

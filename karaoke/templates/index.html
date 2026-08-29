@@ -73,13 +73,35 @@
   </section>
 
   <section class="panel" id="panel-music">
-    <form class="searchbar" id="music-form" autocomplete="off">
-      <input id="music-input" type="search" placeholder="Search YouTube for anything" aria-label="Music to search for" required>
-      <button type="submit" class="btn btn-primary">Search</button>
-    </form>
-    <p class="hint" id="music-hint">Music for between the singers. Plays on the stage screen, mixed against the karaoke.</p>
-    <div class="grid" id="music-results"></div>
-    <p class="empty" id="music-empty">Search for something to play between karaokes.</p>
+    <div id="music-browse">
+      <form class="searchbar" id="music-form" autocomplete="off">
+        <input id="music-input" type="search" placeholder="Search YouTube for anything" aria-label="Music to search for" required>
+        <button type="submit" class="btn btn-primary">Search</button>
+      </form>
+      <form class="searchbar paste-bar" id="music-paste-form" autocomplete="off">
+        <input id="music-url" type="text" placeholder="…or paste a YouTube link" aria-label="YouTube link">
+        <button type="submit" class="btn">Open</button>
+      </form>
+      <p class="hint" id="music-hint">Music for between the singers. Plays on the stage screen, mixed against the karaoke.</p>
+      <div class="grid" id="music-results"></div>
+      <p class="empty" id="music-empty">Search for something to play between karaokes.</p>
+    </div>
+
+    <div id="music-watch" hidden>
+      <div class="watch-head">
+        <button class="btn btn-ghost" id="watch-back">&larr; Back</button>
+        <button class="btn" id="watch-sound">Sound off</button>
+        <button class="btn btn-primary" id="watch-stage">Play on stage</button>
+      </div>
+      <div class="watch-frame">
+        <iframe id="watch-iframe" title="YouTube preview"
+                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <h2 class="watch-title" id="watch-title"></h2>
+      <p class="watch-meta" id="watch-channel"></p>
+      <h3 class="watch-more-head" id="watch-more-head" hidden></h3>
+      <div class="grid" id="watch-more"></div>
+    </div>
   </section>
 
   <section class="panel" id="panel-downloads">

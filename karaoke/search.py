@@ -20,6 +20,11 @@ MAX_RESULTS = 40
 
 _WHITESPACE = re.compile(r"\s+")
 
+#: youtu.be/ID, watch?v=ID, /embed/ID, /shorts/ID, or a bare 11-character id.
+_VIDEO_ID = re.compile(
+    r"(?:youtu\.be/|/embed/|/shorts/|/live/|[?&]v=)([A-Za-z0-9_-]{11})|^([A-Za-z0-9_-]{11})$"
+)
+
 
 def build_query(term: str) -> str:
     """Turn a user's words into the karaoke-restricted query we search for.
@@ -133,3 +138,35 @@ def search(
         if parsed is not None:
             results.append(parsed)
     return results
+
+
+def parse_video_id(text: str) -> str | None:
+    """Pull a video id out of a pasted YouTube link, or a bare id.
+
+    >>> parse_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=4s")
+    'dQw4w9WgXcQ'
+    >>> parse_video_id("https://youtu.be/dQw4w9WgXcQ")
+    'dQw4w9WgXcQ'
+    """
+    match = _VIDEO_ID.search((text or "").strip())
+    if not match:
+        return None
+    return match.group(1) or match.group(2)
+
+
+def video_details(video_id: str, *, ydl_factory=YoutubeDL) -> SearchResult:
+    """Look up one video's title, channel and runtime."""
+    options = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": True,
+        **config.ydl_cookie_options(),
+        **config.ydl_js_options(),
+    }
+    with ydl_factory(options) as ydl:
+        info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+    parsed = parse_entry(info or {})
+    if parsed is None:
+        raise ValueError("That video could not be read.")
+    return parsed

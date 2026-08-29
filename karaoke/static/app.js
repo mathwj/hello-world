@@ -13,6 +13,8 @@ const state = {
   jobs: [],
   queued: new Set(),  // video ids queued this session, to disable their buttons
   stage: null,        // the stage's last reported state
+  watching: null,     // the video open in the music page's watch view
+  previewMuted: true, // the preview starts silent so it cannot fight the stage
   pollTimer: null,
   volumeTimer: null,
 };
@@ -71,6 +73,7 @@ function showTab(name) {
     panel.classList.toggle("is-active", panel.id === `panel-${name}`);
   });
   if (name === "library") loadLibrary();
+  if (name !== "music" && state.watching) closeWatch();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -179,6 +182,7 @@ function musicCard(result) {
         <div class="card-actions">
           <button class="btn btn-primary" data-music="${escapeHtml(result.video_id)}"
                   data-title="${escapeHtml(result.title)}">Play on stage</button>
+          <button class="btn" data-watch="${escapeHtml(result.video_id)}">Open</button>
         </div>
       </div>
     </article>`;
@@ -211,17 +215,116 @@ $("#music-form").addEventListener("submit", async (event) => {
   }
 });
 
-$("#music-results").addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-music]");
-  if (!button) return;
+/* YouTube refuses to be framed — youtube.com sends X-Frame-Options: SAMEORIGIN
+   — but /embed/ does not, so this is the real YouTube player, with YouTube's own
+   controls, wrapped in enough browsing to move between videos without leaving.
+   Preview audio starts muted: the stage is the output, this is just for cueing. */
+function embedUrl(videoId, muted) {
+  const params = `autoplay=1&rel=0&modestbranding=1&mute=${muted ? 1 : 0}`;
+  return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params}`;
+}
+
+function openWatch(result) {
+  state.watching = result;
+  state.previewMuted = true;
+  $("#music-browse").hidden = true;
+  $("#music-watch").hidden = false;
+  $("#watch-iframe").src = embedUrl(result.video_id, true);
+  $("#watch-sound").textContent = "Sound off";
+  $("#watch-title").textContent = result.title;
+  $("#watch-channel").textContent = [result.channel, result.duration_label]
+    .filter((part) => part && part !== "--:--").join(" · ");
+  $("#watch-more").innerHTML = "";
+  $("#watch-more-head").hidden = true;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (result.lookup_error) toast(result.lookup_error, true);
+  loadMoreFrom(result.channel);
+}
+
+function closeWatch() {
+  state.watching = null;
+  // Clearing the src is what actually stops the preview playing.
+  $("#watch-iframe").removeAttribute("src");
+  $("#music-watch").hidden = true;
+  $("#music-browse").hidden = false;
+}
+
+/* Keeps browsing going the way related videos would on YouTube itself. */
+async function loadMoreFrom(channel) {
+  if (!channel) return;
   try {
-    await postJson("/api/stage/music", {
-      video_id: button.dataset.music,
-      title: button.dataset.title,
-    });
-    toast(`Playing “${button.dataset.title}” on the stage`);
+    const data = await api(`/api/search?mode=music&q=${encodeURIComponent(channel)}&limit=12`);
+    const others = data.results.filter((r) => r.video_id !== (state.watching || {}).video_id);
+    if (!others.length) return;
+    $("#watch-more-head").textContent = `More from ${channel}`;
+    $("#watch-more-head").hidden = false;
+    $("#watch-more").innerHTML = others.map(musicCard).join("");
+  } catch (error) {
+    /* browsing on is a bonus; failing to find more is not worth a toast */
+  }
+}
+
+async function playOnStage(videoId, title) {
+  try {
+    await postJson("/api/stage/music", { video_id: videoId, title });
+    toast(`Playing “${title}” on the stage`);
+    if (!state.stage || !state.stage.viewers) {
+      toast("No stage screen is connected — open the Stage link.", true);
+    }
   } catch (error) {
     toast(error.message, true);
+  }
+}
+
+function onMusicGridClick(event) {
+  const play = event.target.closest("[data-music]");
+  if (play) {
+    playOnStage(play.dataset.music, play.dataset.title);
+    return;
+  }
+  const watch = event.target.closest("[data-watch]");
+  if (!watch) return;
+  const card = watch.closest(".card");
+  openWatch({
+    video_id: watch.dataset.watch,
+    title: card.querySelector(".card-title").textContent,
+    channel: (card.querySelector(".card-meta") || {}).textContent || "",
+    duration_label: (card.querySelector(".card-duration") || {}).textContent || "",
+  });
+}
+
+$("#music-results").addEventListener("click", onMusicGridClick);
+$("#watch-more").addEventListener("click", onMusicGridClick);
+$("#watch-back").addEventListener("click", closeWatch);
+
+$("#watch-stage").addEventListener("click", () => {
+  if (state.watching) playOnStage(state.watching.video_id, state.watching.title);
+});
+
+$("#watch-sound").addEventListener("click", () => {
+  if (!state.watching) return;
+  state.previewMuted = !state.previewMuted;
+  // The embed cannot be unmuted without reloading it, so the preview restarts.
+  $("#watch-iframe").src = embedUrl(state.watching.video_id, state.previewMuted);
+  $("#watch-sound").textContent = state.previewMuted ? "Sound off" : "Sound on";
+});
+
+$("#music-paste-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const raw = $("#music-url").value.trim();
+  if (!raw) return;
+  const button = event.target.querySelector("button");
+  button.disabled = true;
+  button.textContent = "Opening…";
+  try {
+    const result = await api(`/api/music/resolve?url=${encodeURIComponent(raw)}`);
+    $("#music-url").value = "";
+    openWatch(result);
+  } catch (error) {
+    toast(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Open";
   }
 });
 
