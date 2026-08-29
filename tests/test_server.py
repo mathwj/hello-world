@@ -127,3 +127,18 @@ def test_media_supports_range_requests_for_seeking(client):
 def test_media_rejects_path_traversal(client, library_dir):
     (library_dir.parent / "secret.txt").write_text("private", encoding="utf-8")
     assert client.get("/media/../secret.txt").status_code == 404
+
+
+def test_port_is_free_detects_a_listening_socket():
+    import socket
+
+    from karaoke.__main__ import port_is_free
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as taken:
+        taken.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        taken.bind(("127.0.0.1", 0))
+        taken.listen(1)
+        port = taken.getsockname()[1]
+        assert port_is_free("127.0.0.1", port) is False
+
+    assert port_is_free("127.0.0.1", port) is True
