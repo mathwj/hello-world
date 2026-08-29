@@ -26,10 +26,15 @@ FAILED = "failed"
 #: Prefer a real mp4 so QuickTime/Safari can play it; fall back progressively.
 #: The bare `bestvideo+bestaudio` rung matters for videos YouTube offers only
 #: above 1080p, and `best` for the rare one with no separate streams at all.
+#: `bestvideo` means a *video-only* stream, so it silently misses formats whose
+#: audio codec YouTube did not declare -- and `best` misses them too, because it
+#: demands a known audio codec. `bestvideo*` and `best*` accept them. The tail of
+#: this chain is yt-dlp's own default, which is deliberately that forgiving.
 FORMAT_WITH_FFMPEG = (
-    "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best[height<=1080]/best"
+    "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+    "/bestvideo*+bestaudio/best/best*"
 )
-FORMAT_NO_FFMPEG = "best[ext=mp4]/best"
+FORMAT_NO_FFMPEG = "best[ext=mp4]/best/best*"
 
 #: ``%(title).120B`` truncates on byte boundaries, so long titles stay valid.
 OUTPUT_TEMPLATE = "%(title).120B [%(id)s].%(ext)s"

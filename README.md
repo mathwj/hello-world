@@ -100,6 +100,18 @@ force the install:
 .venv/bin/pip install nodejs-wheel-binaries imageio-ffmpeg
 ```
 
+## Diagnosing a failed download
+
+When a download fails, this reports what the app sees — the helper programs it
+found, and the formats YouTube actually offered for that video:
+
+```sh
+.venv/bin/python -m karaoke --doctor "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+It uses exactly the configuration the app uses, so its output reflects the real
+failure rather than a different code path.
+
 ## How it works
 
 ```
@@ -108,6 +120,7 @@ karaoke/
   downloads.py   thread-pool download queue with live progress
   library.py     reads the download folder + yt-dlp's .info.json sidecars
   config.py      locates ffmpeg and a JavaScript runtime, bundled or your own
+  diagnose.py    the --doctor report
   server.py      Flask JSON API and media streaming (HTTP Range, so seeking works)
   static/        the UI
 ```

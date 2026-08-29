@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import webbrowser
 
@@ -11,6 +12,16 @@ from .server import create_app
 
 
 def main() -> None:
+    # `--doctor <video>` reports why downloads fail instead of starting the app.
+    if len(sys.argv) > 1 and sys.argv[1] == "--doctor":
+        from .diagnose import run
+
+        tls.ensure_ca_bundle()
+        if len(sys.argv) < 3:
+            print("Usage: python -m karaoke --doctor <youtube url or video id>")
+            raise SystemExit(2)
+        raise SystemExit(run(sys.argv[2]))
+
     host, port = config.host(), config.port()
     target = config.download_dir()
     url = f"http://{host}:{port}/"
