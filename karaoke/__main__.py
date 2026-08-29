@@ -12,6 +12,19 @@ from .server import create_app
 
 
 def main() -> None:
+    # Unknown arguments used to be ignored, which silently started the server
+    # instead — confusing when an older copy of the app does not know a flag yet.
+    if len(sys.argv) > 1 and sys.argv[1] not in ("--doctor", "--help", "-h"):
+        print(f"Unknown option: {sys.argv[1]}")
+        print("Usage: python -m karaoke [--doctor <youtube url or video id>]")
+        raise SystemExit(2)
+
+    if len(sys.argv) > 1 and sys.argv[1] in ("--help", "-h"):
+        print("Usage: python -m karaoke [--doctor <youtube url or video id>]")
+        print("  (no arguments)  start the app")
+        print("  --doctor URL    report why a download fails")
+        raise SystemExit(0)
+
     # `--doctor <video>` reports why downloads fail instead of starting the app.
     if len(sys.argv) > 1 and sys.argv[1] == "--doctor":
         from .diagnose import run
@@ -60,7 +73,15 @@ def main() -> None:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
 
     app = create_app(target)
-    app.run(host=host, port=port, threaded=True, debug=False)
+    try:
+        app.run(host=host, port=port, threaded=True, debug=False)
+    except OSError as exc:
+        if "Address already in use" not in str(exc):
+            raise
+        print(f"\nPort {port} is already in use — KaraokeBox is probably running")
+        print("in another Terminal window. Switch to it and press Ctrl+C, or start")
+        print(f"this copy on a different port:  KARAOKE_PORT={port + 1} ./run.sh")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
