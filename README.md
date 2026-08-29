@@ -32,15 +32,35 @@ The first run creates a virtualenv and installs the dependencies; after that it
 starts in a second. The app opens at <http://127.0.0.1:8770> in your browser and
 listens on localhost only.
 
+## Two screens
+
+KaraokeBox runs on two screens: the **operator console** on your laptop, and the
+**stage** on the screen everyone is watching.
+
+1. Start the app. The operator console opens at <http://127.0.0.1:8770>.
+2. Drag a browser window onto the second display, open **Stage** from the top
+   right of the console, and full-screen it (`Ctrl`+`Cmd`+`F`).
+3. **Click that window once.** Browsers refuse to play sound until someone
+   interacts with the page, and nobody touches the stage screen once the night
+   starts. The console's *Stage ready* light turns green when it is connected.
+
+Nothing plays on the laptop. Every player lives on the stage, so the console
+stays free for you to work on while a song is running.
+
 ## Using it
 
-1. **Search** — type a song title (`perfect`, `bohemian rhapsody`). Results are
-   karaoke versions, with thumbnail, channel, and runtime.
-2. **Download** — hit *Download* on the one you want. It queues up and downloads
-   in the background; the *Downloads* tab shows live progress. Songs you already
-   have are marked *Downloaded*.
-3. **Sing** — the *My songs* tab lists your library. *Sing* opens the full-screen
-   player (`Esc` closes it). *Delete* removes the video and its metadata.
+1. **Karaoke** — search for a song (`perfect`, `bohemian rhapsody`). Results are
+   karaoke versions only. *Download* queues it in the background; the
+   *Downloads* tab shows live progress, and you can keep working while it runs.
+2. **My songs** — your library. *Play on stage* starts the song on the audience
+   screen and marks the card *On stage*. When it ends, the score screen and its
+   drum roll play there too — for the room, not for you.
+3. **Music** — searches all of YouTube, not just karaoke, for something to put on
+   between singers. *Play on stage* plays it on the audience screen.
+4. **The mixer** sits in the top bar of every tab: one fader for the karaoke, one
+   for the music, so you can duck the record as the next singer steps up.
+5. The bar under the header shows what is playing, with *Pause* and *Stop*, and
+   the score once a song finishes.
 
 Songs are saved to `~/Movies/Karaoke` by default.
 
@@ -127,12 +147,17 @@ karaoke/
   library.py     reads the download folder + yt-dlp's .info.json sidecars
   config.py      locates ffmpeg and a JavaScript runtime, bundled or your own
   diagnose.py    the --doctor report
+  stage.py       the state both screens agree on, pushed to whoever is watching
   server.py      Flask JSON API and media streaming (HTTP Range, so seeking works)
-  static/        the UI
+  static/        app.js is the console, stage.js the audience screen,
+                 score.js the reveal they share
 ```
 
 There is no database — the folder of videos *is* the library, so you can move,
 back up, or play the files with QuickTime like any other download.
+
+The two screens stay in step over server-sent events rather than polling, so a
+tap on the laptop — or a nudge of a fader — reaches the stage immediately.
 
 ## Development
 

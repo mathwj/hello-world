@@ -1,15 +1,20 @@
-/* KaraokeBox front-end: search, queue downloads, browse and play the library. */
+/* The operator's console.
+
+   Nothing plays here. The laptop searches, downloads and decides; the stage
+   screen does the playing. Every playback control posts to /api/stage, and the
+   stage mirrors that state over server-sent events. */
 
 const $ = (sel) => document.querySelector(sel);
 
 const state = {
-  results: [],       // last search results, re-rendered when the library changes
+  results: [],        // last karaoke search, re-rendered when the library changes
+  music: [],          // last music search
   library: [],
   jobs: [],
-  scoreFrame: null,   // in-flight requestAnimationFrame for the score roll
-  roll: null,         // the scheduled drum roll, so it can be cut short
-  queued: new Set(),   // video ids queued this session, to disable their buttons
+  queued: new Set(),  // video ids queued this session, to disable their buttons
+  stage: null,        // the stage's last reported state
   pollTimer: null,
+  volumeTimer: null,
 };
 
 /* ---------- helpers ---------- */
@@ -49,6 +54,13 @@ async function api(url, options = {}) {
   return data;
 }
 
+const postJson = (url, body) =>
+  api(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+
 /* ---------- tabs ---------- */
 
 function showTab(name) {
@@ -65,7 +77,7 @@ document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => showTab(tab.dataset.tab));
 });
 
-/* ---------- search ---------- */
+/* ---------- karaoke search ---------- */
 
 function searchCard(result) {
   const downloaded = state.library.some((song) => song.video_id === result.video_id);
@@ -95,8 +107,7 @@ function searchCard(result) {
 
 function renderSearch(results) {
   state.results = results;
-  const grid = $("#search-results");
-  grid.innerHTML = results.map(searchCard).join("");
+  $("#search-results").innerHTML = results.map(searchCard).join("");
   $("#search-empty").hidden = results.length > 0;
   if (!results.length) $("#search-empty").textContent = "No karaoke versions found. Try different words.";
 }
@@ -129,8 +140,6 @@ $("#search-form").addEventListener("submit", async (event) => {
   }
 });
 
-/* ---------- downloads ---------- */
-
 $("#search-results").addEventListener("click", async (event) => {
   const button = event.target.closest("[data-download]");
   if (!button) return;
@@ -140,14 +149,10 @@ $("#search-results").addEventListener("click", async (event) => {
   state.queued.add(button.dataset.download);
 
   try {
-    await api("/api/downloads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        video_id: button.dataset.download,
-        title: button.dataset.title,
-        thumbnail: button.dataset.thumb,
-      }),
+    await postJson("/api/downloads", {
+      video_id: button.dataset.download,
+      title: button.dataset.title,
+      thumbnail: button.dataset.thumb,
     });
     toast(`Downloading “${button.dataset.title}”`);
     pollJobs();
@@ -158,6 +163,69 @@ $("#search-results").addEventListener("click", async (event) => {
     toast(error.message, true);
   }
 });
+
+/* ---------- music search (unrestricted) ---------- */
+
+function musicCard(result) {
+  return `
+    <article class="card">
+      <div class="card-thumb">
+        <img src="${escapeHtml(result.thumbnail)}" alt="" loading="lazy">
+        <span class="card-duration">${escapeHtml(result.duration_label)}</span>
+      </div>
+      <div class="card-body">
+        <h3 class="card-title">${escapeHtml(result.title)}</h3>
+        <p class="card-meta">${escapeHtml(result.channel)}</p>
+        <div class="card-actions">
+          <button class="btn btn-primary" data-music="${escapeHtml(result.video_id)}"
+                  data-title="${escapeHtml(result.title)}">Play on stage</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+$("#music-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const term = $("#music-input").value.trim();
+  if (!term) return;
+
+  const button = event.target.querySelector("button");
+  button.disabled = true;
+  button.textContent = "Searching…";
+  $("#music-empty").hidden = true;
+  $("#music-results").innerHTML = "";
+
+  try {
+    const data = await api(`/api/search?mode=music&q=${encodeURIComponent(term)}&limit=24`);
+    state.music = data.results;
+    $("#music-results").innerHTML = data.results.map(musicCard).join("");
+    $("#music-hint").textContent = `Results for “${data.query}”. Plays on the stage screen.`;
+    $("#music-empty").hidden = data.results.length > 0;
+  } catch (error) {
+    $("#music-empty").hidden = false;
+    $("#music-empty").textContent = error.message;
+    toast(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Search";
+  }
+});
+
+$("#music-results").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-music]");
+  if (!button) return;
+  try {
+    await postJson("/api/stage/music", {
+      video_id: button.dataset.music,
+      title: button.dataset.title,
+    });
+    toast(`Playing “${button.dataset.title}” on the stage`);
+  } catch (error) {
+    toast(error.message, true);
+  }
+});
+
+/* ---------- downloads ---------- */
 
 function jobRow(job) {
   const percent = Math.min(100, Math.max(0, job.progress || 0));
@@ -223,18 +291,24 @@ function libraryCard(song) {
   const thumb = song.thumbnail
     ? `<img src="/media/${encodeURIComponent(song.thumbnail)}" alt="" loading="lazy">`
     : "";
+  const onStage = state.stage
+    && state.stage.mode === "karaoke"
+    && state.stage.karaoke
+    && state.stage.karaoke.name === song.name;
+
   return `
-    <article class="card">
+    <article class="card${onStage ? " is-live" : ""}">
       <div class="card-thumb">
         ${thumb}
         <span class="card-duration">${escapeHtml(song.duration_label)}</span>
+        ${onStage ? '<span class="card-live">On stage</span>' : ""}
       </div>
       <div class="card-body">
         <h3 class="card-title">${escapeHtml(song.title)}</h3>
         <p class="card-meta">${escapeHtml(song.channel)} &middot; ${formatBytes(song.size_bytes)}</p>
         <div class="card-actions">
           <button class="btn btn-primary" data-play="${escapeHtml(song.name)}"
-                  data-title="${escapeHtml(song.title)}">Sing</button>
+                  data-title="${escapeHtml(song.title)}">Play on stage</button>
           <button class="btn btn-danger" data-delete="${escapeHtml(song.name)}"
                   data-title="${escapeHtml(song.title)}">Delete</button>
         </div>
@@ -274,7 +348,15 @@ $("#library-filter").addEventListener("input", renderLibrary);
 $("#library-results").addEventListener("click", async (event) => {
   const play = event.target.closest("[data-play]");
   if (play) {
-    openPlayer(play.dataset.play, play.dataset.title);
+    try {
+      await postJson("/api/stage/karaoke", { name: play.dataset.play, title: play.dataset.title });
+      toast(`“${play.dataset.title}” is on the stage`);
+      if (!state.stage || !state.stage.viewers) {
+        toast("No stage screen is connected — open the Stage link.", true);
+      }
+    } catch (error) {
+      toast(error.message, true);
+    }
     return;
   }
 
@@ -291,387 +373,95 @@ $("#library-results").addEventListener("click", async (event) => {
   }
 });
 
-/* ---------- score screen ---------- */
+/* ---------- the mixer ---------- */
 
-/* Bands are read top-down: the first whose minimum the score clears wins. */
-const SCORE_BANDS = [
-  { min: 95, band: "legend", rank: "Legendary. Someone call a record label." },
-  { min: 85, band: "great",  rank: "Superstar!" },
-  { min: 70, band: "great",  rank: "Crowd pleaser." },
-  { min: 50, band: "ok",     rank: "Not bad at all." },
-  { min: 30, band: "rough",  rank: "The crowd is being polite." },
-  { min: 0,  band: "rough",  rank: "Brave. Very brave." },
-];
-
-const SCORE_ROLL_SECONDS = 5;
-
-function bandFor(score) {
-  return SCORE_BANDS.find((entry) => score >= entry.min);
-}
-
-function randomScore() {
-  return Math.floor(Math.random() * 101); // 0–100 inclusive
-}
-
-const prefersReducedMotion = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-/* ---------- drum roll ----------
-   Synthesised with the Web Audio API rather than shipped as an audio file, so
-   there is nothing to download and nothing to license. Everything is scheduled
-   on the audio clock up front, which is what lets the reveal land exactly on
-   the final snare instead of drifting a frame or two away from it. */
-
-let audioContext = null;
-let noiseBuffer = null;
-
-function getAudioContext() {
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return null;
-  if (!audioContext) {
-    try {
-      audioContext = new Ctx();
-    } catch (error) {
-      return null;
-    }
-  }
-  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
-  return audioContext;
-}
-
-function getNoise(ctx) {
-  if (noiseBuffer) return noiseBuffer;
-  const frames = Math.floor(ctx.sampleRate * 1.3);
-  noiseBuffer = ctx.createBuffer(1, frames, ctx.sampleRate);
-  const data = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < frames; i += 1) data[i] = Math.random() * 2 - 1;
-  return noiseBuffer;
-}
-
-/* One snare stroke: a band-passed noise crack plus a short tonal body.
-   Used for the accent only — putting a pitched body on every stroke of a roll
-   makes it sound like a motor rather than a drum. */
-function snareHit(ctx, out, at, level, decay, tone = 190) {
-  const noise = ctx.createBufferSource();
-  noise.buffer = getNoise(ctx);
-  noise.playbackRate.value = 0.85 + Math.random() * 0.3;
-  const band = ctx.createBiquadFilter();
-  band.type = "bandpass";
-  band.frequency.value = 2400;
-  band.Q.value = 0.5;
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(level, at);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
-  noise.connect(band);
-  band.connect(gain);
-  gain.connect(out);
-  noise.start(at);
-  noise.stop(at + decay + 0.02);
-
-  const body = ctx.createOscillator();
-  body.type = "triangle";
-  body.frequency.setValueAtTime(tone, at);
-  body.frequency.exponentialRampToValueAtTime(tone * 0.5, at + decay);
-  const bodyGain = ctx.createGain();
-  bodyGain.gain.setValueAtTime(level * 0.3, at);
-  bodyGain.gain.exponentialRampToValueAtTime(0.0001, at + decay * 0.9);
-  body.connect(bodyGain);
-  bodyGain.connect(out);
-  body.start(at);
-  body.stop(at + decay + 0.02);
-
-  return [noise, body];
-}
-
-/* The finish: a hard accented snare plus a cymbal-ish wash under it. */
-function accentHit(ctx, out, at) {
-  const sources = snareHit(ctx, out, at, 0.98, 0.4, 240);
-
-  const wash = ctx.createBufferSource();
-  wash.buffer = getNoise(ctx);
-  const high = ctx.createBiquadFilter();
-  high.type = "highpass";
-  high.frequency.value = 5000;
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.55, at);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.1);
-  wash.connect(high);
-  high.connect(gain);
-  gain.connect(out);
-  wash.start(at);
-  wash.stop(at + 1.15);
-
-  sources.push(wash);
-  return sources;
-}
-
-/* The roll itself, rendered a sample at a time into one buffer.
-   A press roll is not a sequence of separate taps — it is a continuous sizzle
-   with strokes riding on top of it. So this lays down a noise bed that swells,
-   then adds double-stroked bounces over it at an accelerating rate. Scheduling
-   discrete hits instead leaves audible gaps between them, which is what made
-   the first attempt tick like a woodblock. */
-let rollBuffer = null;
-
-//: Peak amplitude of the roll. The accent is scheduled well above it.
-const ROLL_CEILING = 0.5;
-
-function buildRollBuffer(ctx, seconds) {
-  if (rollBuffer && rollBuffer.sampleRate === ctx.sampleRate && rollBuffer.duration >= seconds) {
-    return rollBuffer;
-  }
-  const rate = ctx.sampleRate;
-  const frames = Math.ceil(rate * seconds);
-  const buffer = ctx.createBuffer(1, frames, rate);
-  const data = buffer.getChannelData(0);
-
-  // The bed: never silent, and louder as the roll builds.
-  for (let i = 0; i < frames; i += 1) {
-    const progress = i / frames;
-    const bed = 0.06 + 0.26 * progress * progress;
-    data[i] = (Math.random() * 2 - 1) * bed;
-  }
-
-  // Strokes, each with the bounce that turns a tap into a buzz.
-  const strokes = [];
-  let at = 0;
-  while (at < seconds) {
-    const progress = at / seconds;
-    const perSecond = 13 + 25 * Math.pow(progress, 1.5);
-    strokes.push(at);
-    strokes.push(at + (0.55 + Math.random() * 0.2) / perSecond);
-    at += 1 / perSecond;
-  }
-
-  for (const stroke of strokes) {
-    const progress = Math.min(1, stroke / seconds);
-    const level = 0.22 + 0.42 * progress;
-    const decayFrames = Math.floor(0.032 * rate);
-    const start = Math.floor(stroke * rate);
-    for (let i = 0; i < decayFrames && start + i < frames; i += 1) {
-      const envelope = Math.exp((-5 * i) / decayFrames);
-      data[start + i] += (Math.random() * 2 - 1) * level * envelope;
-    }
-  }
-
-  // Swell, then soft-clip so the peaks stay musical.
-  let loudest = 0;
-  for (let i = 0; i < frames; i += 1) {
-    data[i] = Math.tanh(data[i] * (0.6 + 0.75 * (i / frames)) * 1.6);
-    loudest = Math.max(loudest, Math.abs(data[i]));
-  }
-  // Normalise to a fixed ceiling. The roll builds tension; the accent is the
-  // payoff, so the roll must stay clearly under it however the shaping above
-  // is tuned. Without this the clipped roll peaked louder than the final hit.
-  if (loudest > 0) {
-    const ceiling = ROLL_CEILING / loudest;
-    for (let i = 0; i < frames; i += 1) data[i] *= ceiling;
-  }
-
-  // Duck the last few milliseconds to nothing. That sliver of near-silence is
-  // what makes the accent land like a payoff instead of merely continuing the
-  // noise — the ear reads impact from the jump, not from absolute level.
-  const duck = Math.floor(0.05 * rate);
-  for (let i = 0; i < duck; i += 1) {
-    const index = frames - duck + i;
-    if (index >= 0) data[index] *= Math.pow(1 - i / duck, 1.7);
-  }
-
-  rollBuffer = buffer;
-  return buffer;
-}
-
-/* Schedules the roll and its accent on any context — including an offline one,
-   which is how this gets rendered and checked without a speaker. */
-function scheduleRoll(ctx, out, startAt, seconds) {
-  const source = ctx.createBufferSource();
-  source.buffer = buildRollBuffer(ctx, seconds);
-
-  // Shape it like a snare: no rumble underneath, presence in the middle, and
-  // the very top rolled off so the noise does not hiss.
-  const high = ctx.createBiquadFilter();
-  high.type = "highpass";
-  high.frequency.value = 220;
-  const presence = ctx.createBiquadFilter();
-  presence.type = "peaking";
-  presence.frequency.value = 3200;
-  presence.Q.value = 0.8;
-  presence.gain.value = 5;
-  const low = ctx.createBiquadFilter();
-  low.type = "lowpass";
-  low.frequency.value = 9000;
-
-  source.connect(high);
-  high.connect(presence);
-  presence.connect(low);
-  low.connect(out);
-  source.start(startAt);
-  source.stop(startAt + seconds);
-
-  return [source, ...accentHit(ctx, out, startAt + seconds)];
-}
-
-/* Strokes accelerate and swell, and the accent lands exactly on `seconds`. */
-function playDrumRoll(seconds) {
-  const ctx = getAudioContext();
-  if (!ctx) return null;
-
-  const out = ctx.createGain();
-  out.gain.value = 0.9;
-  out.connect(ctx.destination);
-
-  const startAt = ctx.currentTime + 0.06; // a little lead so nothing clips
-  const sources = scheduleRoll(ctx, out, startAt, seconds);
-
-  return { ctx, out, sources, startAt, revealAt: startAt + seconds };
-}
-
-function stopDrumRoll() {
-  const roll = state.roll;
-  if (!roll) return;
-  state.roll = null;
-  const now = roll.ctx.currentTime;
-  roll.out.gain.cancelScheduledValues(now);
-  roll.out.gain.setValueAtTime(roll.out.gain.value, now);
-  roll.out.gain.linearRampToValueAtTime(0, now + 0.08);
-  for (const source of roll.sources) {
-    try {
-      source.stop(now + 0.09);
-    } catch (error) {
-      /* already finished */
-    }
-  }
-}
-
-/* ---------- the roll itself ---------- */
-
-function rollScore(finalScore, onSettled) {
-  const el = $("#score-number");
-  const roll = state.roll;
-  // Follow the audio clock so the digits land with the snare, not near it.
-  const followAudio = Boolean(roll) && roll.ctx.state === "running";
-  const startedAt = performance.now();
-  let lastTick = 0;
-  let gap = 40;
-
-  function frame(now) {
-    const wall = (now - startedAt) / (SCORE_ROLL_SECONDS * 1000);
-    let progress = followAudio
-      ? (roll.ctx.currentTime - roll.startAt) / SCORE_ROLL_SECONDS
-      : wall;
-    // Watchdog: if the audio clock never advances, do not hang on 0 forever.
-    if (followAudio && wall > 1.3) progress = 1;
-    progress = Math.max(0, Math.min(1, progress));
-
-    if (progress >= 1) {
-      el.textContent = finalScore;
-      onSettled();
-      return;
-    }
-    if (now - lastTick >= gap) {
-      lastTick = now;
-      // Ticks get slower and the guesses close in, so it visibly settles.
-      gap = 40 + 260 * Math.pow(progress, 3);
-      let guess;
-      if (progress < 0.7) {
-        // Spin the whole range first. Converging from the start clamps against
-        // 0 and 100 and would show the same digits over and over.
-        guess = Math.floor(Math.random() * 101);
-      } else {
-        const closing = (progress - 0.7) / 0.3;
-        const spread = Math.max(1, Math.round(45 * (1 - closing)));
-        guess = finalScore + Math.round((Math.random() * 2 - 1) * spread);
-      }
-      el.textContent = Math.max(0, Math.min(100, guess));
-    }
-    state.scoreFrame = requestAnimationFrame(frame);
-  }
-  state.scoreFrame = requestAnimationFrame(frame);
-}
-
-function showScore() {
-  const score = randomScore();
-  const { band, rank } = bandFor(score);
-  const panel = $("#score");
-
-  panel.dataset.band = band;
-  panel.classList.remove("is-final");
-  $("#score-rank").textContent = "";
-  $("#score-number").textContent = "0";
-  panel.hidden = false;
-
-  const settle = () => {
-    $("#score-rank").textContent = rank;
-    panel.classList.add("is-final");
+function sendVolume() {
+  const volume = {
+    karaoke: Number($("#vol-karaoke").value),
+    music: Number($("#vol-music").value),
   };
+  postJson("/api/stage", { volume }).catch(() => {});
+}
 
-  if (prefersReducedMotion()) {
-    // No spinning, but the reveal still deserves its hit.
-    $("#score-number").textContent = score;
-    const ctx = getAudioContext();
-    if (ctx) {
-      const out = ctx.createGain();
-      out.gain.value = 0.9;
-      out.connect(ctx.destination);
-      accentHit(ctx, out, ctx.currentTime + 0.05);
-    }
-    settle();
-    return;
+function onFaderMoved(event) {
+  const out = event.target.id === "vol-karaoke" ? "#vol-karaoke-out" : "#vol-music-out";
+  $(out).textContent = event.target.value;
+  // Coalesce the flood of input events a dragged slider produces.
+  clearTimeout(state.volumeTimer);
+  state.volumeTimer = setTimeout(sendVolume, 60);
+}
+
+$("#vol-karaoke").addEventListener("input", onFaderMoved);
+$("#vol-music").addEventListener("input", onFaderMoved);
+
+/* ---------- now playing ---------- */
+
+$("#now-toggle").addEventListener("click", () => {
+  if (!state.stage) return;
+  postJson("/api/stage", { playing: !state.stage.playing }).catch((e) => toast(e.message, true));
+});
+
+$("#now-stop").addEventListener("click", () => {
+  api("/api/stage/stop", { method: "POST" }).catch((e) => toast(e.message, true));
+});
+
+function renderStage(next) {
+  const previous = state.stage;
+  state.stage = next;
+
+  const connected = next.viewers > 0;
+  $("#stage-dot").classList.toggle("is-on", connected);
+  $("#stage-label").textContent = connected ? "Stage ready" : "Open stage";
+  $("#stage-link").title = connected
+    ? "A stage screen is connected"
+    : "No stage screen — click to open one on the second display";
+
+  // Faders follow the stage, so a second operator window cannot fight this one.
+  if (document.activeElement !== $("#vol-karaoke")) {
+    $("#vol-karaoke").value = next.volume.karaoke;
+    $("#vol-karaoke-out").textContent = next.volume.karaoke;
+  }
+  if (document.activeElement !== $("#vol-music")) {
+    $("#vol-music").value = next.volume.music;
+    $("#vol-music-out").textContent = next.volume.music;
   }
 
-  state.roll = playDrumRoll(SCORE_ROLL_SECONDS);
-  rollScore(score, settle);
+  const live = next.mode !== "idle" && (next.karaoke || next.music);
+  $("#nowbar").hidden = !live;
+  if (live) {
+    const isKaraoke = next.mode === "karaoke";
+    $("#now-kind").textContent = isKaraoke ? "Singing" : "Music";
+    $("#now-kind").className = `now-kind ${isKaraoke ? "is-karaoke" : "is-music"}`;
+    $("#now-title").textContent = isKaraoke ? next.karaoke.title : next.music.title;
+    $("#now-toggle").textContent = next.playing ? "Pause" : "Resume";
+  }
+
+  const score = next.score;
+  $("#now-score").hidden = !score;
+  if (score) $("#now-score").textContent = `Scored ${score.value} — ${score.rank}`;
+  if (score && (!previous || !previous.score)) toast(`Score: ${score.value}`);
+
+  // "On stage" badges in the library follow whatever is playing.
+  if (!previous || previous.mode !== next.mode
+      || JSON.stringify(previous.karaoke) !== JSON.stringify(next.karaoke)) {
+    renderLibrary();
+  }
 }
 
-function hideScore() {
-  if (state.scoreFrame) cancelAnimationFrame(state.scoreFrame);
-  state.scoreFrame = null;
-  stopDrumRoll();
-  $("#score").hidden = true;
-  $("#score").classList.remove("is-final");
+function subscribeToStage() {
+  const events = new EventSource("/api/stage/events?role=operator");
+  events.onmessage = (event) => {
+    try {
+      renderStage(JSON.parse(event.data));
+    } catch (error) {
+      /* ignore a malformed frame; the next one will be along shortly */
+    }
+  };
 }
-
-$("#player-video").addEventListener("ended", showScore);
-
-$("#score-again").addEventListener("click", () => {
-  hideScore();
-  const video = $("#player-video");
-  video.currentTime = 0;
-  video.play().catch(() => {});
-});
-
-$("#score-done").addEventListener("click", () => closePlayer());
-
-/* ---------- player ---------- */
-
-function openPlayer(name, title) {
-  hideScore();
-  const video = $("#player-video");
-  $("#player-title").textContent = title;
-  video.src = `/media/${encodeURIComponent(name)}`;
-  $("#player").hidden = false;
-  video.play().catch(() => { /* autoplay may need a user gesture; controls are there */ });
-}
-
-function closePlayer() {
-  hideScore();
-  const video = $("#player-video");
-  video.pause();
-  video.removeAttribute("src");
-  video.load();
-  $("#player").hidden = true;
-}
-
-$("#player-close").addEventListener("click", closePlayer);
-$("#player").addEventListener("click", (event) => {
-  if (event.target.id === "player") closePlayer();
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !$("#player").hidden) closePlayer();
-});
 
 /* ---------- boot ---------- */
 
 loadLibrary();
 pollJobs();
+subscribeToStage();
 $("#search-input").focus();

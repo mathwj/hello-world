@@ -1,0 +1,87 @@
+/* The audience screen: big, dark, and nothing to click. */
+
+.stage-body {
+  overflow: hidden;
+  height: 100vh;
+  cursor: none;
+}
+
+.waiting {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 35%, #35174a, #0b0716 70%);
+}
+
+.waiting-mark { font-size: clamp(60px, 11vw, 130px); animation: sway 4s ease-in-out infinite; }
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-7deg); }
+  50%      { transform: rotate(7deg); }
+}
+
+.waiting-title {
+  margin: 0;
+  font-size: clamp(40px, 8vw, 96px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.waiting-sub { margin: 0; font-size: clamp(16px, 2.2vw, 26px); color: var(--text-dim); }
+
+.waiting-hint {
+  margin: 26px 0 0;
+  font-size: 14px;
+  color: var(--text-dim);
+  opacity: 0.75;
+  max-width: 60ch;
+}
+
+.surface { position: fixed; inset: 0; background: #000; }
+.surface video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+.music-frame { position: absolute; inset: 0; }
+.music-frame iframe { width: 100%; height: 100%; border: 0; }
+
+/* Music videos still show, but with a caption so the room knows what is on. */
+.music-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 40px 48px 34px;
+  background: linear-gradient(transparent, rgba(6, 4, 12, 0.9));
+  pointer-events: none;
+}
+
+.music-label {
+  margin: 0 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.music-title { margin: 0; font-size: clamp(20px, 3vw, 38px); font-weight: 700; }
+
+/* The score overlay covers the whole stage here, not just a video box. */
+.score-host { position: fixed; inset: 0; z-index: 20; }
+
+.stage-status {
+  position: fixed;
+  left: 18px;
+  bottom: 16px;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(26, 21, 40, 0.9);
+  border: 1px solid var(--err);
+  color: var(--text);
+  font-size: 13px;
+  z-index: 30;
+}

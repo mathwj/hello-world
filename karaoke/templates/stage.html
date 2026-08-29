@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KaraokeBox — Stage</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='stage.css') }}">
+</head>
+<body class="stage-body">
+
+<div class="waiting" id="waiting">
+  <div class="waiting-mark">&#127908;</div>
+  <h1 class="waiting-title">KaraokeBox</h1>
+  <p class="waiting-sub" id="waiting-sub">Waiting for the next singer…</p>
+  <p class="waiting-hint" id="waiting-hint"></p>
+</div>
+
+<div class="surface" id="surface" hidden>
+  <video id="stage-video" playsinline></video>
+  <div id="stage-music" class="music-frame" hidden>
+    <div id="yt-player"></div>
+    <div class="music-card">
+      <p class="music-label">Now playing</p>
+      <h2 class="music-title" id="music-title"></h2>
+    </div>
+  </div>
+</div>
+
+<div class="player-stage score-host" id="score-host" hidden>
+  <div class="score" id="score" hidden>
+    <p class="score-label">Your score</p>
+    <div class="score-number" id="score-number">0</div>
+    <p class="score-rank" id="score-rank"></p>
+  </div>
+</div>
+
+<p class="stage-status" id="stage-status" hidden></p>
+
+<script src="{{ url_for('static', filename='score.js') }}"></script>
+<script src="{{ url_for('static', filename='stage.js') }}"></script>
+</body>
+</html>

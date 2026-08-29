@@ -109,12 +109,19 @@ def _search_options() -> dict:
     }
 
 
-def search(term: str, limit: int = 20, *, ydl_factory=YoutubeDL) -> list[SearchResult]:
-    """Search YouTube for karaoke versions of ``term``.
+def search(
+    term: str, limit: int = 20, *, karaoke: bool = True, ydl_factory=YoutubeDL
+) -> list[SearchResult]:
+    """Search YouTube, restricted to karaoke versions unless told otherwise.
+
+    The music page searches everything — it is for the records the operator puts
+    on between songs, not for backing tracks.
 
     ``ydl_factory`` exists so tests can inject a stub instead of hitting YouTube.
     """
-    query = build_query(term)
+    query = build_query(term) if karaoke else _WHITESPACE.sub(" ", term).strip()
+    if not query:
+        raise ValueError("Search term is empty")
     limit = max(1, min(int(limit), MAX_RESULTS))
     with ydl_factory(_search_options()) as ydl:
         info = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)

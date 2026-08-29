@@ -58,7 +58,7 @@ def test_status_reports_library(client, library_dir):
 def test_search_endpoint_returns_karaoke_query(client, monkeypatch):
     monkeypatch.setattr(
         "karaoke.server.search",
-        lambda term, limit: [
+        lambda term, limit, karaoke=True: [
             search_module.SearchResult("id1", "Perfect Karaoke", "u", 200, "3:20", "Sing King", "t", 1)
         ],
     )
@@ -72,7 +72,7 @@ def test_search_endpoint_requires_a_term(client):
 
 
 def test_search_endpoint_reports_upstream_failure(client, monkeypatch):
-    def boom(term, limit):
+    def boom(term, limit, karaoke=True):
         raise RuntimeError("YouTube said no")
 
     monkeypatch.setattr("karaoke.server.search", boom)
@@ -142,3 +142,93 @@ def test_port_is_free_detects_a_listening_socket():
         assert port_is_free("127.0.0.1", port) is False
 
     assert port_is_free("127.0.0.1", port) is True
+
+
+def test_music_search_is_not_restricted_to_karaoke(client, monkeypatch):
+    seen = {}
+
+    def fake(term, limit, karaoke=True):
+        seen["karaoke"] = karaoke
+        return []
+
+    monkeypatch.setattr("karaoke.server.search", fake)
+
+    client.get("/api/search?q=perfect")
+    assert seen["karaoke"] is True, "the karaoke page must stay restricted"
+
+    body = client.get("/api/search?mode=music&q=perfect").get_json()
+    assert seen["karaoke"] is False
+    assert body["query"] == "perfect", "music results should not have karaoke appended"
+
+
+def test_stage_starts_idle(client):
+    body = client.get("/api/stage").get_json()
+    assert body["mode"] == "idle"
+    assert body["playing"] is False
+    assert body["viewers"] == 0
+    assert body["volume"] == {"karaoke": 85, "music": 60}
+
+
+def test_stage_page_renders(client):
+    response = client.get("/stage")
+    assert response.status_code == 200
+    assert b"Waiting for the next singer" in response.data
+
+
+def test_playing_a_song_puts_it_on_the_stage(client):
+    body = client.post("/api/stage/karaoke",
+                       json={"name": "Perfect [abc123].mp4", "title": "Perfect"}).get_json()
+    assert body["mode"] == "karaoke"
+    assert body["karaoke"] == {"name": "Perfect [abc123].mp4", "title": "Perfect"}
+    assert body["playing"] is True
+    assert body["nonce"] == 1
+
+    # Playing it again bumps the nonce, which is how the stage knows to restart
+    # rather than carry on from where it was.
+    again = client.post("/api/stage/karaoke",
+                        json={"name": "Perfect [abc123].mp4", "title": "Perfect"}).get_json()
+    assert again["nonce"] == 2
+
+
+def test_stage_refuses_a_song_outside_the_library(client):
+    response = client.post("/api/stage/karaoke", json={"name": "../secret.mp4"})
+    assert response.status_code == 404
+
+
+def test_music_replaces_karaoke_on_the_stage(client):
+    client.post("/api/stage/karaoke", json={"name": "Perfect [abc123].mp4", "title": "Perfect"})
+    body = client.post("/api/stage/music", json={"video_id": "xyz", "title": "A Record"}).get_json()
+    assert body["mode"] == "music"
+    assert body["music"] == {"video_id": "xyz", "title": "A Record"}
+
+
+def test_music_needs_a_video(client):
+    assert client.post("/api/stage/music", json={}).status_code == 400
+
+
+def test_the_mixer_updates_one_channel_without_clearing_the_other(client):
+    body = client.post("/api/stage", json={"volume": {"music": 20}}).get_json()
+    assert body["volume"] == {"karaoke": 85, "music": 20}
+
+
+def test_pausing_and_stopping(client):
+    client.post("/api/stage/karaoke", json={"name": "Perfect [abc123].mp4", "title": "Perfect"})
+    assert client.post("/api/stage", json={"playing": False}).get_json()["playing"] is False
+
+    stopped = client.post("/api/stage/stop").get_json()
+    assert stopped["mode"] == "idle"
+    assert stopped["playing"] is False
+
+
+def test_stage_rejects_unknown_fields(client):
+    assert client.post("/api/stage", json={"nonce": 99}).status_code == 400
+
+
+def test_score_reported_by_the_stage_reaches_the_operator(client):
+    client.post("/api/stage", json={"score": {"value": 88, "rank": "Superstar!"}})
+    assert client.get("/api/stage").get_json()["score"] == {"value": 88, "rank": "Superstar!"}
+
+    # Starting the next song clears the previous singer's score.
+    body = client.post("/api/stage/karaoke",
+                       json={"name": "Perfect [abc123].mp4", "title": "Perfect"}).get_json()
+    assert body["score"] is None
