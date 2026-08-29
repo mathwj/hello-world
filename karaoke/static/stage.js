@@ -8,15 +8,11 @@
 const video = $("#stage-video");
 const waiting = $("#waiting");
 const surface = $("#surface");
-const musicFrame = $("#stage-music");
 const scoreHost = $("#score-host");
 
 const stage = {
   applied: null,       // last state we acted on, to spot what actually changed
   audioUnlocked: false,
-  yt: null,            // the YouTube player, once its API has loaded
-  ytReady: false,
-  pendingMusic: null,  // a video asked for before the API finished loading
 };
 
 /* ---------- sound has to be unlocked once ----------
@@ -52,68 +48,15 @@ function needsUnlock() {
   showStatus("Click anywhere on this screen once to enable sound.");
 }
 
-/* ---------- YouTube ---------- */
-
-window.onYouTubeIframeAPIReady = () => {
-  stage.yt = new YT.Player("yt-player", {
-    height: "100%",
-    width: "100%",
-    playerVars: { controls: 0, modestbranding: 1, rel: 0, playsinline: 1 },
-    events: {
-      onReady: () => {
-        stage.ytReady = true;
-        if (stage.pendingMusic) {
-          const pending = stage.pendingMusic;
-          stage.pendingMusic = null;
-          startMusic(pending.videoId, pending.volume, pending.playing);
-        }
-      },
-    },
-  });
-};
-
-function loadYouTubeApi() {
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  tag.onerror = () => showStatus("Could not reach YouTube — music playback is unavailable.");
-  document.head.appendChild(tag);
-
-  // A blocked request does not always fire onerror — it can simply never
-  // resolve — which would leave a music track showing a caption over a black
-  // screen with no explanation. Say something either way.
-  setTimeout(() => {
-    if (!stage.ytReady) {
-      showStatus("The YouTube player did not load — check this screen's internet connection.");
-    }
-  }, 10000);
-}
-
-function startMusic(videoId, volume, playing) {
-  if (!stage.ytReady || !stage.yt) {
-    stage.pendingMusic = { videoId, volume, playing };
-    return;
-  }
-  stage.yt.loadVideoById(videoId);
-  stage.yt.setVolume(volume);
-  if (!playing) stage.yt.pauseVideo();
-}
-
-function stopMusic() {
-  if (stage.ytReady && stage.yt) stage.yt.stopVideo();
-  stage.pendingMusic = null;
-}
-
 /* ---------- applying state ---------- */
 
 function showWaiting(state) {
   surface.hidden = true;
-  musicFrame.hidden = true;
   scoreHost.hidden = true;
   waiting.hidden = false;
   video.pause();
   video.removeAttribute("src");
   video.load();
-  stopMusic();
   $("#waiting-sub").textContent = state && state.score
     ? "Who is next?"
     : "Waiting for the next singer…";
@@ -121,9 +64,7 @@ function showWaiting(state) {
 
 function applyKaraoke(state, restarted) {
   waiting.hidden = true;
-  musicFrame.hidden = true;
   surface.hidden = false;
-  stopMusic();
 
   const src = `/media/${encodeURIComponent(state.karaoke.name)}`;
   if (restarted || !video.currentSrc.endsWith(encodeURIComponent(state.karaoke.name))) {
@@ -141,23 +82,6 @@ function applyKaraoke(state, restarted) {
   }
 }
 
-function applyMusic(state, restarted) {
-  waiting.hidden = true;
-  surface.hidden = false;
-  musicFrame.hidden = false;
-  scoreHost.hidden = true;
-  video.pause();
-  $("#music-title").textContent = state.music.title || "";
-
-  if (restarted) {
-    startMusic(state.music.video_id, state.volume.music, state.playing);
-  } else if (stage.ytReady && stage.yt) {
-    stage.yt.setVolume(state.volume.music);
-    if (state.playing) stage.yt.playVideo();
-    else stage.yt.pauseVideo();
-  }
-}
-
 function applyState(state, force = false) {
   const previous = stage.applied;
   const restarted = force || !previous || previous.nonce !== state.nonce;
@@ -165,12 +89,9 @@ function applyState(state, force = false) {
 
   // Volume always applies, whatever mode we are in — the mixer must stay live.
   video.volume = Math.max(0, Math.min(1, state.volume.karaoke / 100));
-  if (stage.ytReady && stage.yt) stage.yt.setVolume(state.volume.music);
 
   if (state.mode === "karaoke" && state.karaoke) {
     applyKaraoke(state, restarted);
-  } else if (state.mode === "music" && state.music) {
-    applyMusic(state, restarted);
   } else {
     showWaiting(state);
   }
@@ -221,5 +142,4 @@ function subscribe() {
 }
 
 $("#waiting-hint").textContent = "Click anywhere once to enable sound, then leave this screen alone.";
-loadYouTubeApi();
 subscribe();

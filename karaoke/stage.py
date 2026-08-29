@@ -1,11 +1,13 @@
 """Shared state for the stage screen.
 
 KaraokeBox runs on two screens: the operator drives an interface on their
-laptop, and the audience watches a second screen. Both players — the karaoke
-video and the between-songs music — live on that second screen, because that is
-where the speakers are and what the mixer is mixing. This module is the single
-piece of state they agree on, and the operator's page is effectively a remote
-control for it.
+laptop, and the audience watches a second screen. The stage shows the karaoke
+and nothing else — the between-songs music plays on the operator's own page,
+where they can browse for it. Both windows are on the same Mac and therefore
+the same speakers, which is what the mixer is balancing.
+
+This module is the single piece of state the two screens agree on, and the
+operator's page is effectively a remote control for it.
 
 State changes are pushed to subscribers rather than polled so that tapping play,
 or nudging a volume slider, lands immediately.
@@ -20,18 +22,17 @@ from contextlib import contextmanager
 #: Nothing playing: the stage shows its waiting screen.
 IDLE = "idle"
 KARAOKE = "karaoke"
-MUSIC = "music"
 
 DEFAULT_STATE = {
     "mode": IDLE,
     # The karaoke video currently on the stage, as {name, title}.
     "karaoke": None,
-    # The YouTube video currently on the stage, as {video_id, title}.
-    "music": None,
     "playing": False,
     # Bumped whenever playback should restart from the top rather than resume,
     # which is how the stage tells "play this again" from "carry on".
     "nonce": 0,
+    # The music fader is kept here too, so a reloaded page gets it back, even
+    # though only the karaoke channel is anything the stage acts on.
     "volume": {"karaoke": 85, "music": 60},
     # Set by the stage itself once a song finishes and the score is revealed.
     "score": None,
@@ -83,18 +84,6 @@ class Stage:
         with self._condition:
             self._state["mode"] = KARAOKE
             self._state["karaoke"] = {"name": name, "title": title}
-            self._state["playing"] = True
-            self._state["score"] = None
-            self._state["nonce"] += 1
-            self._version += 1
-            self._condition.notify_all()
-            return self._payload()
-
-    def play_music(self, video_id: str, title: str) -> dict:
-        """Start a YouTube video from the top."""
-        with self._condition:
-            self._state["mode"] = MUSIC
-            self._state["music"] = {"video_id": video_id, "title": title}
             self._state["playing"] = True
             self._state["score"] = None
             self._state["nonce"] += 1

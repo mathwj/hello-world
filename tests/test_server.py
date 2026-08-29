@@ -195,15 +195,10 @@ def test_stage_refuses_a_song_outside_the_library(client):
     assert response.status_code == 404
 
 
-def test_music_replaces_karaoke_on_the_stage(client):
-    client.post("/api/stage/karaoke", json={"name": "Perfect [abc123].mp4", "title": "Perfect"})
-    body = client.post("/api/stage/music", json={"video_id": "xyz", "title": "A Record"}).get_json()
-    assert body["mode"] == "music"
-    assert body["music"] == {"video_id": "xyz", "title": "A Record"}
-
-
-def test_music_needs_a_video(client):
-    assert client.post("/api/stage/music", json={}).status_code == 400
+def test_music_never_reaches_the_stage(client):
+    """Music plays on the operator's laptop; the stage stays on the karaoke."""
+    assert client.post("/api/stage/music", json={"video_id": "xyz"}).status_code == 404
+    assert client.post("/api/stage", json={"music": {"video_id": "xyz"}}).status_code == 400
 
 
 def test_the_mixer_updates_one_channel_without_clearing_the_other(client):

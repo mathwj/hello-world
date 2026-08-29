@@ -13,8 +13,11 @@ const state = {
   jobs: [],
   queued: new Set(),  // video ids queued this session, to disable their buttons
   stage: null,        // the stage's last reported state
-  watching: null,     // the video open in the music page's watch view
-  previewMuted: true, // the preview starts silent so it cannot fight the stage
+  watching: null,     // the video playing on the music page
+  player: null,       // the YouTube player, once its API has loaded
+  playerReady: false,
+  pendingVideo: null, // asked for before the player finished loading
+  ytApi: null,
   pollTimer: null,
   volumeTimer: null,
 };
@@ -73,7 +76,6 @@ function showTab(name) {
     panel.classList.toggle("is-active", panel.id === `panel-${name}`);
   });
   if (name === "library") loadLibrary();
-  if (name !== "music" && state.watching) closeWatch();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -180,9 +182,7 @@ function musicCard(result) {
         <h3 class="card-title">${escapeHtml(result.title)}</h3>
         <p class="card-meta">${escapeHtml(result.channel)}</p>
         <div class="card-actions">
-          <button class="btn btn-primary" data-music="${escapeHtml(result.video_id)}"
-                  data-title="${escapeHtml(result.title)}">Play on stage</button>
-          <button class="btn" data-watch="${escapeHtml(result.video_id)}">Open</button>
+          <button class="btn btn-primary" data-watch="${escapeHtml(result.video_id)}">Play</button>
         </div>
       </div>
     </article>`;
@@ -215,38 +215,95 @@ $("#music-form").addEventListener("submit", async (event) => {
   }
 });
 
-/* YouTube refuses to be framed — youtube.com sends X-Frame-Options: SAMEORIGIN
-   — but /embed/ does not, so this is the real YouTube player, with YouTube's own
-   controls, wrapped in enough browsing to move between videos without leaving.
-   Preview audio starts muted: the stage is the output, this is just for cueing. */
-function embedUrl(videoId, muted) {
-  const params = `autoplay=1&rel=0&modestbranding=1&mute=${muted ? 1 : 0}`;
-  return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params}`;
+/* The music player, here on the operator's laptop.
+
+   youtube.com cannot be put in a frame — it answers with
+   X-Frame-Options: SAMEORIGIN, so browsers refuse — but its /embed/ player can,
+   and that is the real YouTube player with YouTube's own controls. Search,
+   pasted links and channel browsing wrap around it; "Browse YouTube ↗" opens
+   the actual site in its own window for anything this cannot reach.
+
+   It plays here rather than on the stage: both windows are on the same Mac and
+   so the same speakers, and this way the audience screen stays on the karaoke. */
+
+function ytApi() {
+  if (state.ytApi) return state.ytApi;
+  state.ytApi = new Promise((resolve, reject) => {
+    if (window.YT && window.YT.Player) return resolve();
+    window.onYouTubeIframeAPIReady = resolve;
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    tag.onerror = () => reject(new Error("blocked"));
+    document.head.appendChild(tag);
+    // A blocked request does not reliably fire onerror, it can just hang.
+    setTimeout(() => reject(new Error("timed out")), 10000);
+  });
+  return state.ytApi;
 }
 
-function openWatch(result) {
+async function ensurePlayer() {
+  await ytApi();
+  if (state.player) return state.player;
+  state.player = new YT.Player("yt-player", {
+    height: "100%",
+    width: "100%",
+    playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+    events: {
+      onReady: (event) => {
+        state.playerReady = true;
+        event.target.setVolume(Number($("#vol-music").value));
+        if (state.pendingVideo) {
+          event.target.loadVideoById(state.pendingVideo);
+          state.pendingVideo = null;
+        }
+      },
+      onStateChange: renderMusicBar,
+    },
+  });
+  return state.player;
+}
+
+/* Without the API there is no volume control, but there is still a player. */
+function fallbackPlayer(videoId) {
+  const host = $("#yt-player");
+  host.outerHTML = `<iframe id="yt-player" title="YouTube"
+      src="https://www.youtube.com/embed/${encodeURIComponent(videoId)}?autoplay=1&rel=0"
+      allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  $("#watch-note").textContent =
+    "The YouTube API did not load, so the Music fader cannot control this — use the player's own volume.";
+}
+
+async function playMusic(result) {
   state.watching = result;
-  state.previewMuted = true;
   $("#music-browse").hidden = true;
   $("#music-watch").hidden = false;
-  $("#watch-iframe").src = embedUrl(result.video_id, true);
-  $("#watch-sound").textContent = "Sound off";
   $("#watch-title").textContent = result.title;
   $("#watch-channel").textContent = [result.channel, result.duration_label]
     .filter((part) => part && part !== "--:--").join(" · ");
   $("#watch-more").innerHTML = "";
   $("#watch-more-head").hidden = true;
+  $("#watch-note").textContent = "";
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (result.lookup_error) toast(result.lookup_error, true);
+
+  try {
+    const player = await ensurePlayer();
+    if (state.playerReady) player.loadVideoById(result.video_id);
+    else state.pendingVideo = result.video_id;
+  } catch (error) {
+    fallbackPlayer(result.video_id);
+  }
+  renderMusicBar();
   loadMoreFrom(result.channel);
 }
 
-function closeWatch() {
+function stopMusic() {
+  if (state.player && state.playerReady) state.player.stopVideo();
   state.watching = null;
-  // Clearing the src is what actually stops the preview playing.
-  $("#watch-iframe").removeAttribute("src");
+  state.pendingVideo = null;
   $("#music-watch").hidden = true;
   $("#music-browse").hidden = false;
+  renderMusicBar();
 }
 
 /* Keeps browsing going the way related videos would on YouTube itself. */
@@ -264,29 +321,24 @@ async function loadMoreFrom(channel) {
   }
 }
 
-async function playOnStage(videoId, title) {
-  try {
-    await postJson("/api/stage/music", { video_id: videoId, title });
-    toast(`Playing “${title}” on the stage`);
-    if (!state.stage || !state.stage.viewers) {
-      toast("No stage screen is connected — open the Stage link.", true);
-    }
-  } catch (error) {
-    toast(error.message, true);
-  }
+/* The music keeps playing while the operator works in other tabs, so its
+   controls live in a bar of their own rather than inside the Music page. */
+function renderMusicBar() {
+  const live = Boolean(state.watching);
+  $("#musicbar").hidden = !live;
+  if (!live) return;
+  $("#music-now-title").textContent = state.watching.title;
+  const playing = state.player && state.playerReady
+    && state.player.getPlayerState && state.player.getPlayerState() === 1;
+  $("#music-toggle").textContent = playing ? "Pause" : "Resume";
 }
 
 function onMusicGridClick(event) {
-  const play = event.target.closest("[data-music]");
-  if (play) {
-    playOnStage(play.dataset.music, play.dataset.title);
-    return;
-  }
-  const watch = event.target.closest("[data-watch]");
-  if (!watch) return;
-  const card = watch.closest(".card");
-  openWatch({
-    video_id: watch.dataset.watch,
+  const button = event.target.closest("[data-watch]");
+  if (!button) return;
+  const card = button.closest(".card");
+  playMusic({
+    video_id: button.dataset.watch,
     title: card.querySelector(".card-title").textContent,
     channel: (card.querySelector(".card-meta") || {}).textContent || "",
     duration_label: (card.querySelector(".card-duration") || {}).textContent || "",
@@ -295,19 +347,21 @@ function onMusicGridClick(event) {
 
 $("#music-results").addEventListener("click", onMusicGridClick);
 $("#watch-more").addEventListener("click", onMusicGridClick);
-$("#watch-back").addEventListener("click", closeWatch);
 
-$("#watch-stage").addEventListener("click", () => {
-  if (state.watching) playOnStage(state.watching.video_id, state.watching.title);
+$("#watch-back").addEventListener("click", () => {
+  // Back to browsing, but the music carries on — that is the point of it.
+  $("#music-watch").hidden = true;
+  $("#music-browse").hidden = false;
 });
 
-$("#watch-sound").addEventListener("click", () => {
-  if (!state.watching) return;
-  state.previewMuted = !state.previewMuted;
-  // The embed cannot be unmuted without reloading it, so the preview restarts.
-  $("#watch-iframe").src = embedUrl(state.watching.video_id, state.previewMuted);
-  $("#watch-sound").textContent = state.previewMuted ? "Sound off" : "Sound on";
+$("#music-toggle").addEventListener("click", () => {
+  if (!state.player || !state.playerReady) return;
+  if (state.player.getPlayerState() === 1) state.player.pauseVideo();
+  else state.player.playVideo();
+  setTimeout(renderMusicBar, 200);
 });
+
+$("#music-stop").addEventListener("click", stopMusic);
 
 $("#music-paste-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -319,7 +373,7 @@ $("#music-paste-form").addEventListener("submit", async (event) => {
   try {
     const result = await api(`/api/music/resolve?url=${encodeURIComponent(raw)}`);
     $("#music-url").value = "";
-    openWatch(result);
+    playMusic(result);
   } catch (error) {
     toast(error.message, true);
   } finally {
@@ -487,9 +541,15 @@ function sendVolume() {
 }
 
 function onFaderMoved(event) {
-  const out = event.target.id === "vol-karaoke" ? "#vol-karaoke-out" : "#vol-music-out";
-  $(out).textContent = event.target.value;
-  // Coalesce the flood of input events a dragged slider produces.
+  const isMusic = event.target.id === "vol-music";
+  $(isMusic ? "#vol-music-out" : "#vol-karaoke-out").textContent = event.target.value;
+  // The music plays on this machine, so its fader acts at once with no round
+  // trip. The karaoke fader has to reach the stage, hence the post below.
+  if (isMusic && state.player && state.playerReady) {
+    state.player.setVolume(Number(event.target.value));
+  }
+  // Coalesce the flood of input events a dragged slider produces. Both faders
+  // are still stored server-side so a reloaded page comes back where it was.
   clearTimeout(state.volumeTimer);
   state.volumeTimer = setTimeout(sendVolume, 60);
 }
@@ -529,13 +589,10 @@ function renderStage(next) {
     $("#vol-music-out").textContent = next.volume.music;
   }
 
-  const live = next.mode !== "idle" && (next.karaoke || next.music);
+  const live = next.mode === "karaoke" && next.karaoke;
   $("#nowbar").hidden = !live;
   if (live) {
-    const isKaraoke = next.mode === "karaoke";
-    $("#now-kind").textContent = isKaraoke ? "Singing" : "Music";
-    $("#now-kind").className = `now-kind ${isKaraoke ? "is-karaoke" : "is-music"}`;
-    $("#now-title").textContent = isKaraoke ? next.karaoke.title : next.music.title;
+    $("#now-title").textContent = next.karaoke.title;
     $("#now-toggle").textContent = next.playing ? "Pause" : "Resume";
   }
 

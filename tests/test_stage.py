@@ -1,7 +1,7 @@
 import threading
 import time
 
-from karaoke.stage import IDLE, KARAOKE, MUSIC, Stage
+from karaoke.stage import IDLE, KARAOKE, Stage
 
 
 def test_version_advances_on_every_change():
@@ -25,14 +25,13 @@ def test_playing_a_song_sets_the_whole_mode():
     assert state["nonce"] == 1
 
 
-def test_switching_to_music_leaves_the_karaoke_selection_alone():
-    """The operator can put a record on and still see what was last sung."""
+def test_the_stage_has_no_music_mode():
+    """Between-songs music plays on the operator's page, not the stage."""
     stage = Stage()
-    stage.play_karaoke("Song.mp4", "Song")
-    stage.play_music("abc", "A Record")
-    state = stage.snapshot()
-    assert state["mode"] == MUSIC
-    assert state["karaoke"]["name"] == "Song.mp4"
+    assert "music" not in stage.snapshot()
+    assert not hasattr(stage, "play_music")
+    # The music fader is still remembered, so a reloaded page gets it back.
+    assert stage.snapshot()["volume"]["music"] == 60
 
 
 def test_stop_returns_to_the_waiting_screen():

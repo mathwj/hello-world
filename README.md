@@ -44,8 +44,8 @@ KaraokeBox runs on two screens: the **operator console** on your laptop, and the
    interacts with the page, and nobody touches the stage screen once the night
    starts. The console's *Stage ready* light turns green when it is connected.
 
-Nothing plays on the laptop. Every player lives on the stage, so the console
-stays free for you to work on while a song is running.
+The karaoke plays on the stage; the between-songs music plays on the laptop.
+Either way the console stays free to search and download while something runs.
 
 ## Using it
 
@@ -55,11 +55,12 @@ stays free for you to work on while a song is running.
 2. **My songs** — your library. *Play on stage* starts the song on the audience
    screen and marks the card *On stage*. When it ends, the score screen and its
    drum roll play there too — for the room, not for you.
-3. **Music** — a YouTube browser for the records between singers. Search, or
-   paste any YouTube link. *Open* gives you the real YouTube player to preview
-   in (silent by default, so it cannot fight the stage — there is a *Sound*
-   toggle), with more from the same channel underneath to keep browsing.
-   *Play on stage* sends it to the audience screen.
+3. **Music** — a YouTube browser for the records between singers, playing **on
+   your laptop**, not on the stage: both windows are on the same Mac and so the
+   same speakers, and the audience screen stays on the karaoke. Search, paste
+   any YouTube link, or hit *Browse YouTube ↗* for the real site in its own
+   window. Playing a track keeps it going while you work in the other tabs —
+   its controls move to a bar of their own.
 4. **The mixer** sits in the top bar of every tab: one fader for the karaoke, one
    for the music, so you can duck the record as the next singer steps up.
 5. The bar under the header shows what is playing, with *Pause* and *Stop*, and
@@ -150,7 +151,7 @@ karaoke/
   library.py     reads the download folder + yt-dlp's .info.json sidecars
   config.py      locates ffmpeg and a JavaScript runtime, bundled or your own
   diagnose.py    the --doctor report
-  stage.py       the state both screens agree on, pushed to whoever is watching
+  stage.py       the karaoke state both screens agree on, pushed to watchers
   server.py      Flask JSON API and media streaming (HTTP Range, so seeking works)
   static/        app.js is the console, stage.js the audience screen,
                  score.js the reveal they share

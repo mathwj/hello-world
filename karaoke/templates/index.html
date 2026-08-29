@@ -41,8 +41,17 @@
   </div>
 </header>
 
+<div class="nowbar musicbar" id="musicbar" hidden>
+  <span class="now-kind is-music">Music</span>
+  <span class="now-title" id="music-now-title"></span>
+  <div class="now-actions">
+    <button class="btn btn-ghost" id="music-toggle">Pause</button>
+    <button class="btn btn-ghost" id="music-stop">Stop</button>
+  </div>
+</div>
+
 <div class="nowbar" id="nowbar" hidden>
-  <span class="now-kind" id="now-kind"></span>
+  <span class="now-kind">Singing</span>
   <span class="now-title" id="now-title"></span>
   <span class="now-score" id="now-score" hidden></span>
   <div class="now-actions">
@@ -81,8 +90,10 @@
       <form class="searchbar paste-bar" id="music-paste-form" autocomplete="off">
         <input id="music-url" type="text" placeholder="…or paste a YouTube link" aria-label="YouTube link">
         <button type="submit" class="btn">Open</button>
+        <a class="btn" id="open-youtube" href="https://www.youtube.com" target="_blank" rel="noopener"
+           title="YouTube forbids being shown inside another page, so this opens a real browser window">Browse YouTube ↗</a>
       </form>
-      <p class="hint" id="music-hint">Music for between the singers. Plays on the stage screen, mixed against the karaoke.</p>
+      <p class="hint" id="music-hint">Music for between the singers. Plays here on your laptop, mixed against the karaoke on the stage.</p>
       <div class="grid" id="music-results"></div>
       <p class="empty" id="music-empty">Search for something to play between karaokes.</p>
     </div>
@@ -90,12 +101,10 @@
     <div id="music-watch" hidden>
       <div class="watch-head">
         <button class="btn btn-ghost" id="watch-back">&larr; Back</button>
-        <button class="btn" id="watch-sound">Sound off</button>
-        <button class="btn btn-primary" id="watch-stage">Play on stage</button>
+        <span class="watch-note" id="watch-note"></span>
       </div>
       <div class="watch-frame">
-        <iframe id="watch-iframe" title="YouTube preview"
-                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        <div id="yt-player"></div>
       </div>
       <h2 class="watch-title" id="watch-title"></h2>
       <p class="watch-meta" id="watch-channel"></p>

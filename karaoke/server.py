@@ -54,7 +54,7 @@ def create_app(
     def stage_update():
         """Partial state update — volume changes, pause, resume."""
         payload = request.get_json(silent=True) or {}
-        allowed = {"mode", "playing", "volume", "score", "music", "karaoke"}
+        allowed = {"mode", "playing", "volume", "score", "karaoke"}
         changes = {key: value for key, value in payload.items() if key in allowed}
         if not changes:
             return jsonify({"error": "Nothing to change."}), 400
@@ -89,14 +89,6 @@ def create_app(
                 "lookup_error": explain_error(exc),
             }
         return jsonify(result)
-
-    @app.post("/api/stage/music")
-    def stage_play_music():
-        payload = request.get_json(silent=True) or {}
-        video_id = (payload.get("video_id") or "").strip()
-        if not video_id:
-            return jsonify({"error": "No video to play."}), 400
-        return jsonify(show.play_music(video_id, (payload.get("title") or "").strip()))
 
     @app.post("/api/stage/stop")
     def stage_stop():
