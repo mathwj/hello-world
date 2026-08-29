@@ -1,0 +1,65 @@
+"""Runtime configuration.
+
+Everything is overridable through environment variables so the launcher script
+(and tests) can point the app at a different folder without touching code.
+"""
+
+from __future__ import annotations
+
+import os
+import shutil
+from pathlib import Path
+
+#: Where downloaded karaoke videos live. macOS keeps user video in ~/Movies.
+DEFAULT_DOWNLOAD_DIR = Path.home() / "Movies" / "Karaoke"
+
+#: Media containers we are willing to list in the library and stream back.
+MEDIA_EXTENSIONS = {".mp4", ".mkv", ".webm", ".m4v", ".mov"}
+
+#: Image containers written alongside a download by ``--write-thumbnail``.
+THUMBNAIL_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+
+
+def download_dir() -> Path:
+    """Return (and create) the folder downloads are written to."""
+    raw = os.environ.get("KARAOKE_DIR")
+    path = Path(raw).expanduser() if raw else DEFAULT_DOWNLOAD_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def host() -> str:
+    return os.environ.get("KARAOKE_HOST", "127.0.0.1")
+
+
+def port() -> int:
+    return int(os.environ.get("KARAOKE_PORT", "8770"))
+
+
+def max_concurrent_downloads() -> int:
+    return max(1, int(os.environ.get("KARAOKE_CONCURRENCY", "2")))
+
+
+def cookies_from_browser() -> str | None:
+    """Browser to pull YouTube cookies from, e.g. ``safari`` or ``chrome``.
+
+    YouTube sometimes answers with "Sign in to confirm you're not a bot". Handing
+    yt-dlp the cookies of a browser that is already signed in clears that check.
+    """
+    value = (os.environ.get("KARAOKE_COOKIES_FROM_BROWSER") or "").strip().lower()
+    return value or None
+
+
+def ydl_cookie_options() -> dict:
+    """yt-dlp options carrying the configured browser cookies (empty if unset)."""
+    browser = cookies_from_browser()
+    return {"cookiesfrombrowser": (browser,)} if browser else {}
+
+
+def ffmpeg_path() -> str | None:
+    """Path to ffmpeg, or ``None`` when it is not installed.
+
+    yt-dlp needs ffmpeg to merge YouTube's separate video and audio streams into
+    a single file. Without it we fall back to a lower quality pre-muxed stream.
+    """
+    return shutil.which("ffmpeg")
