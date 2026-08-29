@@ -10,8 +10,12 @@
 <body class="stage-body">
 
 <div class="waiting" id="waiting">
-  <div class="waiting-mark">&#127908;</div>
-  <h1 class="waiting-title">KaraokeBox</h1>
+  {% if logo %}
+    <img class="waiting-logo" src="{{ url_for('static', filename=logo) }}" alt="KaraokeBox">
+  {% else %}
+    <div class="waiting-mark">&#127908;</div>
+    <h1 class="waiting-title">KaraokeBox</h1>
+  {% endif %}
   <p class="waiting-sub" id="waiting-sub">Waiting for the next singer…</p>
   <p class="waiting-hint" id="waiting-hint"></p>
 </div>

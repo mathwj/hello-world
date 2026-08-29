@@ -64,3 +64,12 @@
   font-size: 13px;
   z-index: 30;
 }
+
+/* The logo carries the waiting screen when one is supplied. */
+.waiting-logo {
+  width: min(62vw, 900px);
+  max-height: 42vh;
+  object-fit: contain;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 0 70px rgba(0, 255, 255, 0.25));
+}

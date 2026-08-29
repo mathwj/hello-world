@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -314,3 +315,34 @@ def test_starting_a_song_clears_a_previous_reveal(client):
     body = client.post("/api/stage/karaoke",
                        json={"name": "Perfect [abc123].mp4", "title": "Perfect"}).get_json()
     assert body["reveal"] is None
+
+
+@pytest.fixture
+def static_dir():
+    from karaoke import server as server_module
+
+    return Path(server_module.__file__).parent / "static"
+
+
+def test_the_wordmark_is_used_when_no_logo_is_supplied(client, static_dir):
+    existing = [p for p in static_dir.glob("logo.*")]
+    assert not existing, f"a logo file is checked in: {existing}"
+
+    assert b"brand-mark" in client.get("/").data
+    assert b"waiting-mark" in client.get("/stage").data
+
+
+def test_a_supplied_logo_replaces_the_wordmark_on_both_screens(client, static_dir):
+    """Drop a logo into static/ and both screens use it, no code change."""
+    logo = static_dir / "logo.png"
+    logo.write_bytes(b"\x89PNG\r\n\x1a\n")          # enough to exist
+    try:
+        operator = client.get("/").data
+        stage = client.get("/stage").data
+        assert b"brand-logo" in operator and b"logo.png" in operator
+        assert b"waiting-logo" in stage and b"logo.png" in stage
+        # The fallbacks step aside rather than sitting behind it.
+        assert b"brand-mark" not in operator
+        assert b"waiting-mark" not in stage
+    finally:
+        logo.unlink()

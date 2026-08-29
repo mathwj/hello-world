@@ -94,6 +94,14 @@ Either way the console stays free to search and download while something runs.
 
 Songs are saved to `~/Movies/Karaoke` by default.
 
+## Your own logo
+
+Drop a file named `logo.svg` (or `.png`, `.webp`, `.jpg`) into
+`karaoke/static/` and both screens use it — the operator's top bar and the
+stage's waiting card — in place of the wordmark and microphone. Nothing else to
+change. A wide, transparent-background image works best; light artwork suits
+both screens, which are near-black.
+
 ## Configuration
 
 All settings are environment variables:

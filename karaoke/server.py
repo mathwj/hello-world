@@ -37,14 +37,25 @@ def create_app(
     show = stage or Stage()
     app.config["STAGE"] = show
 
+    #: Drop a logo in karaoke/static as logo.svg or logo.png and both screens
+    #: pick it up; without one they fall back to the wordmark and microphone.
+    LOGO_NAMES = ("logo.svg", "logo.png", "logo.webp", "logo.jpg", "logo.jpeg")
+
+    def find_logo() -> str | None:
+        static = Path(app.static_folder)
+        for name in LOGO_NAMES:
+            if (static / name).is_file():
+                return name
+        return None
+
     @app.get("/")
     def index():
-        return render_template("index.html", version=__version__)
+        return render_template("index.html", version=__version__, logo=find_logo())
 
     @app.get("/stage")
     def stage_screen():
         """The audience screen. Open this on the second display."""
-        return render_template("stage.html", version=__version__)
+        return render_template("stage.html", version=__version__, logo=find_logo())
 
     @app.get("/api/stage")
     def stage_state():

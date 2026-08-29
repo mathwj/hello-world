@@ -9,11 +9,16 @@
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">&#127908;</span>
-    <div>
-      <h1>KaraokeBox</h1>
-      <p class="brand-sub">Operator</p>
-    </div>
+    {% if logo %}
+      <img class="brand-logo" src="{{ url_for('static', filename=logo) }}" alt="KaraokeBox">
+      <p class="brand-sub brand-sub-alone">Operator</p>
+    {% else %}
+      <span class="brand-mark">&#127908;</span>
+      <div>
+        <h1>KaraokeBox</h1>
+        <p class="brand-sub">Operator</p>
+      </div>
+    {% endif %}
   </div>
 
   <nav class="tabs" role="tablist">

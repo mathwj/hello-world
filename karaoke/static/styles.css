@@ -700,3 +700,9 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
 .muffle { border-color: var(--border); background: var(--bg-raised); }
 .muffle:hover { border-color: var(--accent); background: var(--bg-hover); color: var(--text); }
 .muffle.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+
+/* ---------- a supplied logo ---------- */
+
+/* Sized by height so any aspect ratio sits correctly on the bar. */
+.brand-logo { height: 34px; width: auto; max-width: 340px; object-fit: contain; display: block; }
+.brand-sub-alone { margin: 0; align-self: center; }
