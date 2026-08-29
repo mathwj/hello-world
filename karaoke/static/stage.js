@@ -192,43 +192,93 @@ video.addEventListener("loadedmetadata", reportProgress);
 video.addEventListener("pause", reportProgress);
 video.addEventListener("ended", reportProgress);
 
-/* ---------- the beat ----------
+/* ---------- the slime ----------
 
-   The waiting screen rests at #141414 and flashes the brand gradient on each
-   bass kick, which is found on the operator's laptop where the music actually
-   plays and pushed here. The type and the logo travel with it: at rest they
-   are light against the dark, and on the kick they turn to ink against the
-   cyan — a white logo would disappear the instant the screen lit up. */
+   The waiting screen stays #141414 with cyan shapes drifting across it. Each
+   is a soft radial gradient drawn additively, so where two overlap they brighten
+   and fuse; blurred together by CSS they read as one organic mass rather than a
+   handful of circles.
 
+   Every blob follows its own pair of slow sines at frequencies that do not
+   divide into each other, so the mass never visibly repeats. The music arrives
+   as bass kicks found on the operator's laptop and pushed here: each one swells
+   the blobs and lifts their colour, then drains away, which is what makes the
+   whole thing look like it is breathing in time. */
+
+const BLOB_COUNT = 7;
 const beat = { level: 0, seen: null };
+const slime = { canvas: null, ctx: null, blobs: [], width: 0, height: 0 };
 
-const INK = [20, 20, 20];
-const PAPER = [255, 255, 255];
-const mix = (from, to, t) => from.map((v, i) => Math.round(v + (to[i] - v) * t));
-const rgba = (channels, alpha) => `rgba(${channels.join(",")},${alpha})`;
+// Rendered well below screen resolution: it is blurred past recognition
+// anyway, and a full-size canvas repainted every frame is wasted work.
+const SLIME_SCALE = 0.5;
 
-function paintBeat() {
-  // Decay per frame. Gentle enough that at dance tempo the screen breathes
-  // between kicks rather than strobing between full cyan and full black —
-  // this is a wall-sized, very high contrast surface a whole room is facing.
-  // Lower the multiplier for a snappier flash, raise it for a slower swell.
+const random = (min, max) => min + Math.random() * (max - min);
+
+function buildSlime() {
+  slime.canvas = $("#slime");
+  slime.ctx = slime.canvas.getContext("2d");
+
+  slime.blobs = Array.from({ length: BLOB_COUNT }, () => ({
+    homeX: random(0.1, 0.9),
+    homeY: random(0.1, 0.9),
+    driftX: random(0.14, 0.34),
+    driftY: random(0.12, 0.3),
+    // Deliberately unrelated speeds, so the paths never fall into step.
+    speedX: random(0.017, 0.049),
+    speedY: random(0.013, 0.043),
+    phaseX: random(0, Math.PI * 2),
+    phaseY: random(0, Math.PI * 2),
+    radius: random(0.19, 0.34),
+    breath: random(0, Math.PI * 2),
+  }));
+
+  sizeSlime();
+  window.addEventListener("resize", sizeSlime);
+  requestAnimationFrame(drawSlime);
+}
+
+function sizeSlime() {
+  slime.width = Math.max(1, Math.round(window.innerWidth * SLIME_SCALE));
+  slime.height = Math.max(1, Math.round(window.innerHeight * SLIME_SCALE));
+  slime.canvas.width = slime.width;
+  slime.canvas.height = slime.height;
+}
+
+function drawSlime(now) {
+  // A kick lands hard and drains away before the next one.
   beat.level = beat.level < 0.01 ? 0 : beat.level * 0.93;
   const kick = beat.level;
 
-  waiting.style.setProperty("--kick", kick.toFixed(3));
+  const { ctx, width, height } = slime;
+  const seconds = now / 1000;
+  const reach = Math.min(width, height);
 
-  const ink = mix(PAPER, INK, kick);
-  const title = $(".waiting-title");
-  if (title) title.style.color = rgba(ink, 1);
-  $("#waiting-sub").style.color = rgba(ink, 0.72);
-  $("#waiting-hint").style.color = rgba(ink, 0.62);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.fillStyle = "#141414";
+  ctx.fillRect(0, 0, width, height);
 
-  const logo = $(".waiting-logo");
-  // brightness(0) blackens the artwork; the invert then lifts it back to white
-  // as the cyan drains, so it stays legible at both ends.
-  if (logo) logo.style.filter = `brightness(0) invert(${(1 - kick).toFixed(3)})`;
+  // Additive, so overlaps brighten into one body instead of stacking edges.
+  ctx.globalCompositeOperation = "lighter";
+  for (const blob of slime.blobs) {
+    const x = width * (blob.homeX + blob.driftX * Math.sin(seconds * blob.speedX * 6.283 + blob.phaseX));
+    const y = height * (blob.homeY + blob.driftY * Math.cos(seconds * blob.speedY * 6.283 + blob.phaseY));
+    const swell = 1 + 0.09 * Math.sin(seconds * 0.55 + blob.breath) + 0.4 * kick;
+    const radius = reach * blob.radius * swell;
 
-  requestAnimationFrame(paintBeat);
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, `rgba(0, 255, 255, ${(0.78 + 0.22 * kick).toFixed(3)})`);
+    gradient.addColorStop(0.45, `rgba(0, 236, 236, ${(0.34 + 0.26 * kick).toFixed(3)})`);
+    gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  requestAnimationFrame(drawSlime);
 }
 
 function subscribeBeat() {
@@ -241,7 +291,7 @@ function subscribeBeat() {
       return;
     }
     // The first frame is whatever was last sent before we connected: history,
-    // not a beat, so adopt it rather than flashing on a kick already past.
+    // not a beat, so adopt it rather than surging on a kick already past.
     if (beat.seen === null) {
       beat.seen = payload.seq;
       return;
@@ -283,6 +333,6 @@ function subscribe() {
 }
 
 $("#waiting-hint").textContent = "Click anywhere once to enable sound, then leave this screen alone.";
+buildSlime();
 subscribeBeat();
-requestAnimationFrame(paintBeat);
 subscribe();

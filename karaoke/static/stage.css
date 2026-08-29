@@ -18,17 +18,34 @@
   background: #141414;
 }
 
-/* The brand colour arrives on the kick and drains away between beats. */
-.waiting::before {
+/* The slime lives behind everything, blurred into one gooey mass. Rendering it
+   softly and then blurring is what turns separate circles into shapes that
+   merge and part like liquid; the slight contrast firms their edges without
+   flattening the gradient inside them. */
+.slime {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* The canvas is already soft from being drawn small and scaled up, so the
+     blur here only has to fuse the blobs; more than this and they turn into a
+     murky wash rather than shapes. */
+  filter: blur(14px) contrast(1.5) saturate(1.25);
+}
+
+/* Everything sits above the slime rather than being washed out by it. */
+.waiting > *:not(.slime) { position: relative; z-index: 1; }
+
+/* A calm patch under the wordmark, so a bright blob drifting through cannot
+   swallow the text. */
+.waiting::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(150deg, #00ffff 0%, #00eded 100%);
-  opacity: var(--kick, 0);
+  background: radial-gradient(ellipse 40% 30% at 50% 50%, rgba(20, 20, 20, 0.55), transparent 72%);
+  z-index: 1;
+  pointer-events: none;
 }
-
-/* Everything sits above that layer rather than being washed out by it. */
-.waiting > * { position: relative; z-index: 1; }
 
 .waiting-mark { font-size: clamp(60px, 11vw, 130px); animation: sway 4s ease-in-out infinite; }
 
@@ -39,19 +56,28 @@
 
 .waiting-title {
   margin: 0;
-  /* The waiting card is the brand colour itself now, so its type is the ink. */
-  color: #141414;
+  color: var(--text);
+  /* The slime surges bright on a kick, and drifts anywhere; the type has to
+     stay readable when a blob passes behind it, not just at rest. */
+  text-shadow: 0 2px 22px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.7);
   font-size: clamp(40px, 8vw, 96px);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
-.waiting-sub { margin: 0; font-size: clamp(16px, 2.2vw, 26px); color: rgba(20, 20, 20, 0.72); }
+.waiting-sub {
+  margin: 0;
+  font-size: clamp(16px, 2.2vw, 26px);
+  color: var(--text);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.7);
+}
 
 .waiting-hint {
   margin: 26px 0 0;
   font-size: 14px;
-  color: rgba(20, 20, 20, 0.62);
+  color: var(--text);
+  opacity: 0.8;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 0, 0, 0.8);
   max-width: 60ch;
 }
 
@@ -81,7 +107,6 @@
   max-height: 42vh;
   object-fit: contain;
   margin-bottom: 6px;
-  /* Renders the artwork solid black whatever colour it was drawn in, keeping
-     its transparency — so a white logo still reads against the cyan. */
-  filter: brightness(0);
+  /* The screen stays dark, so light artwork reads as drawn. */
+  filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.55));
 }

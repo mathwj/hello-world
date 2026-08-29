@@ -10,6 +10,7 @@
 <body class="stage-body">
 
 <div class="waiting" id="waiting">
+  <canvas class="slime" id="slime" aria-hidden="true"></canvas>
   {% if logo %}
     <img class="waiting-logo" src="{{ url_for('static', filename=logo) }}" alt="KaraokeBox">
   {% else %}
