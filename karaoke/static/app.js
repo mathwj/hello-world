@@ -30,6 +30,15 @@ function escapeHtml(value) {
   })[ch]);
 }
 
+function formatViews(count) {
+  if (count === null || count === undefined) return "";
+  const round = (value) => value.toFixed(1).replace(/\.0$/, "");
+  if (count >= 1e9) return `${round(count / 1e9)}B views`;
+  if (count >= 1e6) return `${round(count / 1e6)}M views`;
+  if (count >= 1e3) return `${round(count / 1e3)}K views`;
+  return `${count} view${count === 1 ? "" : "s"}`;
+}
+
 function formatBytes(bytes) {
   if (!bytes) return "";
   const units = ["B", "KB", "MB", "GB"];
@@ -76,6 +85,8 @@ function showTab(name) {
     panel.classList.toggle("is-active", panel.id === `panel-${name}`);
   });
   if (name === "library") loadLibrary();
+  // The embedded browser breaks out of the page's reading width.
+  document.body.classList.toggle("is-browsing", IS_DESKTOP && name === "music");
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -99,7 +110,7 @@ function searchCard(result) {
       </div>
       <div class="card-body">
         <h3 class="card-title">${escapeHtml(result.title)}</h3>
-        <p class="card-meta">${escapeHtml(result.channel)}</p>
+        <p class="card-meta">${escapeHtml(formatViews(result.view_count))}</p>
         <div class="card-actions">
           <button class="btn btn-primary" data-download="${escapeHtml(result.video_id)}"
                   data-title="${escapeHtml(result.title)}"
@@ -509,7 +520,6 @@ function libraryCard(song) {
       </div>
       <div class="card-body">
         <h3 class="card-title">${escapeHtml(song.title)}</h3>
-        <p class="card-meta">${escapeHtml(song.channel)} &middot; ${formatBytes(song.size_bytes)}</p>
         <div class="card-actions">
           <button class="btn btn-primary" data-play="${escapeHtml(song.name)}"
                   data-title="${escapeHtml(song.title)}">Play on stage</button>

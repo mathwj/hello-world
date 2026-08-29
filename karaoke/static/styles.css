@@ -531,3 +531,15 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
   border-radius: var(--radius);
   background: #fff;
 }
+
+/* ---------- library covers ---------- */
+
+/* Sleeves are a wall of clashing thumbnails otherwise; in black and white the
+   titles do the talking and the cyan stays the only colour on the page. */
+#library-results .card-thumb img { filter: grayscale(1); }
+#library-results .card:hover .card-thumb img { filter: grayscale(0.55); }
+
+/* ---------- full-width embedded browser ---------- */
+
+body.is-browsing main { max-width: none; padding: 14px 18px 18px; }
+body.is-browsing .panel.is-browser.is-active { height: calc(100vh - 150px); }
