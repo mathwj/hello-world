@@ -24,7 +24,11 @@ DONE = "done"
 FAILED = "failed"
 
 #: Prefer a real mp4 so QuickTime/Safari can play it; fall back progressively.
-FORMAT_WITH_FFMPEG = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+#: The bare `bestvideo+bestaudio` rung matters for videos YouTube offers only
+#: above 1080p, and `best` for the rare one with no separate streams at all.
+FORMAT_WITH_FFMPEG = (
+    "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best[height<=1080]/best"
+)
 FORMAT_NO_FFMPEG = "best[ext=mp4]/best"
 
 #: ``%(title).120B`` truncates on byte boundaries, so long titles stay valid.
@@ -165,6 +169,7 @@ class DownloadManager:
         }
         if has_ffmpeg:
             options["merge_output_format"] = "mp4"
+            options["ffmpeg_location"] = config.ffmpeg_path()
         return options
 
     def _download(self, job_id: str) -> None:
@@ -200,11 +205,23 @@ BOT_CHECK_HINT = (
 )
 
 
+#: Raised when no format matched. Almost always means ffmpeg is missing and
+#: YouTube offered this video only as separate video and audio streams.
+NO_FORMAT_HINT = (
+    "YouTube only offers this video as separate video and audio streams, and "
+    "ffmpeg — which joins them — was not found. Install it with "
+    "`.venv/bin/pip install imageio-ffmpeg` (or `brew install ffmpeg`) and "
+    "restart KaraokeBox."
+)
+
+
 def explain_error(exc: Exception) -> str:
     """Turn a raw yt-dlp error into something worth showing in the UI."""
     message = str(exc) or exc.__class__.__name__
     if "not a bot" in message or "Sign in to confirm" in message:
         return BOT_CHECK_HINT
+    if "Requested format is not available" in message:
+        return NO_FORMAT_HINT
     if "Video unavailable" in message or "private video" in message.lower():
         return "That video is unavailable — try another result."
     # yt-dlp prefixes its own errors; the prefix adds nothing for the user.

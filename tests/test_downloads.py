@@ -171,3 +171,41 @@ def test_ensure_ca_bundle_falls_back_to_certifi_on_an_empty_store(monkeypatch):
     assert bundle and bundle.endswith(".pem")
     assert os.environ["SSL_CERT_FILE"] == bundle
     assert os.environ["REQUESTS_CA_BUNDLE"] == bundle
+
+
+def test_explain_error_points_at_ffmpeg_when_no_format_matched():
+    message = downloads.explain_error(RuntimeError("ERROR: Requested format is not available"))
+    assert "ffmpeg" in message and "imageio-ffmpeg" in message
+
+
+def test_ffmpeg_options_carry_the_resolved_binary(tmp_path, monkeypatch):
+    manager = DownloadManager(tmp_path, workers=1)
+    monkeypatch.setattr(downloads.config, "ffmpeg_path", lambda: "/somewhere/ffmpeg")
+    assert manager._ydl_options("job")["ffmpeg_location"] == "/somewhere/ffmpeg"
+
+
+def test_ffmpeg_path_prefers_an_explicit_override(tmp_path, monkeypatch):
+    from karaoke import config
+
+    fake = tmp_path / "ffmpeg"
+    fake.write_text("#!/bin/sh\n")
+    monkeypatch.setenv("KARAOKE_FFMPEG", str(fake))
+    assert config.ffmpeg_path() == str(fake)
+
+
+def test_ffmpeg_path_prefers_a_system_install_over_the_bundled_one(monkeypatch):
+    from karaoke import config
+
+    monkeypatch.delenv("KARAOKE_FFMPEG", raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda name: "/opt/homebrew/bin/ffmpeg")
+    assert config.ffmpeg_path() == "/opt/homebrew/bin/ffmpeg"
+
+
+def test_ffmpeg_path_falls_back_to_the_bundled_binary(monkeypatch):
+    from karaoke import config
+
+    monkeypatch.delenv("KARAOKE_FFMPEG", raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda name: None)
+    # The imageio-ffmpeg wheel ships a real binary, so this resolves to a path.
+    assert config.ffmpeg_path() == config._bundled_ffmpeg()
+    assert config.ffmpeg_path() is not None

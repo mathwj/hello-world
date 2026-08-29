@@ -11,13 +11,10 @@ the original recordings.
 ## Requirements
 
 - macOS with Python 3 (`python3 --version`; install with `brew install python` if missing)
-- `ffmpeg`, strongly recommended — YouTube serves HD video and audio as separate
-  streams and ffmpeg merges them. Without it, downloads fall back to a lower
-  quality pre-muxed stream.
-
-```sh
-brew install ffmpeg
-```
+That is genuinely all. ffmpeg — which joins YouTube's separate video and audio
+streams, and which most videos now require — is installed automatically as a
+Python package, so you do not need Homebrew or Xcode's command line tools. If
+you already have your own ffmpeg on `PATH`, KaraokeBox uses that instead.
 
 ## Run it
 
@@ -52,6 +49,7 @@ All settings are environment variables:
 | `KARAOKE_HOST` | `127.0.0.1` | Interface to bind |
 | `KARAOKE_CONCURRENCY` | `2` | Simultaneous downloads |
 | `KARAOKE_COOKIES_FROM_BROWSER` | unset | Browser to take YouTube cookies from (see below) |
+| `KARAOKE_FFMPEG` | unset | Path to a specific ffmpeg binary |
 | `KARAOKE_NO_BROWSER` | unset | Set to `1` to not auto-open a browser tab |
 | `KARAOKE_SKIP_UPDATE` | unset | Set to `1` to skip the yt-dlp update on launch |
 
@@ -85,8 +83,10 @@ this one, double-click **Install Certificates.command** inside your
 tracks those changes. `run.sh` updates yt-dlp on every launch, so quitting and
 relaunching usually fixes it.
 
-**Video plays with no sound, or quality is low.** ffmpeg is missing —
-`brew install ffmpeg`, then re-download the song.
+**"YouTube only offers this video as separate video and audio streams."**
+ffmpeg could not be found. It normally installs with everything else; force it
+with `.venv/bin/pip install imageio-ffmpeg`, or point `KARAOKE_FFMPEG` at an
+ffmpeg you already have.
 
 ## How it works
 

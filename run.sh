@@ -16,17 +16,15 @@ if [ ! -d "$VENV" ]; then
   echo "Setting up KaraokeBox (first run only)…"
   "$PYTHON" -m venv "$VENV"
   "$VENV/bin/pip" install --quiet --upgrade pip
-  "$VENV/bin/pip" install --quiet -r requirements.txt
 fi
+
+# Run every time, not just on first launch, so pulling an update that adds a
+# dependency actually installs it. This is a no-op once requirements are met.
+"$VENV/bin/pip" install --quiet -r requirements.txt
 
 # YouTube changes often; a stale yt-dlp is the usual cause of failed downloads.
 if [ "${KARAOKE_SKIP_UPDATE:-0}" != "1" ]; then
   "$VENV/bin/pip" install --quiet --upgrade yt-dlp || echo "Could not update yt-dlp — continuing with the installed version."
-fi
-
-if ! command -v ffmpeg >/dev/null 2>&1; then
-  echo "Note: ffmpeg not found. Downloads will use a lower-quality single stream."
-  echo "      Install it for best quality:  brew install ffmpeg"
 fi
 
 exec "$VENV/bin/python" -m karaoke

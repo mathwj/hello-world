@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import shutil
+from functools import lru_cache
 from pathlib import Path
 
 #: Where downloaded karaoke videos live. macOS keeps user video in ~/Movies.
@@ -56,10 +57,33 @@ def ydl_cookie_options() -> dict:
     return {"cookiesfrombrowser": (browser,)} if browser else {}
 
 
-def ffmpeg_path() -> str | None:
-    """Path to ffmpeg, or ``None`` when it is not installed.
+@lru_cache(maxsize=1)
+def _bundled_ffmpeg() -> str | None:
+    """ffmpeg from the imageio-ffmpeg wheel, installed alongside our other deps.
 
-    yt-dlp needs ffmpeg to merge YouTube's separate video and audio streams into
-    a single file. Without it we fall back to a lower quality pre-muxed stream.
+    This is the fallback that matters on a Mac: Homebrew's ffmpeg needs Homebrew,
+    which needs Xcode's command line tools, which plenty of people do not have.
+    The wheel just carries a static binary.
     """
-    return shutil.which("ffmpeg")
+    try:
+        import imageio_ffmpeg
+    except ImportError:
+        return None
+    try:
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+    return exe if exe and os.path.exists(exe) else None
+
+
+def ffmpeg_path() -> str | None:
+    """Path to ffmpeg, or ``None`` when none can be found.
+
+    yt-dlp needs ffmpeg to join YouTube's separate video and audio streams.
+    Increasingly YouTube offers nothing else, so without it a download can fail
+    outright rather than merely dropping in quality.
+    """
+    override = os.environ.get("KARAOKE_FFMPEG")
+    if override and os.path.exists(override):
+        return override
+    return shutil.which("ffmpeg") or _bundled_ffmpeg()
