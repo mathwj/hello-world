@@ -8,14 +8,17 @@ const scoreState = { frame: null, roll: null };
 
 /* ---------- score screen ---------- */
 
-/* Bands are read top-down: the first whose minimum the score clears wins. */
+/* Bands are read top-down: the first whose minimum the score clears wins.
+   The room reads these, so they are in Brazilian Portuguese — phrased the way
+   someone would actually say it, and kept clear of gendered adjectives, since
+   whoever is holding the microphone could be anyone. */
 const SCORE_BANDS = [
-  { min: 95, band: "legend", rank: "Legendary. Someone call a record label." },
-  { min: 85, band: "great",  rank: "Superstar!" },
-  { min: 70, band: "great",  rank: "Crowd pleaser." },
-  { min: 50, band: "ok",     rank: "Not bad at all." },
-  { min: 30, band: "rough",  rank: "The crowd is being polite." },
-  { min: 0,  band: "rough",  rank: "Brave. Very brave." },
+  { min: 95, band: "legend", rank: "Lendário. Chama a gravadora." },
+  { min: 85, band: "great",  rank: "Arrasou!" },
+  { min: 70, band: "great",  rank: "A plateia amou." },
+  { min: 50, band: "ok",     rank: "Nada mal." },
+  { min: 30, band: "rough",  rank: "A plateia tá sendo educada." },
+  { min: 0,  band: "rough",  rank: "Que coragem. Muita coragem." },
 ];
 
 const SCORE_ROLL_SECONDS = 5;

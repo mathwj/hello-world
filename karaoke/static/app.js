@@ -934,8 +934,8 @@ function renderStage(next) {
 
   const score = next.score;
   $("#now-score").hidden = !score;
-  if (score) $("#now-score").textContent = `Scored ${score.value} — ${score.rank}`;
-  if (score && (!previous || !previous.score)) toast(`Score: ${score.value}`);
+  if (score) $("#now-score").textContent = `Nota ${score.value} — ${score.rank}`;
+  if (score && (!previous || !previous.score)) toast(`Nota: ${score.value}`);
 
   // "On stage" badges in the library follow whatever is playing.
   if (!previous || previous.mode !== next.mode
