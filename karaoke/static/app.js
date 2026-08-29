@@ -955,8 +955,23 @@ function subscribeToStage() {
   };
 }
 
+/* The top bar wraps to two rows, and its height changes with the window, so
+   everything pinned beneath it follows the measured value rather than a
+   constant that goes stale the moment the layout reflows. */
+function trackTopbarHeight() {
+  const topbar = document.querySelector(".topbar");
+  const publish = () => {
+    document.documentElement.style.setProperty(
+      "--topbar-h", `${Math.round(topbar.getBoundingClientRect().height)}px`);
+  };
+  publish();
+  if (window.ResizeObserver) new ResizeObserver(publish).observe(topbar);
+  else window.addEventListener("resize", publish);
+}
+
 /* ---------- boot ---------- */
 
+trackTopbarHeight();
 if (IS_DESKTOP) {
   setUpYouTubeView();
 } else {

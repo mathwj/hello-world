@@ -371,6 +371,11 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 .mixer {
   display: flex;
   align-items: center;
+  /* Always its own full-width row under the tabs, spread across the bar: the
+     faders are easier to hit with room around them than crammed in a corner. */
+  order: 3;
+  width: 100%;
+  justify-content: space-between;
   gap: 18px;
   padding: 8px 14px;
   border: 1px solid var(--border);
@@ -423,7 +428,7 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 
 .nowbar {
   position: sticky;
-  top: 76px;
+  top: var(--topbar-h, 132px);
   z-index: 9;
   display: flex;
   align-items: center;
@@ -468,10 +473,6 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
   z-index: 2;
 }
 
-@media (max-width: 1100px) {
-  .mixer { order: 3; width: 100%; justify-content: space-between; }
-}
-
 /* ---------- music: watch view ---------- */
 
 .paste-bar { margin-top: 10px; }
@@ -510,7 +511,11 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 
 /* ---------- the embedded browser (desktop build) ---------- */
 
-.panel.is-browser.is-active { display: flex; flex-direction: column; height: calc(100vh - 210px); }
+.panel.is-browser.is-active {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h, 132px) - 130px);
+}
 
 .yt-bar { display: flex; align-items: center; gap: 6px; padding: 0 0 10px; }
 .yt-bar .btn { padding: 7px 12px; font-size: 14px; }
@@ -544,7 +549,7 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 /* ---------- full-width embedded browser ---------- */
 
 body.is-browsing main { max-width: none; padding: 14px 18px 18px; }
-body.is-browsing .panel.is-browser.is-active { height: calc(100vh - 150px); }
+body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar-h, 132px) - 66px); }
 
 /* ---------- my songs: a list, not a grid ---------- */
 
