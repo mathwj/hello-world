@@ -5,3 +5,6 @@ yt-dlp>=2024.1.0
 certifi>=2024.2.2
 # Supplies a static ffmpeg binary, so merging works without Homebrew/Xcode.
 imageio-ffmpeg>=0.5
+# YouTube gates its format URLs behind a JavaScript challenge; yt-dlp needs a
+# JS runtime (Node 22+) to solve it, and this wheel supplies one.
+nodejs-wheel-binaries>=22

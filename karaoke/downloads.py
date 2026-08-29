@@ -166,6 +166,7 @@ class DownloadManager:
             "fragment_retries": 5,
             "progress_hooks": [self._progress_hook(job_id)],
             **config.ydl_cookie_options(),
+            **config.ydl_js_options(),
         }
         if has_ffmpeg:
             options["merge_output_format"] = "mp4"
@@ -208,10 +209,11 @@ BOT_CHECK_HINT = (
 #: Raised when no format matched. Almost always means ffmpeg is missing and
 #: YouTube offered this video only as separate video and audio streams.
 NO_FORMAT_HINT = (
-    "YouTube only offers this video as separate video and audio streams, and "
-    "ffmpeg — which joins them — was not found. Install it with "
-    "`.venv/bin/pip install imageio-ffmpeg` (or `brew install ffmpeg`) and "
-    "restart KaraokeBox."
+    "None of YouTube's formats could be used. This usually means a missing "
+    "JavaScript runtime — YouTube hides its download links behind a JavaScript "
+    "challenge that yt-dlp needs Node or Deno to solve. Restart KaraokeBox so it "
+    "can install one, or run `.venv/bin/pip install nodejs-wheel-binaries` "
+    "yourself. If it persists, ffmpeg may also be missing."
 )
 
 

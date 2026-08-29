@@ -11,10 +11,16 @@ the original recordings.
 ## Requirements
 
 - macOS with Python 3 (`python3 --version`; install with `brew install python` if missing)
-That is genuinely all. ffmpeg — which joins YouTube's separate video and audio
-streams, and which most videos now require — is installed automatically as a
-Python package, so you do not need Homebrew or Xcode's command line tools. If
-you already have your own ffmpeg on `PATH`, KaraokeBox uses that instead.
+That is genuinely all. Two helper programs are needed to download from YouTube,
+and both install automatically as Python packages — no Homebrew, no Xcode
+command line tools:
+
+- **A JavaScript runtime.** YouTube hides its download links behind a JavaScript
+  challenge that yt-dlp must solve, so Node is installed alongside the app. If
+  you already run Deno, Bun, or your own Node, KaraokeBox uses that instead.
+- **ffmpeg**, which joins YouTube's separate video and audio streams. Most
+  videos now offer nothing else, so this is required rather than a nicety. Your
+  own ffmpeg on `PATH` wins if you have one.
 
 ## Run it
 
@@ -50,6 +56,7 @@ All settings are environment variables:
 | `KARAOKE_CONCURRENCY` | `2` | Simultaneous downloads |
 | `KARAOKE_COOKIES_FROM_BROWSER` | unset | Browser to take YouTube cookies from (see below) |
 | `KARAOKE_FFMPEG` | unset | Path to a specific ffmpeg binary |
+| `KARAOKE_JS_RUNTIME` | unset | Path to a specific deno/bun/node/quickjs binary |
 | `KARAOKE_NO_BROWSER` | unset | Set to `1` to not auto-open a browser tab |
 | `KARAOKE_SKIP_UPDATE` | unset | Set to `1` to skip the yt-dlp update on launch |
 
@@ -83,10 +90,15 @@ this one, double-click **Install Certificates.command** inside your
 tracks those changes. `run.sh` updates yt-dlp on every launch, so quitting and
 relaunching usually fixes it.
 
-**"YouTube only offers this video as separate video and audio streams."**
-ffmpeg could not be found. It normally installs with everything else; force it
-with `.venv/bin/pip install imageio-ffmpeg`, or point `KARAOKE_FFMPEG` at an
-ffmpeg you already have.
+**"None of YouTube's formats could be used"** / `Requested format is not
+available`. Almost always a missing JavaScript runtime — without one, yt-dlp
+cannot unlock the download links, so searching keeps working while every
+download fails. The startup banner's `js` line says whether one was found. To
+force the install:
+
+```sh
+.venv/bin/pip install nodejs-wheel-binaries imageio-ffmpeg
+```
 
 ## How it works
 
@@ -95,6 +107,7 @@ karaoke/
   search.py      forces "karaoke" into the query, runs yt-dlp's ytsearch
   downloads.py   thread-pool download queue with live progress
   library.py     reads the download folder + yt-dlp's .info.json sidecars
+  config.py      locates ffmpeg and a JavaScript runtime, bundled or your own
   server.py      Flask JSON API and media streaming (HTTP Range, so seeking works)
   static/        the UI
 ```

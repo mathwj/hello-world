@@ -24,6 +24,13 @@ def main() -> None:
     elif tls.system_ca_count() == 0:
         print("  certs   : WARNING no certificates found — searches will fail.")
         print("            Fix with:  .venv/bin/pip install certifi")
+    runtime = config.js_runtime()
+    if runtime:
+        print(f"  js      : {runtime[0]} ({runtime[1]})")
+    else:
+        print("  js      : WARNING none found — downloads will fail.")
+        print("            Fix with:  .venv/bin/pip install nodejs-wheel-binaries")
+
     if config.ffmpeg_path() is None:
         print("  ffmpeg  : not found — downloads fall back to lower quality.")
         print("            Install it with:  brew install ffmpeg")

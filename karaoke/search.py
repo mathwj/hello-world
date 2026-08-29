@@ -105,6 +105,7 @@ def _search_options() -> dict:
         "extract_flat": "in_playlist",
         "default_search": "ytsearch",
         **config.ydl_cookie_options(),
+        **config.ydl_js_options(),
     }
 
 

@@ -173,11 +173,6 @@ def test_ensure_ca_bundle_falls_back_to_certifi_on_an_empty_store(monkeypatch):
     assert os.environ["REQUESTS_CA_BUNDLE"] == bundle
 
 
-def test_explain_error_points_at_ffmpeg_when_no_format_matched():
-    message = downloads.explain_error(RuntimeError("ERROR: Requested format is not available"))
-    assert "ffmpeg" in message and "imageio-ffmpeg" in message
-
-
 def test_ffmpeg_options_carry_the_resolved_binary(tmp_path, monkeypatch):
     manager = DownloadManager(tmp_path, workers=1)
     monkeypatch.setattr(downloads.config, "ffmpeg_path", lambda: "/somewhere/ffmpeg")
@@ -209,3 +204,65 @@ def test_ffmpeg_path_falls_back_to_the_bundled_binary(monkeypatch):
     # The imageio-ffmpeg wheel ships a real binary, so this resolves to a path.
     assert config.ffmpeg_path() == config._bundled_ffmpeg()
     assert config.ffmpeg_path() is not None
+
+
+def test_js_runtime_prefers_a_deliberately_installed_runtime(monkeypatch):
+    from karaoke import config
+
+    monkeypatch.delenv("KARAOKE_JS_RUNTIME", raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda name: "/usr/local/bin/deno" if name == "deno" else None)
+    assert config.js_runtime() == ("deno", "/usr/local/bin/deno")
+
+
+def test_js_runtime_falls_back_to_the_bundled_node(monkeypatch):
+    from karaoke import config
+
+    monkeypatch.delenv("KARAOKE_JS_RUNTIME", raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda name: None)
+    name, path = config.js_runtime()
+    assert name == "node"
+    assert path == config._bundled_node() and path is not None
+
+
+def test_js_runtime_prefers_bundled_node_over_an_unknown_path_node(monkeypatch):
+    from karaoke import config
+
+    # yt-dlp needs Node 22+; a node on PATH may be anything, ours is known good.
+    monkeypatch.delenv("KARAOKE_JS_RUNTIME", raising=False)
+    monkeypatch.setattr(config.shutil, "which", lambda name: "/usr/bin/node" if name == "node" else None)
+    assert config.js_runtime()[1] == config._bundled_node()
+
+
+def test_js_runtime_honours_an_explicit_override(tmp_path, monkeypatch):
+    from karaoke import config
+
+    fake = tmp_path / "deno"
+    fake.write_text("#!/bin/sh\n")
+    monkeypatch.setenv("KARAOKE_JS_RUNTIME", str(fake))
+    assert config.js_runtime() == ("deno", str(fake))
+
+
+def test_js_runtime_ignores_an_override_that_is_not_a_known_runtime(tmp_path, monkeypatch):
+    from karaoke import config
+
+    fake = tmp_path / "python"
+    fake.write_text("#!/bin/sh\n")
+    monkeypatch.setenv("KARAOKE_JS_RUNTIME", str(fake))
+    monkeypatch.setattr(config.shutil, "which", lambda name: None)
+    assert config.js_runtime()[0] == "node"
+
+
+def test_downloads_and_search_both_get_the_js_runtime(tmp_path, monkeypatch):
+    from karaoke import config, search as search_module
+
+    manager = DownloadManager(tmp_path, workers=1)
+    assert "js_runtimes" in manager._ydl_options("job")
+    assert "js_runtimes" in search_module._search_options()
+
+    monkeypatch.setattr(config, "js_runtime", lambda: None)
+    assert "js_runtimes" not in manager._ydl_options("job")
+
+
+def test_explain_error_points_at_the_js_runtime_when_no_format_matched():
+    message = downloads.explain_error(RuntimeError("ERROR: Requested format is not available"))
+    assert "JavaScript" in message

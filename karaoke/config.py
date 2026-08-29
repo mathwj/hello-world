@@ -57,6 +57,59 @@ def ydl_cookie_options() -> dict:
     return {"cookiesfrombrowser": (browser,)} if browser else {}
 
 
+#: JavaScript runtimes yt-dlp can drive. YouTube now hides its format URLs
+#: behind a JS challenge, so without one of these a download fails with
+#: "Requested format is not available" even though the video is fine.
+JS_RUNTIMES = ("deno", "bun", "node", "quickjs")
+
+
+@lru_cache(maxsize=1)
+def _bundled_node() -> str | None:
+    """Node from the nodejs-wheel-binaries package, installed with our deps."""
+    try:
+        import nodejs_wheel
+    except ImportError:
+        return None
+    binary = "node.exe" if os.name == "nt" else "node"
+    path = Path(nodejs_wheel.__file__).parent / "bin" / binary
+    return str(path) if path.exists() else None
+
+
+def js_runtime() -> tuple[str, str] | None:
+    """The JavaScript runtime to hand yt-dlp, as ``(name, path)``.
+
+    A runtime the user installed deliberately wins. Our bundled Node is
+    preferred over one merely found on PATH, because yt-dlp requires Node 22+
+    and the bundled copy is known to satisfy that.
+    """
+    override = os.environ.get("KARAOKE_JS_RUNTIME")
+    if override and os.path.exists(override):
+        name = Path(override).stem.lower()
+        if name in JS_RUNTIMES:
+            return name, override
+
+    for name in ("deno", "bun"):
+        found = shutil.which(name)
+        if found:
+            return name, found
+
+    bundled = _bundled_node()
+    if bundled:
+        return "node", bundled
+
+    for name in ("node", "quickjs"):
+        found = shutil.which(name)
+        if found:
+            return name, found
+    return None
+
+
+def ydl_js_options() -> dict:
+    """yt-dlp options selecting the JavaScript runtime (empty if none found)."""
+    runtime = js_runtime()
+    return {"js_runtimes": {runtime[0]: {"path": runtime[1]}}} if runtime else {}
+
+
 @lru_cache(maxsize=1)
 def _bundled_ffmpeg() -> str | None:
     """ffmpeg from the imageio-ffmpeg wheel, installed alongside our other deps.
