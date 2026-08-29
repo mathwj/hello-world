@@ -99,8 +99,10 @@ Songs are saved to `~/Movies/Karaoke` by default.
 Drop a file named `logo.svg` (or `.png`, `.webp`, `.jpg`) into
 `karaoke/static/` and both screens use it — the operator's top bar and the
 stage's waiting card — in place of the wordmark and microphone. Nothing else to
-change. A wide, transparent-background image works best; light artwork suits
-both screens, which are near-black.
+change. A wide, transparent-background image works best. The operator's bar is
+near-black, so light artwork suits it; the stage's waiting card is cyan and
+renders the logo solid black whatever colour it was drawn in, so a white
+transparent export works on both.
 
 ## Configuration
 

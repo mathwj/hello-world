@@ -15,7 +15,7 @@
   justify-content: center;
   gap: 10px;
   text-align: center;
-  background: radial-gradient(circle at 50% 35%, #10312f, #0d0d0d 70%);
+  background: linear-gradient(150deg, #00ffff 0%, #00eded 100%);
 }
 
 .waiting-mark { font-size: clamp(60px, 11vw, 130px); animation: sway 4s ease-in-out infinite; }
@@ -27,21 +27,19 @@
 
 .waiting-title {
   margin: 0;
-  /* The one place the brand colour gets to be the loudest thing in the room. */
-  color: var(--accent);
-  text-shadow: 0 0 70px rgba(0, 255, 255, 0.28);
+  /* The waiting card is the brand colour itself now, so its type is the ink. */
+  color: #141414;
   font-size: clamp(40px, 8vw, 96px);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
-.waiting-sub { margin: 0; font-size: clamp(16px, 2.2vw, 26px); color: var(--text-dim); }
+.waiting-sub { margin: 0; font-size: clamp(16px, 2.2vw, 26px); color: rgba(20, 20, 20, 0.72); }
 
 .waiting-hint {
   margin: 26px 0 0;
   font-size: 14px;
-  color: var(--text-dim);
-  opacity: 0.75;
+  color: rgba(20, 20, 20, 0.62);
   max-width: 60ch;
 }
 
@@ -71,5 +69,7 @@
   max-height: 42vh;
   object-fit: contain;
   margin-bottom: 6px;
-  filter: drop-shadow(0 0 70px rgba(0, 255, 255, 0.25));
+  /* Renders the artwork solid black whatever colour it was drawn in, keeping
+     its transparency — so a white logo still reads against the cyan. */
+  filter: brightness(0);
 }
