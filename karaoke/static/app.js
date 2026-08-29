@@ -348,16 +348,17 @@ function getNoise(ctx) {
   return noiseBuffer;
 }
 
-/* One snare stroke: a band-passed noise crack plus a short tonal body. */
+/* One snare stroke: a band-passed noise crack plus a short tonal body.
+   Used for the accent only — putting a pitched body on every stroke of a roll
+   makes it sound like a motor rather than a drum. */
 function snareHit(ctx, out, at, level, decay, tone = 190) {
   const noise = ctx.createBufferSource();
   noise.buffer = getNoise(ctx);
-  // Vary each stroke slightly so the roll does not sound like one looped click.
   noise.playbackRate.value = 0.85 + Math.random() * 0.3;
   const band = ctx.createBiquadFilter();
   band.type = "bandpass";
-  band.frequency.value = 1900;
-  band.Q.value = 0.7;
+  band.frequency.value = 2400;
+  band.Q.value = 0.5;
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(level, at);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
@@ -384,7 +385,7 @@ function snareHit(ctx, out, at, level, decay, tone = 190) {
 
 /* The finish: a hard accented snare plus a cymbal-ish wash under it. */
 function accentHit(ctx, out, at) {
-  const sources = snareHit(ctx, out, at, 0.85, 0.35, 240);
+  const sources = snareHit(ctx, out, at, 0.98, 0.4, 240);
 
   const wash = ctx.createBufferSource();
   wash.buffer = getNoise(ctx);
@@ -392,7 +393,7 @@ function accentHit(ctx, out, at) {
   high.type = "highpass";
   high.frequency.value = 5000;
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.45, at);
+  gain.gain.setValueAtTime(0.55, at);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.1);
   wash.connect(high);
   high.connect(gain);
@@ -402,6 +403,112 @@ function accentHit(ctx, out, at) {
 
   sources.push(wash);
   return sources;
+}
+
+/* The roll itself, rendered a sample at a time into one buffer.
+   A press roll is not a sequence of separate taps — it is a continuous sizzle
+   with strokes riding on top of it. So this lays down a noise bed that swells,
+   then adds double-stroked bounces over it at an accelerating rate. Scheduling
+   discrete hits instead leaves audible gaps between them, which is what made
+   the first attempt tick like a woodblock. */
+let rollBuffer = null;
+
+//: Peak amplitude of the roll. The accent is scheduled well above it.
+const ROLL_CEILING = 0.5;
+
+function buildRollBuffer(ctx, seconds) {
+  if (rollBuffer && rollBuffer.sampleRate === ctx.sampleRate && rollBuffer.duration >= seconds) {
+    return rollBuffer;
+  }
+  const rate = ctx.sampleRate;
+  const frames = Math.ceil(rate * seconds);
+  const buffer = ctx.createBuffer(1, frames, rate);
+  const data = buffer.getChannelData(0);
+
+  // The bed: never silent, and louder as the roll builds.
+  for (let i = 0; i < frames; i += 1) {
+    const progress = i / frames;
+    const bed = 0.06 + 0.26 * progress * progress;
+    data[i] = (Math.random() * 2 - 1) * bed;
+  }
+
+  // Strokes, each with the bounce that turns a tap into a buzz.
+  const strokes = [];
+  let at = 0;
+  while (at < seconds) {
+    const progress = at / seconds;
+    const perSecond = 13 + 25 * Math.pow(progress, 1.5);
+    strokes.push(at);
+    strokes.push(at + (0.55 + Math.random() * 0.2) / perSecond);
+    at += 1 / perSecond;
+  }
+
+  for (const stroke of strokes) {
+    const progress = Math.min(1, stroke / seconds);
+    const level = 0.22 + 0.42 * progress;
+    const decayFrames = Math.floor(0.032 * rate);
+    const start = Math.floor(stroke * rate);
+    for (let i = 0; i < decayFrames && start + i < frames; i += 1) {
+      const envelope = Math.exp((-5 * i) / decayFrames);
+      data[start + i] += (Math.random() * 2 - 1) * level * envelope;
+    }
+  }
+
+  // Swell, then soft-clip so the peaks stay musical.
+  let loudest = 0;
+  for (let i = 0; i < frames; i += 1) {
+    data[i] = Math.tanh(data[i] * (0.6 + 0.75 * (i / frames)) * 1.6);
+    loudest = Math.max(loudest, Math.abs(data[i]));
+  }
+  // Normalise to a fixed ceiling. The roll builds tension; the accent is the
+  // payoff, so the roll must stay clearly under it however the shaping above
+  // is tuned. Without this the clipped roll peaked louder than the final hit.
+  if (loudest > 0) {
+    const ceiling = ROLL_CEILING / loudest;
+    for (let i = 0; i < frames; i += 1) data[i] *= ceiling;
+  }
+
+  // Duck the last few milliseconds to nothing. That sliver of near-silence is
+  // what makes the accent land like a payoff instead of merely continuing the
+  // noise — the ear reads impact from the jump, not from absolute level.
+  const duck = Math.floor(0.05 * rate);
+  for (let i = 0; i < duck; i += 1) {
+    const index = frames - duck + i;
+    if (index >= 0) data[index] *= Math.pow(1 - i / duck, 1.7);
+  }
+
+  rollBuffer = buffer;
+  return buffer;
+}
+
+/* Schedules the roll and its accent on any context — including an offline one,
+   which is how this gets rendered and checked without a speaker. */
+function scheduleRoll(ctx, out, startAt, seconds) {
+  const source = ctx.createBufferSource();
+  source.buffer = buildRollBuffer(ctx, seconds);
+
+  // Shape it like a snare: no rumble underneath, presence in the middle, and
+  // the very top rolled off so the noise does not hiss.
+  const high = ctx.createBiquadFilter();
+  high.type = "highpass";
+  high.frequency.value = 220;
+  const presence = ctx.createBiquadFilter();
+  presence.type = "peaking";
+  presence.frequency.value = 3200;
+  presence.Q.value = 0.8;
+  presence.gain.value = 5;
+  const low = ctx.createBiquadFilter();
+  low.type = "lowpass";
+  low.frequency.value = 9000;
+
+  source.connect(high);
+  high.connect(presence);
+  presence.connect(low);
+  low.connect(out);
+  source.start(startAt);
+  source.stop(startAt + seconds);
+
+  return [source, ...accentHit(ctx, out, startAt + seconds)];
 }
 
 /* Strokes accelerate and swell, and the accent lands exactly on `seconds`. */
@@ -414,15 +521,7 @@ function playDrumRoll(seconds) {
   out.connect(ctx.destination);
 
   const startAt = ctx.currentTime + 0.06; // a little lead so nothing clips
-  const sources = [];
-  let offset = 0;
-  while (offset < seconds) {
-    const progress = offset / seconds;
-    const strokesPerSecond = 9 + 30 * Math.pow(progress, 1.7);
-    sources.push(...snareHit(ctx, out, startAt + offset, 0.05 + 0.11 * progress, 0.05));
-    offset += 1 / strokesPerSecond;
-  }
-  sources.push(...accentHit(ctx, out, startAt + seconds));
+  const sources = scheduleRoll(ctx, out, startAt, seconds);
 
   return { ctx, out, sources, startAt, revealAt: startAt + seconds };
 }
