@@ -534,10 +534,12 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 
 /* ---------- library covers ---------- */
 
-/* Sleeves are a wall of clashing thumbnails otherwise; in black and white the
-   titles do the talking and the cyan stays the only colour on the page. */
-#library-results .card-thumb img { filter: grayscale(1); }
-#library-results .card:hover .card-thumb img { filter: grayscale(0.55); }
+/* Sleeves are a wall of clashing thumbnails otherwise — gold Sing King, pink
+   KaraFun — and in black and white the titles do the talking while the cyan
+   stays the only colour on the page. Applies to every result grid, not just
+   the library, so searching and browsing look like one thing. */
+.card-thumb img { filter: grayscale(1); }
+.card:hover .card-thumb img { filter: grayscale(0.55); }
 
 /* ---------- full-width embedded browser ---------- */
 

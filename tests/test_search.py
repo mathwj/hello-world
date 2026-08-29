@@ -171,3 +171,47 @@ def test_video_details_reads_one_video():
     assert result.title == "A Record"
     assert result.duration_label == "3:32"
     assert "dQw4w9WgXcQ" in captured["ydl"].requested
+
+
+def test_results_come_back_most_viewed_first():
+    entries = [
+        {"id": "a", "title": "twenty one thousand", "view_count": 21_000},
+        {"id": "b", "title": "twenty five million", "view_count": 25_100_000},
+        {"id": "c", "title": "ten million", "view_count": 10_700_000},
+    ]
+
+    def factory(options):
+        return FakeYDL(options, entries=entries)
+
+    assert [r.title for r in search("what", ydl_factory=factory)] == [
+        "twenty five million",
+        "ten million",
+        "twenty one thousand",
+    ]
+
+
+def test_results_with_no_view_count_sort_last():
+    entries = [
+        {"id": "a", "title": "unknown"},
+        {"id": "b", "title": "a thousand", "view_count": 1000},
+    ]
+
+    def factory(options):
+        return FakeYDL(options, entries=entries)
+
+    assert [r.title for r in search("what", ydl_factory=factory)] == ["a thousand", "unknown"]
+
+
+def test_ties_keep_youtube_own_ordering():
+    entries = [
+        {"id": "a", "title": "first from youtube", "view_count": 500},
+        {"id": "b", "title": "second from youtube", "view_count": 500},
+    ]
+
+    def factory(options):
+        return FakeYDL(options, entries=entries)
+
+    assert [r.title for r in search("what", ydl_factory=factory)] == [
+        "first from youtube",
+        "second from youtube",
+    ]
