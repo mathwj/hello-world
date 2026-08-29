@@ -7,6 +7,7 @@ const state = {
   library: [],
   jobs: [],
   scoreFrame: null,   // in-flight requestAnimationFrame for the score roll
+  roll: null,         // the scheduled drum roll, so it can be cut short
   queued: new Set(),   // video ids queued this session, to disable their buttons
   pollTimer: null,
 };
@@ -302,6 +303,8 @@ const SCORE_BANDS = [
   { min: 0,  band: "rough",  rank: "Brave. Very brave." },
 ];
 
+const SCORE_ROLL_SECONDS = 5;
+
 function bandFor(score) {
   return SCORE_BANDS.find((entry) => score >= entry.min);
 }
@@ -313,16 +316,154 @@ function randomScore() {
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* Spins the digits, slowing down and closing in on the final score. */
+/* ---------- drum roll ----------
+   Synthesised with the Web Audio API rather than shipped as an audio file, so
+   there is nothing to download and nothing to license. Everything is scheduled
+   on the audio clock up front, which is what lets the reveal land exactly on
+   the final snare instead of drifting a frame or two away from it. */
+
+let audioContext = null;
+let noiseBuffer = null;
+
+function getAudioContext() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioContext) {
+    try {
+      audioContext = new Ctx();
+    } catch (error) {
+      return null;
+    }
+  }
+  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  return audioContext;
+}
+
+function getNoise(ctx) {
+  if (noiseBuffer) return noiseBuffer;
+  const frames = Math.floor(ctx.sampleRate * 1.3);
+  noiseBuffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < frames; i += 1) data[i] = Math.random() * 2 - 1;
+  return noiseBuffer;
+}
+
+/* One snare stroke: a band-passed noise crack plus a short tonal body. */
+function snareHit(ctx, out, at, level, decay, tone = 190) {
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoise(ctx);
+  // Vary each stroke slightly so the roll does not sound like one looped click.
+  noise.playbackRate.value = 0.85 + Math.random() * 0.3;
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 1900;
+  band.Q.value = 0.7;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(level, at);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+  noise.connect(band);
+  band.connect(gain);
+  gain.connect(out);
+  noise.start(at);
+  noise.stop(at + decay + 0.02);
+
+  const body = ctx.createOscillator();
+  body.type = "triangle";
+  body.frequency.setValueAtTime(tone, at);
+  body.frequency.exponentialRampToValueAtTime(tone * 0.5, at + decay);
+  const bodyGain = ctx.createGain();
+  bodyGain.gain.setValueAtTime(level * 0.3, at);
+  bodyGain.gain.exponentialRampToValueAtTime(0.0001, at + decay * 0.9);
+  body.connect(bodyGain);
+  bodyGain.connect(out);
+  body.start(at);
+  body.stop(at + decay + 0.02);
+
+  return [noise, body];
+}
+
+/* The finish: a hard accented snare plus a cymbal-ish wash under it. */
+function accentHit(ctx, out, at) {
+  const sources = snareHit(ctx, out, at, 0.85, 0.35, 240);
+
+  const wash = ctx.createBufferSource();
+  wash.buffer = getNoise(ctx);
+  const high = ctx.createBiquadFilter();
+  high.type = "highpass";
+  high.frequency.value = 5000;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.45, at);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.1);
+  wash.connect(high);
+  high.connect(gain);
+  gain.connect(out);
+  wash.start(at);
+  wash.stop(at + 1.15);
+
+  sources.push(wash);
+  return sources;
+}
+
+/* Strokes accelerate and swell, and the accent lands exactly on `seconds`. */
+function playDrumRoll(seconds) {
+  const ctx = getAudioContext();
+  if (!ctx) return null;
+
+  const out = ctx.createGain();
+  out.gain.value = 0.9;
+  out.connect(ctx.destination);
+
+  const startAt = ctx.currentTime + 0.06; // a little lead so nothing clips
+  const sources = [];
+  let offset = 0;
+  while (offset < seconds) {
+    const progress = offset / seconds;
+    const strokesPerSecond = 9 + 30 * Math.pow(progress, 1.7);
+    sources.push(...snareHit(ctx, out, startAt + offset, 0.05 + 0.11 * progress, 0.05));
+    offset += 1 / strokesPerSecond;
+  }
+  sources.push(...accentHit(ctx, out, startAt + seconds));
+
+  return { ctx, out, sources, startAt, revealAt: startAt + seconds };
+}
+
+function stopDrumRoll() {
+  const roll = state.roll;
+  if (!roll) return;
+  state.roll = null;
+  const now = roll.ctx.currentTime;
+  roll.out.gain.cancelScheduledValues(now);
+  roll.out.gain.setValueAtTime(roll.out.gain.value, now);
+  roll.out.gain.linearRampToValueAtTime(0, now + 0.08);
+  for (const source of roll.sources) {
+    try {
+      source.stop(now + 0.09);
+    } catch (error) {
+      /* already finished */
+    }
+  }
+}
+
+/* ---------- the roll itself ---------- */
+
 function rollScore(finalScore, onSettled) {
   const el = $("#score-number");
-  const duration = 2800;
-  const start = performance.now();
+  const roll = state.roll;
+  // Follow the audio clock so the digits land with the snare, not near it.
+  const followAudio = Boolean(roll) && roll.ctx.state === "running";
+  const startedAt = performance.now();
   let lastTick = 0;
-  let gap = 45;
+  let gap = 40;
 
   function frame(now) {
-    const progress = Math.min(1, (now - start) / duration);
+    const wall = (now - startedAt) / (SCORE_ROLL_SECONDS * 1000);
+    let progress = followAudio
+      ? (roll.ctx.currentTime - roll.startAt) / SCORE_ROLL_SECONDS
+      : wall;
+    // Watchdog: if the audio clock never advances, do not hang on 0 forever.
+    if (followAudio && wall > 1.3) progress = 1;
+    progress = Math.max(0, Math.min(1, progress));
+
     if (progress >= 1) {
       el.textContent = finalScore;
       onSettled();
@@ -331,11 +472,11 @@ function rollScore(finalScore, onSettled) {
     if (now - lastTick >= gap) {
       lastTick = now;
       // Ticks get slower and the guesses close in, so it visibly settles.
-      gap = 45 + 250 * Math.pow(progress, 3);
+      gap = 40 + 260 * Math.pow(progress, 3);
       let guess;
       if (progress < 0.7) {
-        // Spin the whole range first. Converging from the start would clamp
-        // against 0 or 100 and show the same digits over and over.
+        // Spin the whole range first. Converging from the start clamps against
+        // 0 and 100 and would show the same digits over and over.
         guess = Math.floor(Math.random() * 101);
       } else {
         const closing = (progress - 0.7) / 0.3;
@@ -366,16 +507,27 @@ function showScore() {
   };
 
   if (prefersReducedMotion()) {
+    // No spinning, but the reveal still deserves its hit.
     $("#score-number").textContent = score;
+    const ctx = getAudioContext();
+    if (ctx) {
+      const out = ctx.createGain();
+      out.gain.value = 0.9;
+      out.connect(ctx.destination);
+      accentHit(ctx, out, ctx.currentTime + 0.05);
+    }
     settle();
-  } else {
-    rollScore(score, settle);
+    return;
   }
+
+  state.roll = playDrumRoll(SCORE_ROLL_SECONDS);
+  rollScore(score, settle);
 }
 
 function hideScore() {
   if (state.scoreFrame) cancelAnimationFrame(state.scoreFrame);
   state.scoreFrame = null;
+  stopDrumRoll();
   $("#score").hidden = true;
   $("#score").classList.remove("is-final");
 }
