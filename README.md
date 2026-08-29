@@ -25,8 +25,20 @@ command line tools:
 ## Run it
 
 ```sh
+./run-desktop.sh     # desktop app — the Music page is real youtube.com
+```
+
+or, if you would rather stay in your browser:
+
+```sh
 ./run.sh
 ```
+
+The desktop build exists for one reason: only a desktop window can show
+youtube.com itself. In a browser tab it cannot be done — the site answers with
+`X-Frame-Options: SAMEORIGIN` and every browser refuses to render it inside
+another page. The first `./run-desktop.sh` downloads Electron, so give it a few
+minutes; after that it starts in seconds.
 
 The first run creates a virtualenv and installs the dependencies; after that it
 starts in a second. The app opens at <http://127.0.0.1:8770> in your browser and
@@ -55,12 +67,17 @@ Either way the console stays free to search and download while something runs.
 2. **My songs** — your library. *Play on stage* starts the song on the audience
    screen and marks the card *On stage*. When it ends, the score screen and its
    drum roll play there too — for the room, not for you.
-3. **Music** — a YouTube browser for the records between singers, playing **on
-   your laptop**, not on the stage: both windows are on the same Mac and so the
-   same speakers, and the audience screen stays on the karaoke. Search, paste
-   any YouTube link, or hit *Browse YouTube ↗* for the real site in its own
-   window. Playing a track keeps it going while you work in the other tabs —
-   its controls move to a bar of their own.
+3. **Music** — for the records between singers, playing **on your laptop**, not
+   on the stage: both windows are on the same Mac and so the same speakers, and
+   the audience screen stays on the karaoke.
+
+   In the **desktop app** this page *is* youtube.com — the real site, your own
+   account, YouTube's own interface — with back, forward and reload above it.
+   Sign in once and it stays signed in.
+
+   In a **browser** it falls back to searching YouTube, opening links you paste,
+   and playing them in YouTube's embedded player, since a tab cannot show the
+   site itself.
 4. **The mixer** sits in the top bar of every tab: one fader for the karaoke, one
    for the music, so you can duck the record as the next singer steps up.
 5. The bar under the header shows what is playing, with *Pause* and *Stop*, and
@@ -155,6 +172,7 @@ karaoke/
   server.py      Flask JSON API and media streaming (HTTP Range, so seeking works)
   static/        app.js is the console, stage.js the audience screen,
                  score.js the reveal they share
+desktop/         the Electron shell, whose only job is hosting real youtube.com
 ```
 
 There is no database — the folder of videos *is* the library, so you can move,

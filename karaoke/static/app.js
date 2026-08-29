@@ -215,6 +215,53 @@ $("#music-form").addEventListener("submit", async (event) => {
   }
 });
 
+/* In the desktop build the Music page is a real browser view of youtube.com —
+   logged in, with YouTube's own interface. A browser tab cannot do that, since
+   youtube.com answers with X-Frame-Options: SAMEORIGIN, so this is the one
+   thing the Electron shell exists for. Run it with ./run-desktop.sh. */
+const IS_DESKTOP = navigator.userAgent.includes("Electron");
+
+function setUpYouTubeView() {
+  const panel = $("#panel-music");
+  panel.classList.add("is-browser");
+  panel.innerHTML = `
+    <div class="yt-bar">
+      <button class="btn btn-ghost" id="yt-back" title="Back">&larr;</button>
+      <button class="btn btn-ghost" id="yt-forward" title="Forward">&rarr;</button>
+      <button class="btn btn-ghost" id="yt-reload" title="Reload">&#8635;</button>
+      <button class="btn btn-ghost" id="yt-home">YouTube</button>
+      <span class="yt-url" id="yt-url"></span>
+    </div>
+    <webview id="yt-view" src="https://www.youtube.com"
+             partition="persist:youtube" allowpopups></webview>`;
+
+  const view = $("#yt-view");
+  $("#yt-back").addEventListener("click", () => view.canGoBack() && view.goBack());
+  $("#yt-forward").addEventListener("click", () => view.canGoForward() && view.goForward());
+  $("#yt-reload").addEventListener("click", () => view.reload());
+  $("#yt-home").addEventListener("click", () => view.loadURL("https://www.youtube.com"));
+
+  const showUrl = () => { $("#yt-url").textContent = view.getURL(); };
+  // YouTube swaps the video element on every navigation, so the fader has to be
+  // re-applied rather than set once.
+  const reapply = () => { showUrl(); applyMusicVolume(Number($("#vol-music").value)); };
+  view.addEventListener("did-navigate", reapply);
+  view.addEventListener("did-navigate-in-page", reapply);
+  view.addEventListener("media-started-playing", reapply);
+  view.addEventListener("did-finish-load", reapply);
+}
+
+/* Sets the volume of whatever is playing inside the embedded browser. */
+function applyMusicVolume(value) {
+  const view = $("#yt-view");
+  if (!view || typeof view.executeJavaScript !== "function") return;
+  view
+    .executeJavaScript(
+      `document.querySelectorAll("video").forEach((v) => { v.volume = ${value / 100}; });`,
+    )
+    .catch(() => {});
+}
+
 /* The music player, here on the operator's laptop.
 
    youtube.com cannot be put in a frame — it answers with
@@ -545,8 +592,9 @@ function onFaderMoved(event) {
   $(isMusic ? "#vol-music-out" : "#vol-karaoke-out").textContent = event.target.value;
   // The music plays on this machine, so its fader acts at once with no round
   // trip. The karaoke fader has to reach the stage, hence the post below.
-  if (isMusic && state.player && state.playerReady) {
-    state.player.setVolume(Number(event.target.value));
+  if (isMusic) {
+    if (IS_DESKTOP) applyMusicVolume(Number(event.target.value));
+    else if (state.player && state.playerReady) state.player.setVolume(Number(event.target.value));
   }
   // Coalesce the flood of input events a dragged slider produces. Both faders
   // are still stored server-side so a reloaded page comes back where it was.
@@ -621,6 +669,7 @@ function subscribeToStage() {
 
 /* ---------- boot ---------- */
 
+if (IS_DESKTOP) setUpYouTubeView();
 loadLibrary();
 pollJobs();
 subscribeToStage();

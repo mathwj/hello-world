@@ -495,3 +495,27 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 .watch-note { font-size: 13px; color: var(--text-dim); }
 .watch-frame #yt-player { position: absolute; inset: 0; width: 100%; height: 100%; }
 #open-youtube { display: flex; align-items: center; text-decoration: none; }
+
+/* ---------- the embedded browser (desktop build) ---------- */
+
+.panel.is-browser.is-active { display: flex; flex-direction: column; height: calc(100vh - 210px); }
+
+.yt-bar { display: flex; align-items: center; gap: 6px; padding: 0 0 10px; }
+.yt-bar .btn { padding: 7px 12px; font-size: 14px; }
+
+.yt-url {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#yt-view {
+  flex: 1;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+}
