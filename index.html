@@ -287,7 +287,7 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
   font-size:.82rem;
   color:var(--muted);
 }
-.sheet-row select{
+.sheet-row select,.sheet-row input{
   flex:1;
   font:inherit;
   color:var(--ink);
@@ -296,6 +296,14 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
   border-radius:.7rem;
   padding:.5rem .6rem;
   min-width:0;
+}
+.mini-btn{
+  background:var(--pill);
+  color:var(--pill-ink);
+  font-weight:600;
+  font-size:.78rem;
+  border-radius:.6rem;
+  padding:.5rem .8rem;
 }
 
 /* ---------- toast ---------- */
@@ -399,7 +407,14 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
         </button>
       </div>
-      <label class="sheet-row">Voz PT
+      <label class="sheet-row">EL key
+        <input type="password" id="elKeyInput" placeholder="ElevenLabs API key" autocomplete="off">
+        <button id="elKeySave" class="mini-btn" type="button">Save</button>
+      </label>
+      <label class="sheet-row" id="elVoiceRow" hidden>EL voice
+        <select id="elVoice"></select>
+      </label>
+      <label class="sheet-row">Device PT
         <select id="voice"><option value="">Automatic</option></select>
       </label>
     </div>
@@ -423,13 +438,15 @@ let playGen = 0;           // invalidates callbacks from utterances/audio of an 
 let currentUtterance = null;
 let activeEngine = "device"; // engine used by the item currently sounding
 let googleDown = false;      // set after the online voice fails once; falls back to device
+let elDown = false;          // set after ElevenLabs fails once; falls back to Google/device
+const elCache = new Map();   // voice|lang|text -> {url, align} so replays don't re-spend credits
 let player = null;           // shared Audio element (reuse keeps iOS playback unlocked)
 let progTimer = null;
 let startWatchdog = null;
 
 const RATES = [0.8, 1, 1.2, 1.5];
 const FS_MIN = 0.8, FS_MAX = 1.5, FS_STEP = 0.1;
-let settings = {disp:"both", audio:"both", rateOrig:1, ratePt:1, fs:1, theme:"", engine:"google"};
+let settings = {disp:"both", audio:"both", rateOrig:1, ratePt:1, fs:1, theme:"", engine:"google", elKey:"", elVoice:""};
 
 /* ---------- persistence ---------- */
 function loadSettings(){
@@ -827,15 +844,23 @@ function cleanupPlayer(){
   }
 }
 
-function startProgressLoop(item, gen, a){
+function startProgressLoop(item, gen, a, align){
   stopProgressLoop();
   progTimer = setInterval(() => {
     if (gen !== playGen || a.paused) return;
-    const d = a.duration;
-    if (!d || !isFinite(d)) return;
-    const frac = Math.min(1, a.currentTime / d);
-    markProgress(item, Math.floor(frac * item.text.length));
-  }, 120);
+    let idx;
+    if (align && align.character_start_times_seconds && align.character_start_times_seconds.length){
+      const times = align.character_start_times_seconds;
+      const t = a.currentTime;
+      idx = 0;
+      while (idx < times.length - 1 && times[idx + 1] <= t) idx++;
+    } else {
+      const d = a.duration;
+      if (!d || !isFinite(d)) return;
+      idx = Math.floor(Math.min(1, a.currentTime / d) * item.text.length);
+    }
+    markProgress(item, idx);
+  }, 100);
 }
 function stopProgressLoop(){
   clearInterval(progTimer);
@@ -844,6 +869,102 @@ function stopProgressLoop(){
 
 function rateFor(item){
   return item.side === "pt" ? settings.ratePt : settings.rateOrig;
+}
+
+/* --- ElevenLabs voice (user-supplied API key; key goes only to api.elevenlabs.io) --- */
+let elVoicesLoaded = false;
+async function loadElVoices(){
+  const r = await fetch("https://api.elevenlabs.io/v1/voices", {headers:{"xi-api-key": settings.elKey}});
+  if (!r.ok) throw new Error("el " + r.status);
+  const j = await r.json();
+  const sel = $("elVoice");
+  sel.innerHTML = "";
+  (j.voices || []).forEach(v => {
+    const o = document.createElement("option");
+    o.value = v.voice_id;
+    o.textContent = v.name;
+    sel.appendChild(o);
+  });
+  if (j.voices && j.voices.length && !j.voices.some(v => v.voice_id === settings.elVoice))
+    settings.elVoice = j.voices[0].voice_id;
+  sel.value = settings.elVoice;
+  elVoicesLoaded = true;
+  saveSettings();
+}
+
+function elCacheKey(item){
+  return settings.elVoice + "|" + item.lang + "|" + item.text;
+}
+
+async function elFetch(item){
+  const key = elCacheKey(item);
+  if (elCache.has(key)) return elCache.get(key);
+  const r = await fetch("https://api.elevenlabs.io/v1/text-to-speech/" + settings.elVoice
+      + "/with-timestamps?output_format=mp3_44100_128", {
+    method: "POST",
+    headers: {"xi-api-key": settings.elKey, "Content-Type": "application/json"},
+    body: JSON.stringify({
+      text: item.text,
+      model_id: "eleven_turbo_v2_5",
+      language_code: (item.lang || "en").split("-")[0]
+    })
+  });
+  if (!r.ok) throw new Error("el " + r.status);
+  const j = await r.json();
+  const bytes = Uint8Array.from(atob(j.audio_base64), c => c.charCodeAt(0));
+  const entry = {
+    url: URL.createObjectURL(new Blob([bytes], {type:"audio/mpeg"})),
+    align: j.alignment || null
+  };
+  elCache.set(key, entry);
+  return entry;
+}
+
+async function speakEl(item, gen, done){
+  try{
+    if (!settings.elVoice && !elVoicesLoaded) await loadElVoices();
+    if (!settings.elVoice) throw new Error("el novoice");
+    const entry = await elFetch(item);
+    if (gen !== playGen || stopped) return;
+    const a = getPlayer();
+    cleanupPlayer();
+    a.onerror = () => elFail(item, gen, done, "audio");
+    a.onplay = () => {
+      if (gen !== playGen) return;
+      a.playbackRate = rateFor(item);
+      activeEngine = "el";
+      highlightUnit(item);
+      startProgressLoop(item, gen, a, entry.align);
+    };
+    a.onended = () => {
+      if (gen !== playGen) return;
+      stopProgressLoop();
+      markProgress(item, item.text.length);
+      done();
+    };
+    a.src = entry.url;
+    a.playbackRate = rateFor(item);
+    const p = a.play();
+    if (p && p.catch) p.catch(() => elFail(item, gen, done, "play"));
+    const nxt = queue[qPos + 1]; // warm the next phrase while this one plays
+    if (nxt) elFetch(nxt).catch(() => {});
+  }catch(e){
+    elFail(item, gen, done, e && e.message || "");
+  }
+}
+
+function elFail(item, gen, done, why){
+  if (gen !== playGen || stopped) return;
+  cleanupPlayer();
+  if (!elDown){
+    elDown = true;
+    toast(/401/.test(why) ? "Invalid ElevenLabs API key — falling back."
+        : /402|429/.test(why) ? "ElevenLabs quota exceeded — falling back."
+        : "ElevenLabs unavailable here — falling back.", 4200);
+    applySettings();
+  }
+  if (!googleDown) speakGoogle(item, gen, done);
+  else speakDevice(item, gen, done);
 }
 
 function speakGoogle(item, gen, done){
@@ -908,7 +1029,8 @@ function speakNext(){
   const item = queue[qPos];
   const gen = playGen;
   const done = () => { if (!stopped && gen === playGen){ qPos++; speakNext(); } };
-  if (settings.engine === "google" && !googleDown) speakGoogle(item, gen, done);
+  if (settings.engine === "el" && settings.elKey && !elDown) speakEl(item, gen, done);
+  else if ((settings.engine === "google" || settings.engine === "el") && !googleDown) speakGoogle(item, gen, done);
   else speakDevice(item, gen, done);
 }
 
@@ -932,12 +1054,12 @@ function currentUnit(){
 
 function togglePlay(){
   if (state === "playing"){
-    if (activeEngine === "google" && player) player.pause();
+    if (activeEngine !== "device" && player) player.pause();
     else if (synth) synth.pause();
     state = "paused";
     setPlayIcon(false);
   } else if (state === "paused"){
-    if (activeEngine === "google" && player) player.play();
+    if (activeEngine !== "device" && player) player.play();
     else if (synth) synth.resume();
     state = "playing";
     setPlayIcon(true);
@@ -981,7 +1103,11 @@ function applySettings(){
   $("audioLabel").textContent = settings.audio === "both" ? o + "+PT" : settings.audio === "orig" ? o : "PT";
   $("rateOrigBtn").textContent = o + " " + settings.rateOrig + "x";
   $("ratePtBtn").textContent = "PT " + settings.ratePt + "x";
-  $("engineLabel").textContent = (settings.engine === "google" && !googleDown) ? "Google voice" : "Device voice";
+  $("engineLabel").textContent =
+    settings.engine === "el" ? (elDown ? "ElevenLabs (off)" : "ElevenLabs") :
+    (settings.engine === "google" && !googleDown) ? "Google voice" : "Device voice";
+  if (document.activeElement !== $("elKeyInput")) $("elKeyInput").value = settings.elKey || "";
+  $("elVoiceRow").hidden = !settings.elKey;
   document.documentElement.style.setProperty("--fs", settings.fs);
   if (settings.theme) document.documentElement.dataset.theme = settings.theme;
   else delete document.documentElement.dataset.theme;
@@ -1029,9 +1155,36 @@ function cycleRate(side){
 $("rateOrigBtn").addEventListener("click", () => cycleRate("orig"));
 $("ratePtBtn").addEventListener("click", () => cycleRate("pt"));
 $("chipEngine").addEventListener("click", () => {
-  settings.engine = settings.engine === "google" ? "device" : "google";
-  if (settings.engine === "google") googleDown = false; // give the online voice another chance
+  const order = ["el", "google", "device"];
+  settings.engine = order[(order.indexOf(settings.engine) + 1) % order.length];
+  if (settings.engine === "el"){
+    elDown = false; // give ElevenLabs another chance
+    if (!settings.elKey){ toast("Add your ElevenLabs API key below."); $("elKeyInput").focus(); }
+  }
+  if (settings.engine === "google") googleDown = false;
   applySettings();
+  restartIfSpeaking();
+});
+$("elKeySave").addEventListener("click", async () => {
+  settings.elKey = $("elKeyInput").value.trim();
+  elDown = false;
+  elVoicesLoaded = false;
+  elCache.clear();
+  saveSettings();
+  if (!settings.elKey){ applySettings(); toast("ElevenLabs key removed."); return; }
+  try{
+    await loadElVoices();
+    settings.engine = "el";
+    applySettings();
+    toast("ElevenLabs connected — " + $("elVoice").options.length + " voices available.");
+    restartIfSpeaking();
+  }catch(e){
+    toast(/401/.test(e.message) ? "Invalid ElevenLabs API key." : "Could not reach ElevenLabs.", 4200);
+  }
+});
+$("elVoice").addEventListener("change", () => {
+  settings.elVoice = $("elVoice").value;
+  saveSettings();
   restartIfSpeaking();
 });
 $("fontMinus").addEventListener("click", () => {
@@ -1054,6 +1207,7 @@ $("voice").addEventListener("change", restartIfSpeaking);
 
 loadSettings();
 applySettings();
+if (settings.elKey) loadElVoices().catch(() => {});
 
 if (synth){
   populateVoices();
