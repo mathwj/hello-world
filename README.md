@@ -71,10 +71,14 @@ onto twelve pitch classes, and how bright the sound is. The waiting screen has a
 family of shapes for each band — the sub is enormous and slow, the hats are
 small and quick — running off its own copy of the beat grid rather than waiting
 for messages to arrive, so it stays in time rather than trailing the music.
-Drifting behind them are a few shapes that answer to nothing in particular:
-each lives its own slow life, swelling from nothing to most of the screen and
-away again, speeding up and slowing down as it goes, hurried along by loud
-passages. They are what keeps the whole thing from settling into a pattern.
+They dance rather than pulse. Because the grid knows when the next beat is
+coming, a shape can gather itself just before one, land on it, settle after it,
+shift its weight across the bar and travel the floor between bars — and it
+squashes as it lands, the way anything with weight does. Each family dances to
+its own part: the bass on the beat, the snare family on two and four, the hats
+on the offbeat, the air on the sixteenths, and the shapes that follow the voice
+whenever the voice moves. With no music they stop dancing and go back to
+drifting.
 
 The tempo is worked out from what is playing now rather than from the last
 several seconds equally, and the history is thrown away at a gap between tracks

@@ -58,14 +58,30 @@ def test_the_hats_lean_on_the_offbeat_and_the_air_on_the_sixteenths(ran):
     assert min(air_sixteenths) > max(air_eighths)
 
 
-def test_the_wandering_shapes_live_whole_lives(ran):
-    """Each grows from nothing to most of the screen and starts again elsewhere."""
-    for wanderer in ran["wanderers"]:
-        assert wanderer["finite"], "a shape's size stopped being a number"
-        assert wanderer["biggest"] > 0.8, "never grew to anything"
-        assert wanderer["lives"] > 3, "never started again"
+def test_the_shapes_dance_rather_than_pulse(ran):
+    """Up on the beat, settling after it, and gathering before the next one.
+
+    The gather is the part that separates dancing from reacting: leaning into a
+    beat before it lands is only possible because the grid saw it coming.
+    """
+    dance = ran["dance"]
+    assert dance["justAfterTheBeat"] < -0.02, "no lift on the beat"          # up
+    assert dance["justAfterTheBeat"] < dance["midBeat"] < 0, "never settles"
+    assert dance["justBefore"] > 0.005, "no gather before the beat"          # down
+
+
+def test_a_landing_squashes_the_shape(ran):
+    """A body landing flattens; a lamp being turned up does not."""
+    assert ran["dance"]["squash"] > 1.15
+
+
+def test_the_shapes_cross_the_floor(ran):
+    """Dancers move about; they do not each keep to one square foot of stage."""
+    assert ran["dance"]["travelled"] > 0.02
 
 
 def test_everything_settles_when_the_music_stops(ran):
+    """Including the dancing: nobody keeps time to a beat nobody can hear."""
     assert ran["afterTheMusicStops"]["locked"] is False
     assert max(ran["afterTheMusicStops"]["levels"].values()) == 0
+    assert ran["afterTheMusicStops"]["dancing"] < 0.05

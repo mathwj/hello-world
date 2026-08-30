@@ -18,8 +18,8 @@ const region = src.slice(src.indexOf("const FAMILIES = ["), src.indexOf("functio
 
 let clock = 0;
 const stage = new Function("performance", `${region}
-  return { beat, bands, field, FAMILIES, slime, reseed,
-           applyGrid, applyLevels, advanceBeat, advanceBands, advanceWanderers };`,
+  return { beat, bands, field, dance, FAMILIES, slime, makeBlobs,
+           applyGrid, applyLevels, advanceBeat, advanceBands, advanceDance };`,
 )({ now: () => clock });
 
 const BPM = 128, PERIOD = 60000 / BPM;
@@ -28,8 +28,7 @@ const LOUD = { sub: 55, bass: 70, body: 45, mid: 38, presence: 26, high: 22, air
                centroid: 45, tonal: 3, harmony: 0 };
 
 const out = {};
-const random = (min, max) => min + Math.random() * (max - min);
-stage.slime.wanderers = Array.from({ length: 5 }, () => stage.reseed({ life: random(0, 1) }));
+stage.slime.blobs = stage.makeBlobs();
 
 /* One report every 200ms and one frame every 16.6ms, the way it really runs. */
 const swells = [], accents = [], hits = { presence: [], high: [], air: [] };
@@ -65,7 +64,7 @@ for (let t = 0; t < 30000; t += 16.6) {
     if (punch > before[name] + 0.001) hits[name].push([t, punch]);
   }
   stage.advanceBands(t);
-  stage.advanceWanderers(t);
+  stage.advanceDance(t);
 
   if (watch) watch(t);
 }
@@ -98,29 +97,56 @@ out.backbeat = byPlace(hits.presence);
 out.offbeat = byPlace(hits.high);
 out.sixteenths = byPlace(hits.air);
 
-// The wanderers: over ten simulated minutes, do they live whole lives?
-const lives = stage.slime.wanderers.map(() => ({ biggest: 0, spans: new Set(), finite: true }));
-watch = () => {
-  stage.slime.wanderers.forEach((w, n) => {
-    lives[n].biggest = Math.max(lives[n].biggest, w.shape * w.peak);
-    lives[n].spans.add(w.span);
-    if (!Number.isFinite(w.shape) || !Number.isFinite(w.life)) lives[n].finite = false;
-  });
-};
-const wanderUntil = clock + 600000;
-for (let t = clock; t < wanderUntil; t += 16.6) {
+/* The dance. Does a shape move between the beats and arrive on them, and does
+   it gather itself first? Watched on one of the bass shapes, which lands on
+   every beat, over four bars once the dancing has warmed up. */
+const bass = stage.slime.blobs.find((b) => b.family.band === "bass");
+const track = [];
+// Recorded against the stage's own idea of where it is in the beat, which is
+// the only way to tell a gather before a beat from a landing after one.
+watch = () => track.push([stage.dance.beat, bass.bob, bass.squashX, bass.placeX, bass.placeY]);
+const danceUntil = clock + PERIOD * 16;
+for (let t = clock; t < danceUntil; t += 16.6) {
   clock = t;
+  if (t - lastPost >= 200) {
+    lastPost = t;
+    stage.applyLevels(LOUD);
+    stage.applyGrid({ period: PERIOD, bpm: BPM, bar_beat: Math.floor(t / PERIOD) % 4,
+                      anchor_age: (t % PERIOD) + 25 });
+  }
+  stage.advanceBeat(t);
   stage.advanceBands(t);
-  stage.advanceWanderers(t);
+  stage.advanceDance(t);
   watch(t);
 }
-out.wanderers = lives.map((l) => ({ biggest: +l.biggest.toFixed(2), lives: l.spans.size, finite: l.finite }));
+watch = null;
+
+// Up is negative here, so the top of a step is the smallest bob.
+const within = (from, to) => track.filter(([phase]) => phase >= from && phase < to);
+const average = (rows, column) => rows.reduce((sum, row) => sum + row[column], 0) / (rows.length || 1);
+out.dance = {
+  strength: +stage.dance.strength.toFixed(2),
+  // Just after the beat it should be at the top of its step, and just before
+  // the next one it should have gathered itself downwards.
+  justAfterTheBeat: +average(within(0, 0.12), 1).toFixed(4),
+  midBeat: +average(within(0.4, 0.6), 1).toFixed(4),
+  justBefore: +average(within(0.92, 1), 1).toFixed(4),
+  squash: +Math.max(...track.map((row) => row[2])).toFixed(3),
+  // Does it cross the floor rather than sitting in one place?
+  travelled: +Math.max(
+    Math.max(...track.map((r) => r[3])) - Math.min(...track.map((r) => r[3])),
+    Math.max(...track.map((r) => r[4])) - Math.min(...track.map((r) => r[4])),
+  ).toFixed(3),
+};
 
 // And they settle when the music stops.
-const quietUntil = clock + 4000;
-for (let t = clock; t < quietUntil; t += 16.6) { clock = t; stage.advanceBeat(t); stage.advanceBands(t); }
+const quietUntil = clock + 20000;
+for (let t = clock; t < quietUntil; t += 16.6) {
+  clock = t; stage.advanceBeat(t); stage.advanceBands(t); stage.advanceDance(t);
+}
 out.afterTheMusicStops = {
   locked: stage.beat.locked,
+  dancing: +stage.dance.strength.toFixed(3),
   levels: Object.fromEntries(Object.entries(stage.bands).map(([k, v]) => [k, +v.level.toFixed(3)])),
 };
 

@@ -227,50 +227,47 @@ const FAMILIES = [
     band: "sub", count: 2,                 // 30–60 Hz: felt more than heard
     radius: [0.34, 0.52], drift: [0.05, 0.13], speed: [0.006, 0.016],
     swell: 1.15, punch: 1.5, floor: 0.5, lift: 0, pulse: "beat", weight: 1,
+    // How it carries itself: weight is what tells a heavy thing from a light
+    // one, so the sub barely lifts and the air is thrown about.
+    bob: 0.02, sway: 0.03,
   },
   {
     band: "bass", count: 3,                // 60–160 Hz: the kick and the bass
     radius: [0.24, 0.38], drift: [0.09, 0.22], speed: [0.010, 0.028],
     swell: 0.95, punch: 1.25, floor: 0.45, lift: 0.05, pulse: "beat", weight: 0.9,
+    bob: 0.035, sway: 0.045,
   },
   {
     band: "body", count: 2,                // 160–400 Hz: where a chord sounds thick
     radius: [0.17, 0.27], drift: [0.13, 0.28], speed: [0.016, 0.040],
     swell: 0.55, punch: 0.7, floor: 0.3, lift: 0.1, pulse: "beat", weight: 0.55,
+    bob: 0.05, sway: 0.06,
   },
   {
     band: "mid", count: 3,                 // 400–1200 Hz: the voice
     radius: [0.12, 0.20], drift: [0.16, 0.32], speed: [0.026, 0.062],
     swell: 0.5, punch: 0.65, floor: 0.22, lift: 0.2, pulse: null, weight: 0,
+    bob: 0.075, sway: 0.08,
   },
   {
     band: "presence", count: 3,            // 1.2–3.5 kHz: snare crack, consonants
     radius: [0.08, 0.15], drift: [0.18, 0.36], speed: [0.040, 0.090],
     swell: 0.6, punch: 0.9, floor: 0.16, lift: 0.35, pulse: "backbeat", weight: 0,
+    bob: 0.095, sway: 0.07,
   },
   {
     band: "high", count: 3,                // 3.5–8 kHz: hats
     radius: [0.06, 0.12], drift: [0.20, 0.40], speed: [0.070, 0.150],
     swell: 0.7, punch: 1, floor: 0.1, lift: 0.55, pulse: "offbeat", weight: 0,
+    bob: 0.12, sway: 0.055,
   },
   {
     band: "air", count: 4,                 // 8 kHz up: cymbal shimmer
     radius: [0.045, 0.09], drift: [0.22, 0.44], speed: [0.090, 0.190],
     swell: 0.8, punch: 1.1, floor: 0.06, lift: 0.75, pulse: "sixteenth", weight: 0,
+    bob: 0.15, sway: 0.045,
   },
 ];
-
-/* A handful of shapes that answer to nothing in particular.
-
-   The families above are all tied to something — a band, a beat, a chord — and
-   a picture made only of those is legible but tidy. These are the opposite: each
-   lives its own slow life, swelling from nothing to most of the screen and
-   sinking away again over anything from a quarter of a minute to most of one,
-   wandering as it goes and speeding up and slowing down while it does. They are
-   what keeps the whole thing from settling into a pattern you can predict, and
-   the music only leans on them: loud passages hurry them along, a chord change
-   pushes one over the edge into its next life. */
-const WANDERERS = 5;
 
 const beat = {
   seen: null,
@@ -351,6 +348,7 @@ function metronome(step) {
     if (backbeat) swell("presence", 0.85);
     // The low end moves the entire picture, not only its own shapes.
     field.heave = Math.max(field.heave, downbeat ? 1 : 0.6);
+    if (downbeat) stepTheFloor();
   } else if (onEighth) {
     swell("high", 0.55);
     swell("air", 0.3);
@@ -444,6 +442,9 @@ function applyLevels(payload) {
   // A chord change: the harmony has turned away from where it had been sitting.
   const harmony = clamp01((Number(payload.harmony) || 0) / 100);
   if (harmony > 0.25) field.bloom = Math.max(field.bloom, harmony);
+  // A real change of chord is a change of scene: everybody moves on the next
+  // downbeat, not only whoever was due.
+  if (harmony > 0.5) dance.reform = true;
 
   const centroid = Number(payload.centroid) || 0;
   field.tone += (centroid - field.tone) * 0.12;
@@ -468,32 +469,120 @@ function advanceBeat(now) {
   }
 }
 
-/* Moves the wanderers along their lives. Kept apart from the drawing because
-   it is the interesting half: how fast each one is living, how big it has got,
-   and when it gives up and starts again somewhere else. */
-function advanceWanderers(now) {
-  // Clamped at both ends. A long frame must not jump a wanderer through half
-  // its life, and a timestamp that ever moves backwards must not run one
-  // backwards into a negative life, where its size is not a number at all and
-  // the whole canvas paints nothing.
-  const elapsed = Math.max(0, Math.min(0.1, (now - (slime.drawnAt || now)) / 1000));
-  slime.drawnAt = now;
-  const seconds = now / 1000;
-  const energy = bands.bass.level * 0.5 + bands.mid.level * 0.3 + bands.high.level * 0.2;
+/* ---------- the dance ----------
 
-  for (const wanderer of slime.wanderers) {
-    // Its pace wanders as it goes, and the music hurries it: the same shape
-    // takes half a minute over a quiet passage and a few seconds over a loud
-    // one, which is most of why none of this looks like a loop.
-    const pace = (1 + wanderer.swing
-        * Math.sin(seconds * wanderer.swingRate * 6.283 + wanderer.swingPhase))
-      * (0.55 + 1.1 * energy + 0.8 * field.bloom);
-    wanderer.life += (elapsed / wanderer.span) * Math.max(0.1, pace);
-    if (!(wanderer.life >= 0)) wanderer.life = 0;
-    if (wanderer.life >= 1) { wanderer.life = 0; reseed(wanderer); }
-    // Nothing, to everything, to nothing. Raised to a power so it spends longer
-    // small and passes through its full size rather than sitting at it.
-    wanderer.shape = Math.pow(Math.sin(Math.PI * wanderer.life), 1.7);
+   Swelling on the beat is not dancing; it is a light going on and off. What
+   makes a body look like it is dancing to something is that it moves *between*
+   the beats and arrives *on* them: it gathers itself, lands, settles, shifts
+   its weight across the bar, and travels the floor. All of that needs to know
+   when the next beat is coming — which the grid does know, and a picture
+   reacting to sound never can.
+
+   Each family dances to its own part. The bass lands on the beat, the snare
+   family on two and four, the hats on the offbeat, the air on the sixteenths,
+   and the shapes that follow the voice move when the voice does rather than to
+   any count at all. */
+const dance = { strength: 0, beat: 0, bar: 0, bars: 0, locked: false, reform: false };
+
+const TAU = Math.PI * 2;
+const fract = (value) => value - Math.floor(value);
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+/* Where we are inside the beat and inside the bar, as fractions of each.
+
+   The grid says when the next sixteenth lands and which of the sixteen it is,
+   so counting forward from it gives the time to the next beat and to the next
+   bar. Nothing else on this screen could know a beat was coming. */
+function metre(now) {
+  if (!beat.locked || !beat.period) return null;
+  const tick = beat.period / 4;
+  const toTick = Math.max(0, beat.nextAt - now);
+  const toBeat = toTick + ((4 - (beat.step % 4)) % 4) * tick;
+  const toBar = toTick + ((16 - beat.step) % 16) * tick;
+  return {
+    beat: 1 - Math.min(1, toBeat / beat.period),
+    bar: 1 - Math.min(1, toBar / (beat.period * 4)),
+  };
+}
+
+/* A step, drawn the way an animator would draw one: gather just before the
+   beat, land on it, settle after it. The gather is the whole trick. Leaning
+   into a beat before it arrives is what reads as dancing rather than as
+   reacting, and it is only possible because the grid saw it coming. */
+function landing(phase) {
+  if (phase > 0.78) return -0.5 * (phase - 0.78) / 0.22;      // gather, going down
+  return Math.pow(1 - phase / 0.78, 1.6);                     // land, and settle
+}
+
+/* Which count a family dances to. */
+function countFor(family, band) {
+  if (!dance.locked) return band.punch;
+  switch (family.pulse) {
+    case "beat": return landing(dance.beat);
+    case "backbeat": return landing(fract(dance.bar * 2 + 0.5));
+    case "offbeat": return landing(fract(dance.beat * 2 + 0.5));
+    case "sixteenth": return landing(fract(dance.beat * 4));
+    // The voice keeps no count: these move when it moves.
+    default: return band.punch;
+  }
+}
+
+/* Sends whoever is due somewhere else on the floor. Called on the downbeat, so
+   a shape sets off on a bar line and arrives on one, rather than wandering
+   across whenever it feels like it. */
+function stepTheFloor() {
+  dance.bars += 1;
+  for (const blob of slime.blobs) {
+    if (!dance.reform && dance.bars % blob.travelBars !== blob.travelOn) continue;
+    blob.fromX = blob.placeX;
+    blob.fromY = blob.placeY;
+    // Somewhere near where it was: a floor that reshuffles completely every few
+    // bars reads as a slideshow rather than as dancers moving about.
+    blob.toX = Math.max(0.08, Math.min(0.92, blob.homeX + random(-0.22, 0.22)));
+    blob.toY = Math.max(0.08, Math.min(0.92, blob.homeY + random(-0.18, 0.18)));
+    blob.travelAt = performance.now();
+    blob.travelSpan = beat.period * 4 * (blob.travelBars > 3 ? 2 : 1);
+  }
+  dance.reform = false;
+}
+
+function advanceDance(now) {
+  const where = metre(now);
+  dance.locked = Boolean(where);
+  if (where) {
+    dance.beat = where.beat;
+    dance.bar = where.bar;
+  }
+
+  /* How much dancing there is to do. Silence should leave the shapes drifting,
+     not marking time to a beat nobody can hear, and it should come and go
+     gradually — a room does not start dancing on one loud frame. */
+  const energy = bands.bass.level * 0.45 + bands.body.level * 0.2
+    + bands.mid.level * 0.2 + bands.high.level * 0.15;
+  const wanted = dance.locked ? Math.min(1, energy * 2.2) : 0;
+  dance.strength += (wanted - dance.strength) * (wanted > dance.strength ? 0.05 : 0.02);
+
+  for (const blob of slime.blobs) {
+    const family = blob.family;
+    const count = countFor(family, bands[family.band]);
+
+    // Up on the landing, down on the gather.
+    blob.bob = -count * family.bob * dance.strength;
+    // Weight shifting from one side to the other across the bar.
+    blob.sway = Math.sin(dance.bar * TAU * blob.swayRate + blob.swayPhase)
+      * family.sway * dance.strength;
+    /* Squashed on the way down and stretched on the way up. Without it a shape
+       only changes size, which is the difference between a body landing and a
+       lamp being turned up. */
+    const impact = Math.max(0, count);
+    blob.squashX = 1 + 0.34 * impact * dance.strength;
+    blob.squashY = 1 - 0.26 * impact * dance.strength;
+    blob.tilt += blob.spin * (1 + 2 * dance.strength);
+
+    const along = blob.travelSpan > 0
+      ? ease(Math.min(1, Math.max(0, (now - blob.travelAt) / blob.travelSpan))) : 1;
+    blob.placeX = blob.fromX + (blob.toX - blob.fromX) * along;
+    blob.placeY = blob.fromY + (blob.toY - blob.fromY) * along;
   }
 }
 
@@ -520,7 +609,7 @@ function advanceBands(now) {
   field.pullY += (Math.sin(angle) * 0.05 - field.pullY) * 0.02;
 }
 
-const slime = { canvas: null, ctx: null, blobs: [], wanderers: [], width: 0, height: 0, drawnAt: 0 };
+const slime = { canvas: null, ctx: null, blobs: [], width: 0, height: 0 };
 
 // Rendered well below screen resolution: it is blurred past recognition
 // anyway, and a full-size canvas repainted every frame is wasted work.
@@ -531,7 +620,17 @@ const random = (min, max) => min + Math.random() * (max - min);
 function buildSlime() {
   slime.canvas = $("#slime");
   slime.ctx = slime.canvas.getContext("2d");
+  slime.blobs = makeBlobs();
 
+  sizeSlime();
+  window.addEventListener("resize", sizeSlime);
+  requestAnimationFrame(drawSlime);
+}
+
+/* The cast. Kept apart from the canvas so that what each shape is — where it
+   stands, how it carries itself, how often it crosses the floor — can be built
+   and checked without a screen to draw it on. */
+function makeBlobs() {
   /* Homes laid out by the golden angle rather than at random.
 
      Twenty random positions clump: half the screen ends up dark and the other
@@ -541,15 +640,18 @@ function buildSlime() {
   const golden = Math.PI * (3 - Math.sqrt(5));
   let placed = 0;
 
-  slime.blobs = FAMILIES.flatMap((family) =>
+  return FAMILIES.flatMap((family) =>
     Array.from({ length: family.count }, () => {
       const angle = placed * golden;
       const spread = 0.16 + 0.30 * Math.sqrt((placed % 7) / 7);
       placed += 1;
+      const bars = [2, 3, 4, 6][Math.floor(random(0, 4))];
+      const homeX = 0.5 + Math.cos(angle) * spread + random(-0.05, 0.05);
+      const homeY = 0.5 + Math.sin(angle) * spread * 0.8 + random(-0.05, 0.05);
       return {
         family,
-        homeX: 0.5 + Math.cos(angle) * spread + random(-0.05, 0.05),
-        homeY: 0.5 + Math.sin(angle) * spread * 0.8 + random(-0.05, 0.05),
+        homeX,
+        homeY,
         driftX: random(family.drift[0], family.drift[1]),
         driftY: random(family.drift[0], family.drift[1]) * 0.9,
         // Deliberately unrelated speeds, so the paths never fall into step.
@@ -559,36 +661,25 @@ function buildSlime() {
         phaseY: random(0, Math.PI * 2),
         radius: random(family.radius[0], family.radius[1]),
         breath: random(0, Math.PI * 2),
+
+        // Dancing: where on the floor it is headed, how it sways, how it is
+        // turned. It starts standing where it was placed.
+        fromX: homeX, fromY: homeY, toX: homeX, toY: homeY,
+        placeX: homeX, placeY: homeY, travelAt: 0, travelSpan: 0,
+        bob: 0, sway: 0, squashX: 1, squashY: 1,
+        tilt: random(0, Math.PI * 2),
+        spin: random(-0.004, 0.004),
+        swayRate: [0.5, 1, 2][Math.floor(random(0, 3))],    // a bar, a half, a beat
+        swayPhase: random(0, Math.PI * 2),
+        // Not everyone crosses the floor at once, or at the same rate. The bar
+        // it goes on has to be one that comes round: a shape due on the fifth
+        // bar of every four never moves at all.
+        travelBars: bars,
+        travelOn: Math.floor(random(0, bars)),
       };
     }),
   );
 
-  slime.wanderers = Array.from({ length: WANDERERS }, () => reseed({ life: random(0, 1) }));
-
-  sizeSlime();
-  window.addEventListener("resize", sizeSlime);
-  requestAnimationFrame(drawSlime);
-}
-
-/* A wanderer's next life: a new place, a new size to reach, a new pace. Reused
-   rather than replaced, so there are always exactly as many as there were. */
-function reseed(wanderer) {
-  wanderer.life = wanderer.life || 0;
-  wanderer.homeX = random(0.1, 0.9);
-  wanderer.homeY = random(0.1, 0.9);
-  wanderer.span = random(11, 34);            // seconds from nothing to nothing
-  wanderer.peak = random(0.45, 1.25);        // and how far across the screen it gets
-  wanderer.swing = random(0.3, 0.9);         // how much its pace wanders
-  wanderer.swingRate = random(0.04, 0.13);
-  wanderer.swingPhase = random(0, Math.PI * 2);
-  wanderer.driftX = random(0.05, 0.22);
-  wanderer.driftY = random(0.05, 0.20);
-  wanderer.speedX = random(0.010, 0.055);
-  wanderer.speedY = random(0.008, 0.048);
-  wanderer.phaseX = random(0, Math.PI * 2);
-  wanderer.phaseY = random(0, Math.PI * 2);
-  wanderer.band = FAMILIES[Math.floor(random(0, FAMILIES.length))].band;
-  return wanderer;
 }
 
 function sizeSlime() {
@@ -609,7 +700,7 @@ function light(amount) {
 function drawSlime(now) {
   advanceBeat(now);
   advanceBands(now);
-  advanceWanderers(now);
+  advanceDance(now);
 
   const { ctx, width, height } = slime;
   const seconds = now / 1000;
@@ -629,45 +720,19 @@ function drawSlime(now) {
 
   // Additive, so overlaps brighten into one body instead of stacking edges.
   ctx.globalCompositeOperation = "lighter";
-
-  /* The wanderers first, so the shapes that are actually keeping time sit in
-     front of them rather than being swallowed. */
-  for (const wanderer of slime.wanderers) {
-    if (wanderer.shape < 0.01) continue;
-
-    const x = width * (wanderer.homeX
-      + wanderer.driftX * Math.sin(seconds * wanderer.speedX * 6.283 + wanderer.phaseX));
-    const y = height * (wanderer.homeY
-      + wanderer.driftY * Math.cos(seconds * wanderer.speedY * 6.283 + wanderer.phaseY));
-    const radius = reach * wanderer.peak * wanderer.shape
-      * (1 + 0.3 * bands[wanderer.band].body) * global;
-    if (radius < 1) continue;
-
-    // The bigger it gets the fainter it runs, or a full-screen one would wash
-    // the stage out and take the waiting card with it.
-    const size = Math.min(1, radius / reach);
-    const alpha = 0.42 * wanderer.shape * (1 - 0.62 * size);
-    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    gradient.addColorStop(0, `rgba(${light(0.1 + tone * 0.35)}, ${alpha.toFixed(3)})`);
-    gradient.addColorStop(0.5, `rgba(0, 236, 236, ${(alpha * 0.45).toFixed(3)})`);
-    gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
   for (const blob of slime.blobs) {
     const family = blob.family;
     const band = bands[family.band];
 
-    // A chord change hurries the drift along for a moment as well as widening
-    // it, which is what makes the field feel like it turned rather than grew.
-    const pace = 1 + 0.5 * field.bloom;
-    const x = width * (blob.homeX + field.pullX
-      + blob.driftX * Math.sin(seconds * blob.speedX * pace * 6.283 + blob.phaseX));
-    const y = height * (blob.homeY + field.pullY
-      + blob.driftY * Math.cos(seconds * blob.speedY * pace * 6.283 + blob.phaseY));
+    /* Where it is standing: the place on the floor it is walking to, its own
+       slow drift, the weight shifting side to side, and the step itself. The
+       drift gives way as the dancing takes over — with the music going, the
+       music is what should be moving it. */
+    const wander = 1 - 0.45 * dance.strength;
+    const x = width * (blob.placeX + field.pullX + blob.sway
+      + wander * blob.driftX * Math.sin(seconds * blob.speedX * 6.283 + blob.phaseX));
+    const y = height * (blob.placeY + field.pullY + blob.bob
+      + wander * blob.driftY * Math.cos(seconds * blob.speedY * 6.283 + blob.phaseY));
 
     const swelling = 1
       + 0.08 * Math.sin(seconds * 0.55 + blob.breath)          // always breathing
@@ -687,15 +752,21 @@ function drawSlime(now) {
     const inner = (0.70 * presence + 0.30 * band.punch).toFixed(3);
     const middle = (0.24 * presence + 0.36 * band.punch).toFixed(3);
 
-    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    /* Drawn squashed and turned rather than as a circle, so a landing lands. */
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(blob.tilt);
+    ctx.scale(blob.squashX, blob.squashY);
+
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
     gradient.addColorStop(0, `rgba(${core}, ${inner})`);
     gradient.addColorStop(0.45, `rgba(${edge}, ${middle})`);
     gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
-
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
   ctx.globalCompositeOperation = "source-over";
 
