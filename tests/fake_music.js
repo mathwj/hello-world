@@ -33,6 +33,13 @@ const SCRIPT = literal("BEAT_SCRIPT")
   .replace(/\$\{OPEN\.frequency\}/g, "22000");
 
 // ---- a synthetic room ------------------------------------------------------
+
+/* Seeded, so a run is a run: the hiss under this music decides, at the margin,
+   how long the tracker takes to be sure of a tempo, and a test that measures
+   that has to play the same thing every time. */
+let seed = 20260830;
+const random = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+
 const RATE = 48000;
 let clock = 0;
 let scene = { notes: [], hits: [] };
@@ -60,11 +67,11 @@ function fill(array, fftSize) {
     const alive = amp * Math.exp(-age / 60);
     for (let bin = Math.max(1, Math.round(lowHz / binHz));
          bin <= Math.min(array.length - 1, Math.round(highHz / binHz)); bin += 1) {
-      array[bin] = Math.min(255, array[bin] + alive * (0.7 + 0.3 * Math.random()));
+      array[bin] = Math.min(255, array[bin] + alive * (0.7 + 0.3 * random()));
     }
   }
   for (let bin = 1; bin < array.length; bin += 1) {
-    array[bin] = Math.min(255, array[bin] + 6 * Math.random());
+    array[bin] = Math.min(255, array[bin] + 6 * random());
   }
 }
 
@@ -172,7 +179,7 @@ function play(bpm, seconds, watch) {
 }
 
 const settle = (ms) => { const end = clock + ms; while (clock < end) { clock += 16.6;
-  for (const fn of pending.splice(0)) fn(); if (Math.random() < 0.1) poll(); } };
+  for (const fn of pending.splice(0)) fn(); if (random() < 0.1) poll(); } };
 
 scene = { notes: [], hits: [] };
 let mark = null, from = clock;

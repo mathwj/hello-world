@@ -366,3 +366,33 @@ def test_bands_are_accepted_without_a_tempo(client):
 
 def test_an_empty_beat_report_is_refused(client):
     assert client.post("/api/stage/pulse", json={}).status_code == 400
+
+
+def test_a_busy_port_is_stepped_over(monkeypatch):
+    """Something can hold a port without serving on it; that must not stop us."""
+    import socket
+
+    from karaoke.__main__ import choose_port
+
+    monkeypatch.delenv("KARAOKE_PORT", raising=False)
+    with socket.socket() as held:
+        held.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        held.bind(("127.0.0.1", 0))
+        held.listen(1)
+        taken = held.getsockname()[1]
+        assert choose_port("127.0.0.1", taken) not in (None, taken)
+
+
+def test_a_port_asked_for_by_name_is_not_swapped(monkeypatch):
+    """Naming a port is a decision; moving off it would be a surprise."""
+    import socket
+
+    from karaoke.__main__ import choose_port
+
+    with socket.socket() as held:
+        held.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        held.bind(("127.0.0.1", 0))
+        held.listen(1)
+        taken = held.getsockname()[1]
+        monkeypatch.setenv("KARAOKE_PORT", str(taken))
+        assert choose_port("127.0.0.1", taken) is None

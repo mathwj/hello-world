@@ -42,7 +42,10 @@ minutes; after that it starts in seconds.
 
 The first run creates a virtualenv and installs the dependencies; after that it
 starts in a second. The app opens at <http://127.0.0.1:8770> in your browser and
-listens on localhost only.
+listens on localhost only. If something else has that port, it moves to the next
+one free and says so — a port can even be held by a leftover process that is not
+serving anything, and being stopped by that is no use to anybody. Set
+`KARAOKE_PORT` yourself and it stays where you put it, or says why it cannot.
 
 ## Two screens
 
@@ -134,7 +137,7 @@ All settings are environment variables:
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `KARAOKE_DIR` | `~/Movies/Karaoke` | Where songs are saved |
-| `KARAOKE_PORT` | `8770` | Port the app listens on |
+| `KARAOKE_PORT` | `8770` | Port the app listens on (see below) |
 | `KARAOKE_HOST` | `127.0.0.1` | Interface to bind |
 | `KARAOKE_CONCURRENCY` | `2` | Simultaneous downloads |
 | `KARAOKE_COOKIES_FROM_BROWSER` | unset | Browser to take YouTube cookies from (see below) |
