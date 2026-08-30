@@ -83,7 +83,13 @@ def main() -> None:
     if not port_is_free(host, port):
         print(f"\nPort {port} is already in use — KaraokeBox is probably still")
         print("running in another Terminal window. Switch to that window and press")
-        print("Ctrl+C, or run this copy on a different port:")
+        print("Ctrl+C, or close the old copy from here:")
+        print(f"\n    lsof -ti tcp:{port} | xargs kill\n")
+        # Worth closing rather than working around: an old copy left running is
+        # also an old copy of the code, so an update appears not to have worked.
+        print("Closing it is usually what you want — an old copy still running")
+        print("is the old version of the app, so an update looks like it did")
+        print("nothing. To leave it alone and run this copy alongside it:")
         print(f"\n    KARAOKE_PORT={port + 1} ./run.sh\n")
         print("Diagnostics do not need the port:")
         print("    .venv/bin/python -m karaoke --doctor <video id>")
