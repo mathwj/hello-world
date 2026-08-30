@@ -55,6 +55,11 @@ def _merge(target: dict, changes: dict) -> None:
             target[key] = value
 
 
+# The bands the music is split into, cut where instruments sit rather than into
+# equal slices. The operator measures them; this only has to carry them.
+BANDS = ("sub", "bass", "body", "mid", "presence", "high", "air")
+
+
 class Stage:
     """The state of the audience screen, and everyone watching it."""
 
@@ -110,11 +115,12 @@ class Stage:
     def set_pulse(self, grid: dict) -> int:
         """Record what the operator's music player is hearing.
 
-        Two different things travel together here: the tempo grid, which the
-        waiting screen runs its beat off, and the level of each frequency band,
-        which drives the parts of the picture that answer to something other
-        than the kick. They arrive in one report because they are measured from
-        the same frames, and one message is one wake-up for the subscribers.
+        Several different things travel together here: the tempo grid and where
+        the bar starts, which the waiting screen runs its beat off; the level
+        and attack of each band, which the shapes answering to that part of the
+        mix follow; and the harmony and brightness, which move the whole field.
+        They arrive in one report because they are measured from the same
+        frames, and one message is one wake-up for the subscribers.
         """
 
         def level(key: str) -> float:
@@ -125,13 +131,15 @@ class Stage:
             "bpm": int(grid.get("bpm") or 0),
             "confidence": float(grid.get("confidence") or 0),
             "anchor_age": float(grid.get("anchor_age") or 0),
-            "low": level("low"),
-            "mid": level("mid"),
-            "high": level("high"),
-            "low_peak": level("low_peak"),
-            "mid_peak": level("mid_peak"),
-            "high_peak": level("high_peak"),
+            "bar_beat": int(grid.get("bar_beat") or 0) % 4,
+            "harmony": level("harmony"),
+            "centroid": level("centroid"),
+            "tonal": int(grid.get("tonal") or 0) % 12,
         }
+        for band in BANDS:
+            cleaned[band] = level(band)
+            cleaned[band + "_on"] = level(band + "_on")
+
         with self._pulse_condition:
             self._pulse = cleaned
             self._pulse_at = time.monotonic()

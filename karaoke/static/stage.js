@@ -194,144 +194,169 @@ video.addEventListener("ended", reportProgress);
 
 /* ---------- the slime ----------
 
-   The waiting screen stays #141414 with cyan shapes drifting across it. Each
-   is a soft radial gradient drawn additively, so where two overlap they brighten
+   The waiting screen stays #141414 with cyan shapes drifting across it. Each is
+   a soft radial gradient drawn additively, so where two overlap they brighten
    and fuse; blurred together by CSS they read as one organic mass rather than a
-   handful of circles.
+   handful of circles. Every blob follows its own pair of slow sines at
+   frequencies that do not divide into each other, so the mass never repeats.
 
-   Every blob follows its own pair of slow sines at frequencies that do not
-   divide into each other, so the mass never visibly repeats.
+   What it is listening to is the whole record, not one drum in it.
 
-   The blobs are not all listening to the same thing. A picture driven by the
-   kick alone only moves a few times a bar and sits dead in between, which is
-   exactly what makes it feel mechanical. So there are three families: heavy
-   slow shapes that ride the bass and the beat grid, middling ones that swell
-   with the vocal and the snare, and small quick ones that shimmer on the hats.
-   Together they cover the whole record rather than one drum in it. */
+   The laptop sends seven bands cut where instruments actually sit, each with a
+   loudness and an attack; the tempo, and which beat of the bar it is on; the
+   harmony, folded onto twelve pitch classes; and the brightness of the sound.
+   Every one of those drives something different here:
+
+     · seven families of shapes, one per band, sized and paced like the part of
+       the mix they answer to — the sub is enormous and slow, the air is small
+       and quick
+     · the metre, four beats to the bar and four sixteenths to the beat, so the
+       screen phrases: the downbeat lands hardest, the backbeat cracks with the
+       snare, the offbeats tick with the hats
+     · attacks, which fire a family off the grid — a vocal entry, a fill, a
+       cymbal — so it is never only the metronome moving
+     · the harmony: a chord change blooms the whole field, and where the mass
+       drifts follows the tonal centre around the twelve pitch classes
+     · brightness, which decides how white the light in the shapes runs
+
+   The bass is deliberately out of proportion to the rest. It is what the room
+   feels through the floor, so it is what the screen should be biggest about. */
 
 const FAMILIES = [
   {
-    band: "low",                       // kick and bass: the mass of the thing
-    count: 3,
-    radius: [0.26, 0.40],
-    drift: [0.10, 0.24],
-    speed: [0.010, 0.030],
-    swell: 0.55,                       // how much the band opens it up
-    core: "0, 255, 255",
-    edge: "0, 236, 236",
-    floor: 0.62,                       // never fades away entirely
+    band: "sub", count: 2,                 // 30–60 Hz: felt more than heard
+    radius: [0.34, 0.52], drift: [0.05, 0.13], speed: [0.006, 0.016],
+    swell: 1.15, punch: 1.5, floor: 0.5, lift: 0, pulse: "beat", weight: 1,
   },
   {
-    band: "mid",                       // voice, snare, guitars
-    count: 4,
-    radius: [0.13, 0.22],
-    drift: [0.16, 0.34],
-    speed: [0.028, 0.070],
-    swell: 0.5,
-    core: "120, 255, 255",
-    edge: "0, 236, 236",
-    floor: 0.22,
+    band: "bass", count: 3,                // 60–160 Hz: the kick and the bass
+    radius: [0.24, 0.38], drift: [0.09, 0.22], speed: [0.010, 0.028],
+    swell: 0.95, punch: 1.25, floor: 0.45, lift: 0.05, pulse: "beat", weight: 0.9,
   },
   {
-    band: "high",                      // hats and air: small, quick, bright
-    count: 4,
-    radius: [0.05, 0.11],
-    drift: [0.20, 0.40],
-    speed: [0.070, 0.150],
-    swell: 0.8,
-    core: "220, 255, 255",
-    edge: "0, 255, 255",
-    floor: 0.08,
+    band: "body", count: 2,                // 160–400 Hz: where a chord sounds thick
+    radius: [0.17, 0.27], drift: [0.13, 0.28], speed: [0.016, 0.040],
+    swell: 0.55, punch: 0.7, floor: 0.3, lift: 0.1, pulse: "beat", weight: 0.55,
+  },
+  {
+    band: "mid", count: 3,                 // 400–1200 Hz: the voice
+    radius: [0.12, 0.20], drift: [0.16, 0.32], speed: [0.026, 0.062],
+    swell: 0.5, punch: 0.65, floor: 0.22, lift: 0.2, pulse: null, weight: 0,
+  },
+  {
+    band: "presence", count: 3,            // 1.2–3.5 kHz: snare crack, consonants
+    radius: [0.08, 0.15], drift: [0.18, 0.36], speed: [0.040, 0.090],
+    swell: 0.6, punch: 0.9, floor: 0.16, lift: 0.35, pulse: "backbeat", weight: 0,
+  },
+  {
+    band: "high", count: 3,                // 3.5–8 kHz: hats
+    radius: [0.06, 0.12], drift: [0.20, 0.40], speed: [0.070, 0.150],
+    swell: 0.7, punch: 1, floor: 0.1, lift: 0.55, pulse: "offbeat", weight: 0,
+  },
+  {
+    band: "air", count: 4,                 // 8 kHz up: cymbal shimmer
+    radius: [0.045, 0.09], drift: [0.22, 0.44], speed: [0.090, 0.190],
+    swell: 0.8, punch: 1.1, floor: 0.06, lift: 0.75, pulse: "sixteenth", weight: 0,
   },
 ];
 
-/* Two envelopes per hit: a punch that snaps and disappears, and a body that
-   follows through. One envelope alone either smears (too slow to read as a
-   beat) or flickers (too fast to look like slime); together they land like a
-   drum and settle like liquid. */
 const beat = {
-  body: 0,        // drives size
-  punch: 0,       // drives brightness
   seen: null,
-  lastFire: 0,    // last swell
   period: 0,      // one beat, in milliseconds
   bpm: 0,
-  nextAt: 0,      // when the next beat is due
+  nextAt: 0,      // when the next sixteenth is due
+  step: 0,        // where that sixteenth sits in the bar, 0 to 15
   locked: false,
   lastGrid: 0,    // when the operator last reported a tempo
   lastReport: 0,  // when anything at all last arrived
-  count: 0,
+  disagree: 0,    // reports running against our idea of where the bar starts
 };
-
-/* One envelope pair per band, alongside the beat's own.
-
-   ``level`` follows the band's loudness and gives each family something to do
-   between beats; ``hit`` catches the transients — a snare, a hat, a shouted
-   line — that a level average would smooth away. Rises are followed quickly
-   and falls slowly, so the shapes grow with the music and sink back rather
-   than twitching. */
-const bands = {
-  low: { level: 0, target: 0, hit: 0, base: 0, decay: 0.86 },
-  mid: { level: 0, target: 0, hit: 0, base: 0, decay: 0.82 },
-  high: { level: 0, target: 0, hit: 0, base: 0, decay: 0.74 },
-};
-
-const BAND_ATTACK = 0.30;
-const BAND_RELEASE = 0.07;
-
-const clamp01 = (value) => Math.max(0, Math.min(1, value));
-
-function applyLevels(payload) {
-  beat.lastReport = performance.now();
-  for (const name of ["low", "mid", "high"]) {
-    const band = bands[name];
-    band.target = clamp01((Number(payload[name]) || 0) / 100);
-    const peak = clamp01((Number(payload[name + "_peak"]) || 0) / 100);
-
-    // Judge a transient against what this band has been sitting at rather than
-    // against a fixed threshold: one number cannot suit both a quiet ballad and
-    // a mastered-loud dance track, and the second would simply stay lit.
-    band.base = band.base ? band.base * 0.88 + band.target * 0.12 : band.target;
-    const excess = (peak - band.base) / Math.max(band.base, 0.08);
-    if (excess > 0.3) band.hit = Math.max(band.hit, Math.min(1, excess * 0.8));
-  }
-}
-
-function advanceBands(now) {
-  // Nothing reported for a moment: the music stopped, so let it all settle.
-  const quiet = !beat.lastReport || now - beat.lastReport > 1200;
-  for (const name of ["low", "mid", "high"]) {
-    const band = bands[name];
-    const target = quiet ? 0 : band.target;
-    const rate = target > band.level ? BAND_ATTACK : BAND_RELEASE;
-    band.level += (target - band.level) * rate;
-    band.hit = band.hit < 0.01 ? 0 : band.hit * band.decay;
-  }
-}
-
-const BODY_DECAY = 0.90;
-const PUNCH_DECAY = 0.78;
 
 /* Fire a fraction early. The swell takes a frame or two to reach its peak, so
    landing it exactly on the beat reads as slightly behind it. */
 const BEAT_LEAD = 10;
 
-function fire(strength) {
-  const now = performance.now();
-  if (now - beat.lastFire < 110) return;
-  beat.lastFire = now;
-  beat.body = Math.max(beat.body, strength);
-  beat.punch = Math.max(beat.punch, strength);
+/* Two envelopes per family: a punch that snaps and disappears, and a body that
+   follows through. One alone either smears — too slow to read as a beat — or
+   flickers, too fast to look like liquid; together they land like a drum and
+   settle like slime. Each family decays at its own rate, because a sub note
+   and a hi-hat do not leave at the same speed. */
+const bands = {};
+for (const family of FAMILIES) {
+  bands[family.band] = {
+    level: 0, target: 0, base: 0, quiet: 0,     // loudness, and what it usually is
+    body: 0, punch: 0,                          // what the shapes are doing now
+    bodyDecay: 0.90 - 0.045 * FAMILIES.indexOf(family),
+    punchDecay: 0.80 - 0.020 * FAMILIES.indexOf(family),
+  };
 }
 
-/* Places the tempo grid the operator found.
+/* The whole field, not one family: the bass heaves everything, a chord change
+   blooms everything, the tonal centre drags everything around a circle. */
+const field = {
+  heave: 0,          // the low end, exaggerated on purpose
+  bloom: 0,          // a chord change
+  tone: 0,           // brightness, 0 dark to 100 bright
+  tonal: 0,          // which pitch class the harmony is sitting on
+  pullX: 0, pullY: 0,
+};
 
-   The laptop does not send individual kicks — it sends the tempo it is hearing
-   plus how long ago the last strong onset happened. Only the age can travel:
-   the two pages run on unrelated clocks, so a timestamp from one is meaningless
-   in the other. From an age we can reconstruct where the beat sits on our own
-   clock, and from the tempo we know where every beat after it sits too, so the
-   animation runs off the grid and never waits for a message to arrive. */
+const BAND_ATTACK = 0.30;
+const BAND_RELEASE = 0.07;
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+
+/* Swells one family. Gated by whether that band has anything in it, so a track
+   with no hi-hats does not shimmer on every offbeat regardless. */
+function swell(name, strength) {
+  const band = bands[name];
+  const present = 0.2 + 0.8 * Math.min(1, band.level * 1.6);
+  const amount = Math.min(1, strength * present);
+  band.body = Math.max(band.body, amount);
+  band.punch = Math.max(band.punch, amount);
+  return amount;
+}
+
+/* One tick of the metre.
+
+   Four beats to the bar and four sixteenths to the beat, which is where nearly
+   all of this music lives. The positions are not equal and are not treated as
+   equal: one is the downbeat and carries the weight, two and four are the
+   backbeat where the snare is, the halves between beats are where the hats
+   are, and the sixteenths between those are the shimmer. */
+function metronome(step) {
+  const beatInBar = step >> 2;
+  const onBeat = (step & 3) === 0;
+  const onEighth = (step & 3) === 2;
+
+  if (onBeat) {
+    const downbeat = beatInBar === 0;
+    const backbeat = beatInBar === 1 || beatInBar === 3;
+    const weight = downbeat ? 1 : 0.7;
+
+    swell("sub", downbeat ? 1 : 0.55);
+    swell("bass", weight);
+    swell("body", weight * 0.8);
+    if (backbeat) swell("presence", 0.85);
+    // The low end moves the entire picture, not only its own shapes.
+    field.heave = Math.max(field.heave, downbeat ? 1 : 0.6);
+  } else if (onEighth) {
+    swell("high", 0.55);
+    swell("air", 0.3);
+  } else {
+    swell("air", 0.4);
+    swell("high", 0.22);
+  }
+}
+
+/* Places the tempo grid, and the bar inside it.
+
+   The laptop does not send individual hits — it sends the tempo it is hearing,
+   how long ago the last strong onset happened, and which beat of the bar that
+   onset was. Only the age can travel: the two pages run on unrelated clocks, so
+   a timestamp from one is meaningless in the other. From an age we can rebuild
+   where the beat sits on our own clock, and from the tempo where every beat
+   after it sits too, so the animation runs off the grid and never waits for a
+   message to arrive. */
 function applyGrid(payload) {
   const now = performance.now();
   const period = Number(payload.period) || 0;
@@ -344,28 +369,73 @@ function applyGrid(payload) {
   beat.bpm = Number(payload.bpm) || 0;
   beat.lastGrid = now;
 
+  const tick = period / 4;                      // one sixteenth
   const anchorAt = now - (Number(payload.anchor_age) || 0) - BEAT_LEAD;
-  // Walk the anchor forward to the first beat still ahead of us.
-  const target = anchorAt + Math.ceil((now - anchorAt) / period) * period;
+  // Walk the anchor forward to the first sixteenth still ahead of us.
+  const steps = Math.ceil((now - anchorAt) / tick);
+  const target = anchorAt + steps * tick;
+  const step = ((Number(payload.bar_beat) || 0) * 4 + steps) % 16;
 
   if (!beat.locked) {
     beat.nextAt = target;
+    beat.step = step;
     beat.locked = true;
     return;
   }
 
   // Already running: ease onto the reported grid rather than jumping to it, so
   // a single noisy report cannot make the picture stutter. Phase is circular,
-  // so fold the error into the nearest half period first — otherwise a beat
-  // reported one slot over looks like a whole period of error.
+  // so fold the error into the nearest half tick first — otherwise a beat
+  // reported one slot over looks like a whole tick of error.
   let error = target - beat.nextAt;
-  while (error > period / 2) error -= period;
-  while (error < -period / 2) error += period;
-  if (Math.abs(error) > period * 0.3) {
+  while (error > tick / 2) error -= tick;
+  while (error < -tick / 2) error += tick;
+  if (Math.abs(error) > tick * 0.3) {
     beat.nextAt = target;                       // a real change: new song, new tempo
+    beat.step = step;
   } else {
     beat.nextAt += error * 0.25;
   }
+
+  // Where the bar starts is a weaker reading than where the beat is, so it is
+  // only adopted once several reports in a row insist on it. Otherwise the
+  // accent would hop about inside the bar.
+  if (step !== beat.step) {
+    beat.disagree += 1;
+    if (beat.disagree >= 3) { beat.step = step; beat.disagree = 0; }
+  } else {
+    beat.disagree = 0;
+  }
+}
+
+/* The bands, the harmony and the brightness. */
+function applyLevels(payload) {
+  beat.lastReport = performance.now();
+
+  for (const family of FAMILIES) {
+    const band = bands[family.band];
+    band.target = clamp01((Number(payload[family.band]) || 0) / 100);
+    const onset = clamp01((Number(payload[family.band + "_on"]) || 0) / 100);
+
+    /* Judge an attack against what this band has been doing rather than against
+       a fixed threshold: one number cannot suit both a quiet ballad and a
+       mastered-loud dance track, and the second would simply stay lit. */
+    band.quiet = band.quiet ? band.quiet * 0.9 + onset * 0.1 : onset;
+    const excess = (onset - band.quiet) / Math.max(band.quiet, 0.05);
+    if (excess > 0.4) {
+      // Off the grid entirely: a vocal entry, a fill, a cymbal. This is what
+      // keeps the screen answering to the music rather than to the metronome.
+      swell(family.band, Math.min(1, excess * 0.55));
+    }
+  }
+
+  // A chord change: the harmony has turned away from where it had been sitting.
+  const harmony = clamp01((Number(payload.harmony) || 0) / 100);
+  if (harmony > 0.25) field.bloom = Math.max(field.bloom, harmony);
+
+  const centroid = Number(payload.centroid) || 0;
+  field.tone += (centroid - field.tone) * 0.12;
+  field.tonal = Number(payload.tonal) || 0;
 }
 
 function advanceBeat(now) {
@@ -374,16 +444,41 @@ function advanceBeat(now) {
   if (beat.locked && now - beat.lastGrid > 2500) beat.locked = false;
   if (!beat.locked || !beat.period) return;
 
-  if (now >= beat.nextAt) {
-    // Every fourth beat swells harder, which is what makes a bar read as a bar
-    // instead of a metronome.
-    beat.count += 1;
-    fire(beat.count % 4 === 1 ? 1 : 0.82);
-    beat.nextAt += beat.period;
-    // If we ever fall a long way behind, rejoin the grid rather than catching up.
-    if (now - beat.nextAt > beat.period) beat.nextAt = now + beat.period;
+  const tick = beat.period / 4;
+  // Behind by more than a bar — a hidden tab, a stalled frame — so rejoin the
+  // grid where it is now instead of firing our way back to it.
+  if (now - beat.nextAt > beat.period) beat.nextAt = now;
+
+  while (now >= beat.nextAt) {
+    metronome(beat.step);
+    beat.step = (beat.step + 1) % 16;
+    beat.nextAt += tick;
   }
 }
+
+function advanceBands(now) {
+  // Nothing reported for a moment: the music stopped, so let it all settle.
+  const quiet = !beat.lastReport || now - beat.lastReport > 1200;
+  for (const family of FAMILIES) {
+    const band = bands[family.band];
+    const target = quiet ? 0 : band.target;
+    band.level += (target - band.level) * (target > band.level ? BAND_ATTACK : BAND_RELEASE);
+    band.body = band.body < 0.01 ? 0 : band.body * band.bodyDecay;
+    band.punch = band.punch < 0.01 ? 0 : band.punch * band.punchDecay;
+  }
+
+  field.heave = field.heave < 0.01 ? 0 : field.heave * 0.91;
+  field.bloom = field.bloom < 0.01 ? 0 : field.bloom * 0.975;   // a chord lasts
+  if (quiet) field.tone += (0 - field.tone) * 0.05;
+
+  // The tonal centre, laid out around a circle: as the harmony moves the whole
+  // mass drifts to a different quarter of the screen, slowly enough that it
+  // reads as the picture wandering rather than as anything jumping.
+  const angle = (field.tonal / 12) * Math.PI * 2;
+  field.pullX += (Math.cos(angle) * 0.05 - field.pullX) * 0.02;
+  field.pullY += (Math.sin(angle) * 0.05 - field.pullY) * 0.02;
+}
+
 const slime = { canvas: null, ctx: null, blobs: [], width: 0, height: 0 };
 
 // Rendered well below screen resolution: it is blurred past recognition
@@ -396,23 +491,35 @@ function buildSlime() {
   slime.canvas = $("#slime");
   slime.ctx = slime.canvas.getContext("2d");
 
-  // Every family drawn from its own ranges, so a bass shape is unmistakably
-  // heavier and slower than a hat shape even before either of them moves.
+  /* Homes laid out by the golden angle rather than at random.
+
+     Twenty random positions clump: half the screen ends up dark and the other
+     half is a single bright lump. Stepping round by 137.5° never repeats and
+     never bunches, so the mass covers the screen however many shapes there are,
+     and a little jitter keeps it from looking set out. */
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  let placed = 0;
+
   slime.blobs = FAMILIES.flatMap((family) =>
-    Array.from({ length: family.count }, () => ({
-      family,
-      homeX: random(0.1, 0.9),
-      homeY: random(0.1, 0.9),
-      driftX: random(family.drift[0], family.drift[1]),
-      driftY: random(family.drift[0], family.drift[1]) * 0.9,
-      // Deliberately unrelated speeds, so the paths never fall into step.
-      speedX: random(family.speed[0], family.speed[1]),
-      speedY: random(family.speed[0], family.speed[1]) * 0.85,
-      phaseX: random(0, Math.PI * 2),
-      phaseY: random(0, Math.PI * 2),
-      radius: random(family.radius[0], family.radius[1]),
-      breath: random(0, Math.PI * 2),
-    })),
+    Array.from({ length: family.count }, () => {
+      const angle = placed * golden;
+      const spread = 0.16 + 0.30 * Math.sqrt((placed % 7) / 7);
+      placed += 1;
+      return {
+        family,
+        homeX: 0.5 + Math.cos(angle) * spread + random(-0.05, 0.05),
+        homeY: 0.5 + Math.sin(angle) * spread * 0.8 + random(-0.05, 0.05),
+        driftX: random(family.drift[0], family.drift[1]),
+        driftY: random(family.drift[0], family.drift[1]) * 0.9,
+        // Deliberately unrelated speeds, so the paths never fall into step.
+        speedX: random(family.speed[0], family.speed[1]),
+        speedY: random(family.speed[0], family.speed[1]) * 0.85,
+        phaseX: random(0, Math.PI * 2),
+        phaseY: random(0, Math.PI * 2),
+        radius: random(family.radius[0], family.radius[1]),
+        breath: random(0, Math.PI * 2),
+      };
+    }),
   );
 
   sizeSlime();
@@ -427,20 +534,17 @@ function sizeSlime() {
   slime.canvas.height = slime.height;
 }
 
+/* Cyan through to white. Brightness in the sound decides how far up this the
+   light in a shape runs, and each family sits at its own height of it, so the
+   hats read as sparks and the sub as a dark swell even on the same note. */
+function light(amount) {
+  const t = clamp01(amount);
+  return `${Math.round(0 + 215 * t)}, 255, 255`;
+}
+
 function drawSlime(now) {
   advanceBeat(now);
   advanceBands(now);
-  beat.body = beat.body < 0.01 ? 0 : beat.body * BODY_DECAY;
-  beat.punch = beat.punch < 0.01 ? 0 : beat.punch * PUNCH_DECAY;
-
-  // What each family is answering to. The bass family takes the larger of the
-  // beat grid and the band itself: the grid keeps it in time when the tracker
-  // has the tempo, the band keeps it alive when it does not.
-  const drive = {
-    low: { level: Math.max(beat.body, bands.low.level * 0.85), punch: Math.max(beat.punch, bands.low.hit) },
-    mid: { level: bands.mid.level, punch: bands.mid.hit },
-    high: { level: bands.high.level, punch: bands.high.hit },
-  };
 
   const { ctx, width, height } = slime;
   const seconds = now / 1000;
@@ -450,29 +554,49 @@ function drawSlime(now) {
   ctx.fillStyle = "#141414";
   ctx.fillRect(0, 0, width, height);
 
+  /* The low end moves everything. A kick is not a local event in a room — it
+     is the thing you feel through the floor — so it opens the whole field out
+     rather than only the shapes that belong to it. A chord change does the
+     same, more slowly. */
+  const heave = field.heave * (0.4 + 0.6 * bands.bass.level);
+  const global = 1 + 0.22 * heave + 0.12 * field.bloom;
+  const tone = field.tone / 100;
+
   // Additive, so overlaps brighten into one body instead of stacking edges.
   ctx.globalCompositeOperation = "lighter";
   for (const blob of slime.blobs) {
     const family = blob.family;
-    const { level, punch } = drive[family.band];
+    const band = bands[family.band];
 
-    const x = width * (blob.homeX + blob.driftX * Math.sin(seconds * blob.speedX * 6.283 + blob.phaseX));
-    const y = height * (blob.homeY + blob.driftY * Math.cos(seconds * blob.speedY * 6.283 + blob.phaseY));
-    const swell = 1 + 0.09 * Math.sin(seconds * 0.55 + blob.breath)
-      + family.swell * (level * 0.55 + punch * 0.75);
-    const radius = reach * blob.radius * swell;
+    // A chord change hurries the drift along for a moment as well as widening
+    // it, which is what makes the field feel like it turned rather than grew.
+    const pace = 1 + 0.5 * field.bloom;
+    const x = width * (blob.homeX + field.pullX
+      + blob.driftX * Math.sin(seconds * blob.speedX * pace * 6.283 + blob.phaseX));
+    const y = height * (blob.homeY + field.pullY
+      + blob.driftY * Math.cos(seconds * blob.speedY * pace * 6.283 + blob.phaseY));
+
+    const swelling = 1
+      + 0.08 * Math.sin(seconds * 0.55 + blob.breath)          // always breathing
+      + family.swell * band.level * 0.6
+      + family.punch * band.body
+      + family.weight * heave * 0.5;                           // the bass, again
+    const radius = reach * blob.radius * swelling * global;
     if (radius < 1) continue;
 
     // Presence: a family with nothing in its band sinks back into the dark
     // rather than sitting there lit, which is what keeps the mass reading as
     // the music instead of as decoration.
-    const presence = family.floor + (1 - family.floor) * Math.min(1, level * 1.2 + punch);
-    const inner = (0.72 * presence + 0.28 * punch).toFixed(3);
-    const middle = (0.26 * presence + 0.38 * punch).toFixed(3);
+    const presence = family.floor
+      + (1 - family.floor) * Math.min(1, band.level * 1.2 + band.punch);
+    const core = light(family.lift + tone * 0.45 + band.punch * 0.3);
+    const edge = light(family.lift * 0.4 + tone * 0.2);
+    const inner = (0.70 * presence + 0.30 * band.punch).toFixed(3);
+    const middle = (0.24 * presence + 0.36 * band.punch).toFixed(3);
 
     const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    gradient.addColorStop(0, `rgba(${family.core}, ${inner})`);
-    gradient.addColorStop(0.45, `rgba(${family.edge}, ${middle})`);
+    gradient.addColorStop(0, `rgba(${core}, ${inner})`);
+    gradient.addColorStop(0.45, `rgba(${edge}, ${middle})`);
     gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
 
     ctx.fillStyle = gradient;

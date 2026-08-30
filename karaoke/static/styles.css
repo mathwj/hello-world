@@ -517,6 +517,24 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
   height: calc(100vh - var(--topbar-h, 132px) - 130px);
 }
 
+/* Off to the side rather than display:none.
+
+   A <webview> that is not rendered is a page that is not visible, and a page
+   that is not visible gets no animation frames at all — so the moment the
+   operator switched to any other tab, the thing listening to the music inside
+   this one stopped listening, the beat went stale and the stage stopped
+   answering to anything. It stays laid out and simply sits off-screen. */
+.panel.is-browser:not(.is-active) {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  width: 1200px;
+  height: 700px;
+  pointer-events: none;
+}
+
 .yt-bar { display: flex; align-items: center; gap: 6px; padding: 0 0 10px; }
 .yt-bar .btn { padding: 7px 12px; font-size: 14px; }
 

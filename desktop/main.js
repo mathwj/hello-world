@@ -24,6 +24,10 @@ function createWindow() {
       webviewTag: true,
       contextIsolation: true,
       nodeIntegration: false,
+      // The console is often behind the stage window for most of a karaoke
+      // night. Throttled timers there would stall the beat feed the stage
+      // depends on, so this window keeps running at full rate out of sight.
+      backgroundThrottling: false,
     },
   });
 

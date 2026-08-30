@@ -133,20 +133,40 @@ def test_the_anchor_ages_while_it_waits():
 
 def test_band_levels_are_clamped():
     stage = Stage()
-    stage.set_pulse({"period": 500, "low": 300, "mid": -5, "high": 42})
+    stage.set_pulse({"period": 500, "bass": 300, "mid": -5, "air": 42, "presence_on": 180})
     pulse = stage.pulse()
-    assert pulse["low"] == 100
+    assert pulse["bass"] == 100
     assert pulse["mid"] == 0
-    assert pulse["high"] == 42
+    assert pulse["air"] == 42
+    assert pulse["presence_on"] == 100
+
+
+def test_every_band_is_carried():
+    """The waiting screen has a family of shapes for each one."""
+    stage = Stage()
+    stage.set_pulse({"period": 500, "sub": 10})
+    pulse = stage.pulse()
+    for band in ("sub", "bass", "body", "mid", "presence", "high", "air"):
+        assert band in pulse and band + "_on" in pulse
+
+
+def test_the_bar_and_the_harmony_travel_too():
+    stage = Stage()
+    stage.set_pulse({"period": 500, "bar_beat": 6, "tonal": 14, "harmony": 80, "centroid": 45})
+    pulse = stage.pulse()
+    assert pulse["bar_beat"] == 2                  # four beats to the bar
+    assert pulse["tonal"] == 2                     # twelve pitch classes
+    assert pulse["harmony"] == 80
+    assert pulse["centroid"] == 45
 
 
 def test_bands_travel_without_a_tempo():
     """Music the tracker cannot lock onto still has to move the picture."""
     stage = Stage()
-    stage.set_pulse({"low": 70, "mid": 30, "high": 12})
+    stage.set_pulse({"bass": 70, "mid": 30, "air": 12})
     pulse = stage.pulse()
     assert pulse["period"] == 0
-    assert pulse["low"] == 70
+    assert pulse["bass"] == 70
 
 
 def test_waiting_for_the_next_kick():

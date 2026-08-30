@@ -59,6 +59,20 @@ KaraokeBox runs on two screens: the **operator console** on your laptop, and the
 The karaoke plays on the stage; the between-songs music plays on the laptop.
 Either way the console stays free to search and download while something runs.
 
+### Between songs
+
+With nobody singing, the stage answers to whatever is playing on the Music page.
+The laptop listens to it and sends what it hears across: the tempo and where the
+bar starts, the level and attack of seven frequency bands, the harmony folded
+onto twelve pitch classes, and how bright the sound is. The waiting screen has a
+family of shapes for each band — the sub is enormous and slow, the hats are
+small and quick — running off its own copy of the beat grid rather than waiting
+for messages to arrive, so it stays in time rather than trailing the music.
+
+The **Beat** light in the mixer shows the tempo it has settled on, so a wrong
+lock is obvious at a glance. *Listening* means it can hear the music but has not
+found a steady tempo yet; the shapes still move with the bands meanwhile.
+
 ## Using it
 
 1. **Karaoke** — search for a song (`perfect`, `bohemian rhapsody`). Results are

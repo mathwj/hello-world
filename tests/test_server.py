@@ -352,7 +352,7 @@ def test_a_beat_report_carries_the_grid_and_the_bands(client):
     response = client.post(
         "/api/stage/pulse",
         json={"period": 468, "bpm": 128, "confidence": 4.1, "anchor_age": 30,
-              "low": 62, "mid": 40, "high": 18},
+              "bar_beat": 2, "sub": 55, "bass": 62, "mid": 40, "air": 18},
     )
     assert response.status_code == 200
     assert response.get_json()["seq"] == 1
@@ -360,7 +360,7 @@ def test_a_beat_report_carries_the_grid_and_the_bands(client):
 
 def test_bands_are_accepted_without_a_tempo(client):
     """Music the tracker cannot lock onto still has to move the waiting screen."""
-    response = client.post("/api/stage/pulse", json={"low": 55, "mid": 20, "high": 9})
+    response = client.post("/api/stage/pulse", json={"bass": 55, "mid": 20, "air": 9})
     assert response.status_code == 200
 
 

@@ -276,7 +276,8 @@ function setUpYouTubeView() {
       <span class="yt-url" id="yt-url"></span>
     </div>
     <webview id="yt-view" src="https://www.youtube.com"
-             partition="persist:youtube" allowpopups></webview>`;
+             partition="persist:youtube" allowpopups
+             webpreferences="backgroundThrottling=no"></webview>`;
 
   const view = $("#yt-view");
   $("#yt-back").addEventListener("click", () => view.canGoBack() && view.goBack());
@@ -331,7 +332,9 @@ const ENSURE_CHAIN = `
   if (ctx.state !== "running") return { state: "starting" };
 
   const build = (video) => {
-    if (video.__kbChain) return video.__kbChain;
+    // An older graph, built before the fine analyser existed, is upgraded in
+    // place: the music page keeps its audio context across an app update.
+    if (video.__kbChain) return attach(video.__kbChain);
     let source;
     try {
       source = ctx.createMediaElementSource(video);
@@ -357,8 +360,51 @@ const ENSURE_CHAIN = `
     filter.connect(level);
     level.connect(analyser);
     analyser.connect(ctx.destination);
-    video.__kbChain = { filter, level, analyser };
-    return video.__kbChain;
+
+    /* A clock that cannot be throttled.
+
+       Reading the analysers on animation frames means reading them only while
+       this page is being drawn, and it is not: the operator spends the night on
+       other tabs, and a page that is not rendered gets no frames at all. The
+       audio, though, never stops — that is the whole point of it — so the audio
+       graph itself is asked to drive the sampling. This node's callback comes
+       round every buffer, whether anyone is looking at the page or not.
+
+       Its output is silence: it is here for the callback, not for the sound. */
+    let pump = null;
+    try {
+      pump = ctx.createScriptProcessor(1024, 1, 1);
+      pump.onaudioprocess = () => { if (store.sample) store.sample(); };
+      const silence = ctx.createGain();
+      silence.gain.value = 0;
+      level.connect(pump);
+      pump.connect(silence);
+      silence.connect(ctx.destination);
+    } catch (error) {
+      pump = null;             // an old clock is better than no music at all
+    }
+    video.__kbChain = { filter, level, analyser, pump };
+    return attach(video.__kbChain);
+  };
+
+  /* A second analyser, hung off the same point in the chain.
+
+     One window cannot do both jobs. Telling *when* a drum was hit needs a short
+     window, because a long one smears the attack across it; telling *which
+     note* is sounding needs a long one, because 12 Hz apart is a semitone down
+     where the bass lives and a short window cannot resolve that. So there are
+     two: a fast one for time and a fine one for pitch. */
+  const attach = (chain) => {
+    if (chain.harmonics) return chain;
+    const harmonics = ctx.createAnalyser();
+    harmonics.fftSize = 4096;            // about 12 Hz per bin
+    harmonics.smoothingTimeConstant = 0.6;
+    harmonics.minDecibels = -95;
+    harmonics.maxDecibels = -12;
+    // A tap: nothing downstream, so it reads the music without carrying it.
+    chain.level.connect(harmonics);
+    chain.harmonics = harmonics;
+    return chain;
   };
 `;
 
@@ -396,8 +442,25 @@ const muffleScript = ({ frequency, gain }) => `(() => {
 const BEAT_POLL_MS = 200;
 const BEAT_CONFIDENCE = 3.4;
 
+/* The seven bands, cut where instruments actually sit rather than into equal
+   slices. Each is roughly an octave or two of one job in a mix, which is what
+   makes them separable to look at: the sub is felt, the bass is the kick and
+   the bass guitar, the body is where a chord sounds thick, the mid carries the
+   voice, presence is a snare crack and a consonant, the highs are hats and the
+   air is cymbal shimmer. */
+const BANDS = [
+  ["sub", 30, 60],
+  ["bass", 60, 160],
+  ["body", 160, 400],
+  ["mid", 400, 1200],
+  ["presence", 1200, 3500],
+  ["high", 3500, 8000],
+  ["air", 8000, 16000],
+];
+
 const BEAT_SCRIPT = `(() => {
   ${ENSURE_CHAIN}
+  const BANDS = ${JSON.stringify(BANDS)};
   const playing = () => Array.from(document.querySelectorAll("video"))
     .find((v) => !v.paused && !v.ended && v.readyState > 2);
 
@@ -406,14 +469,22 @@ const BEAT_SCRIPT = `(() => {
   if (!build(video)) return { state: "no-tap" };
 
   if (!store.beat) {
+    const emptyBands = () => {
+      // Levels are summed and averaged over the frames a report covers; onsets
+      // are peak-held, because an attack lives in a single frame and averaging
+      // it away is exactly how a snare goes missing.
+      const bands = { frames: 0 };
+      for (const [name] of BANDS) bands[name] = { level: 0, onset: 0 };
+      return bands;
+    };
+
     store.beat = {
-      flux: [], times: [], previous: null,
-      period: 0, bpm: 0, confidence: 0, anchor: 0, analysedAt: 0,
+      flux: [], times: [], lows: [], previous: null, fineSpectrum: null,
+      period: 0, bpm: 0, confidence: 0, anchor: 0, analysedAt: 0, barBeat: 0,
       recent: [], steady: false,
-      // Band levels, summed and peak-held between reports. Averaging alone
-      // would swallow a snare that lands between two reads; a peak alone would
-      // never come down. The stage gets both and uses each for a different job.
-      bands: { low: 0, mid: 0, high: 0, lowPeak: 0, midPeak: 0, highPeak: 0, frames: 0 },
+      centroid: 0, harmony: 0, tonal: 0, chroma: null, chromaTable: null, chromaAt: 0,
+      bands: emptyBands(),
+      emptyBands,
     };
 
     /* Estimates the tempo the way beat trackers actually do it, rather than by
@@ -530,6 +601,28 @@ const BEAT_SCRIPT = `(() => {
       }
       beat.anchor = beat.times[count - 1 - bestOffset];
 
+      /* Which beat of the bar that is.
+
+         Nearly all of this music is in four, and the four are not equal: the
+         first carries the weight, and the backbeat — two and four — carries
+         the snare. Knowing where the bar starts is what lets the screen phrase
+         instead of tick. The downbeat is found the way a listener finds it, by
+         asking which of the four positions the low end keeps landing on. */
+      let barBeat = 0, heaviest = -1;
+      for (let phase = 0; phase < 4; phase += 1) {
+        let sum = 0, hits = 0;
+        for (let k = phase; ; k += 4) {
+          const i = Math.round(count - 1 - bestOffset - k * refined);
+          if (i < 0) break;
+          sum += beat.lows[i] || 0;
+          hits += 1;
+        }
+        if (hits && sum / hits > heaviest) { heaviest = sum / hits; barBeat = phase; }
+      }
+      // The heaviest position sits barBeat beats back from the anchor, so
+      // that is the anchor's own place in the bar.
+      beat.barBeat = barBeat;
+
       /* One reading is not a tempo.
 
          Confidence alone cannot tell quiet music from a passage with no beat
@@ -544,7 +637,28 @@ const BEAT_SCRIPT = `(() => {
         && beat.recent.every((p) => Math.abs(p - middle) < middle * 0.04);
     };
 
-    const tick = () => {
+    /* Which pitch class each fine bin belongs to.
+
+       Doubling a frequency is the same note an octave up, so folding the whole
+       spectrum onto twelve classes gives what the music is actually built on:
+       its harmony, independent of which octave anything is played in. Worked
+       out once — it is the same table every frame. */
+    const chromaTable = (analyser) => {
+      const binHz = analyser.context.sampleRate / analyser.fftSize;
+      const table = new Int8Array(analyser.frequencyBinCount).fill(-1);
+      for (let bin = 1; bin < table.length; bin += 1) {
+        const hz = bin * binHz;
+        if (hz < 55 || hz > 4200) continue;          // below A1, above the top of a piano
+        const semitones = 12 * Math.log(hz / 440) / Math.LN2;
+        table[bin] = ((Math.round(semitones) % 12) + 12) % 12;
+      }
+      return table;
+    };
+
+    /* Sampled from whichever clock gets here first — the audio graph when the
+       page is hidden, animation frames when it is not — with anything closer
+       together than half a frame ignored, so the two never double up. */
+    const sample = () => {
       const current = playing();
       if (current && current.__kbChain) {
         const analyser = current.__kbChain.analyser;
@@ -561,67 +675,156 @@ const BEAT_SCRIPT = `(() => {
             if (rise > 0) flux += rise;
           }
         }
-        beat.previous = spectrum;
 
-        /* The rest of the music, not just the kick.
+        /* Every part of the music, not just the kick.
 
            A picture driven by the kick alone only moves a few times a bar and
            ignores everything in between, which is why it reads as mechanical.
-           Splitting the spectrum into bass, body and air gives the waiting
-           screen three separate things to answer to: the low band thumps, the
-           mid band swells with the vocal and the snare, the high band shimmers
-           with the hats. */
-        const binHz = analyser.context.sampleRate / analyser.fftSize;
-        const band = (lowHz, highHz) => {
-          const from = Math.max(1, Math.round(lowHz / binHz));
-          const to = Math.min(spectrum.length - 1, Math.round(highHz / binHz));
-          let sum = 0;
-          for (let bin = from; bin <= to; bin += 1) sum += spectrum[bin];
-          return (sum / (to - from + 1)) * (100 / 255);
-        };
-        const low = band(40, 180);
-        const mid = band(200, 2000);
-        const high = band(2500, 9000);
-        const bands = beat.bands;
-        bands.low += low; bands.mid += mid; bands.high += high;
-        bands.lowPeak = Math.max(bands.lowPeak, low);
-        bands.midPeak = Math.max(bands.midPeak, mid);
-        bands.highPeak = Math.max(bands.highPeak, high);
-        bands.frames += 1;
+           Each band gets two numbers: how loud it is, which is how big its
+           shapes sit, and how hard it just jumped, which is what makes them
+           snap. Loudness and attack are different questions — a held organ
+           chord is loud and never attacks, a closed hat attacks and is never
+           loud. */
+        const fastHz = analyser.context.sampleRate / analyser.fftSize;
+        const fine = current.__kbChain.harmonics;
+        const fineHz = fine.context.sampleRate / fine.fftSize;
+        if (!beat.fineSpectrum) beat.fineSpectrum = new Uint8Array(fine.frequencyBinCount);
+        fine.getByteFrequencyData(beat.fineSpectrum);
+        const detail = beat.fineSpectrum;
 
+        let frameLow = 0;
+        for (const [name, lowHz, highHz] of BANDS) {
+          // Level from the fine analyser: 40 Hz and 90 Hz are a world apart to
+          // listen to and one bin apart to the fast one.
+          let sum = 0, bins = 0;
+          for (let bin = Math.max(1, Math.round(lowHz / fineHz));
+               bin <= Math.min(detail.length - 1, Math.round(highHz / fineHz)); bin += 1) {
+            sum += detail[bin]; bins += 1;
+          }
+          const level = bins ? (sum / bins) * (100 / 255) : 0;
+
+          // Attack from the fast one: this is a question about time.
+          let rise = 0, fastBins = 0;
+          if (beat.previous) {
+            for (let bin = Math.max(1, Math.round(lowHz / fastHz));
+                 bin <= Math.min(spectrum.length - 1, Math.round(highHz / fastHz)); bin += 1) {
+              rise += Math.max(0, spectrum[bin] - beat.previous[bin]);
+              fastBins += 1;
+            }
+          }
+          const onset = fastBins ? Math.min(100, (rise / fastBins) * 2.5) : 0;
+
+          if (name === "sub" || name === "bass") frameLow = Math.max(frameLow, onset);
+
+          const band = beat.bands[name];
+          band.level += level;
+          band.onset = Math.max(band.onset, onset);
+        }
+        beat.bands.frames += 1;
+
+        /* Timbre: where the weight of the sound sits. A voice and a cymbal can
+           be the same loudness and look nothing alike; brightness is what tells
+           them apart, and it is what the colour follows. */
+        let weighted = 0, total = 0;
+        for (let bin = 1; bin < spectrum.length; bin += 1) {
+          // Above the floor only. A little hiss in every one of five hundred
+          // bins is nothing to listen to, but there is a lot of it and it sits
+          // high, so counting it drags this to the top and pins it there.
+          if (spectrum[bin] < 24) continue;
+          weighted += bin * fastHz * spectrum[bin];
+          total += spectrum[bin];
+        }
+        if (total > 0) {
+          const centre = weighted / total;
+          // Logarithmic, because hearing is: 200 Hz to 6 kHz across the range.
+          const octaves = Math.log(Math.max(200, Math.min(6000, centre)) / 200) / Math.LN2;
+          beat.centroid = beat.centroid * 0.85 + (octaves / 4.9) * 100 * 0.15;
+        }
+
+        // Harmony, a few times a second: chords do not change every frame, and
+        // twelve sums over three thousand bins is not free.
         const now = performance.now();
+        if (now - beat.chromaAt > 120) {
+          beat.chromaAt = now;
+          if (!beat.chromaTable) beat.chromaTable = chromaTable(fine);
+          const chroma = new Float64Array(12);
+          for (let bin = 1; bin < detail.length; bin += 1) {
+            const pitch = beat.chromaTable[bin];
+            if (pitch >= 0) chroma[pitch] += detail[bin];
+          }
+          let length = 0;
+          for (let i = 0; i < 12; i += 1) length += chroma[i] * chroma[i];
+          length = Math.sqrt(length);
+          if (length > 0) {
+            for (let i = 0; i < 12; i += 1) chroma[i] /= length;
+            if (beat.chroma) {
+              // How far the harmony has turned from where it has been sitting.
+              // A chord change moves this sharply; a melody over one chord
+              // barely moves it, which is the distinction worth drawing.
+              let dot = 0;
+              for (let i = 0; i < 12; i += 1) dot += chroma[i] * beat.chroma[i];
+              beat.harmony = Math.max(beat.harmony, Math.min(100, (1 - dot) * 260));
+              for (let i = 0; i < 12; i += 1) beat.chroma[i] = beat.chroma[i] * 0.92 + chroma[i] * 0.08;
+            } else {
+              beat.chroma = chroma;
+            }
+            let strongest = 0;
+            for (let i = 1; i < 12; i += 1) if (beat.chroma[i] > beat.chroma[strongest]) strongest = i;
+            beat.tonal = strongest;
+          }
+        }
+
+        beat.previous = spectrum;
         beat.flux.push(flux);
         beat.times.push(now);
-        if (beat.flux.length > 420) { beat.flux.shift(); beat.times.shift(); }
+        beat.lows.push(frameLow);          // for finding the downbeat
+        if (beat.flux.length > 420) { beat.flux.shift(); beat.times.shift(); beat.lows.shift(); }
 
         if (now - beat.analysedAt > 500 && beat.flux.length > 180) {
           beat.analysedAt = now;
           analyse(beat);
         }
       }
-      requestAnimationFrame(tick);
     };
-    requestAnimationFrame(tick);
+
+    store.sample = () => {
+      const now = performance.now();
+      if (now - (store.sampledAt || 0) < 8) return;
+      store.sampledAt = now;
+      store.samples = (store.samples || 0) + 1;
+      sample();
+    };
+
+    const frame = () => { store.sample(); requestAnimationFrame(frame); };
+    requestAnimationFrame(frame);
   }
 
   const beat = store.beat;
-  // Reading the bands drains them: each report covers the frames since the
-  // last one, so a peak belongs to one report only and cannot linger.
-  const bands = beat.bands;
-  const frames = Math.max(1, bands.frames);
-  const levels = {
-    low: Math.round(bands.low / frames),
-    mid: Math.round(bands.mid / frames),
-    high: Math.round(bands.high / frames),
-    lowPeak: Math.round(bands.lowPeak),
-    midPeak: Math.round(bands.midPeak),
-    highPeak: Math.round(bands.highPeak),
-  };
-  beat.bands = { low: 0, mid: 0, high: 0, lowPeak: 0, midPeak: 0, highPeak: 0, frames: 0 };
+  // Reading drains what has been collected: each report covers the frames
+  // since the last one, so a peak belongs to one report only and cannot linger.
+  const taken = beat.bands.frames;
+  const frames = Math.max(1, taken);
+  const levels = {};
+  let loudest = 0;
+  for (const [name] of BANDS) {
+    levels[name] = Math.round(beat.bands[name].level / frames);
+    levels[name + "_on"] = Math.round(beat.bands[name].onset);
+    loudest = Math.max(loudest, levels[name]);
+  }
+  beat.bands = beat.emptyBands();
+  const harmony = Math.round(beat.harmony);
+  beat.harmony = 0;
 
   return {
-    state: "ok",
+    // How much was actually read since the last report, so a sampler that has
+    // stopped is visible as itself rather than as music with nothing in it.
+    state: taken === 0 ? "stalled" : (loudest < 1 ? "silent" : "ok"),
+    frames: taken,
     levels,
+    harmony,
+    tonal: beat.tonal,
+    centroid: Math.round(beat.centroid),
+    barBeat: beat.barBeat,
     bpm: beat.bpm,
     confidence: +beat.confidence.toFixed(2),
     steady: beat.steady,
@@ -642,6 +845,8 @@ const BEAT_STATES = {
   "no-audio": "nothing playing",
   "no-tap": "cannot read this player",
   unsupported: "no audio support",
+  stalled: "not reading the player",
+  silent: "player is silent",
   error: "not responding",
 };
 
@@ -679,7 +884,10 @@ function startBeatFeed() {
       const roundTrip = performance.now() - started;
       showBeatState(report);
 
-      if (!report || report.state !== "ok" || !report.levels) return;
+      // "silent" still reports: a quiet passage is music too, and the screen
+      // should settle through it rather than freeze on the last loud frame.
+      if (!report || !report.levels) return;
+      if (report.state !== "ok" && report.state !== "silent") return;
 
       // The tempo is only worth sending once the tracker is sure of it; the
       // band levels are worth sending regardless, so music it cannot lock onto
@@ -695,12 +903,13 @@ function startBeatFeed() {
         // trip ago; carrying the age rather than a timestamp is what lets
         // the stage put the beat where it actually happened.
         anchor_age: locked ? Math.round(report.anchorAge + roundTrip / 2) : 0,
-        low: report.levels.low,
-        mid: report.levels.mid,
-        high: report.levels.high,
-        low_peak: report.levels.lowPeak,
-        mid_peak: report.levels.midPeak,
-        high_peak: report.levels.highPeak,
+        // Where the anchor sits in the bar, so the stage can tell a downbeat
+        // from the beats after it rather than treating all four alike.
+        bar_beat: locked ? report.barBeat : 0,
+        harmony: report.harmony,
+        tonal: report.tonal,
+        centroid: report.centroid,
+        ...report.levels,
       });
     } catch (error) {
       showBeatState({ state: "error" });

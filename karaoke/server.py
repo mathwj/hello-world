@@ -120,7 +120,7 @@ def create_app(
         parts that answer to those rather than to the beat.
         """
         payload = request.get_json(silent=True) or {}
-        wanted = ("period", "low", "mid", "high")
+        wanted = ("period", "sub", "bass", "body", "mid", "presence", "high", "air")
         if not isinstance(payload, dict) or not any(payload.get(k) for k in wanted):
             return jsonify({"error": "Expected a beat report."}), 400
         try:
