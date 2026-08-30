@@ -260,6 +260,18 @@ const FAMILIES = [
   },
 ];
 
+/* A handful of shapes that answer to nothing in particular.
+
+   The families above are all tied to something — a band, a beat, a chord — and
+   a picture made only of those is legible but tidy. These are the opposite: each
+   lives its own slow life, swelling from nothing to most of the screen and
+   sinking away again over anything from a quarter of a minute to most of one,
+   wandering as it goes and speeding up and slowing down while it does. They are
+   what keeps the whole thing from settling into a pattern you can predict, and
+   the music only leans on them: loud passages hurry them along, a chord change
+   pushes one over the edge into its next life. */
+const WANDERERS = 5;
+
 const beat = {
   seen: null,
   period: 0,      // one beat, in milliseconds
@@ -456,6 +468,35 @@ function advanceBeat(now) {
   }
 }
 
+/* Moves the wanderers along their lives. Kept apart from the drawing because
+   it is the interesting half: how fast each one is living, how big it has got,
+   and when it gives up and starts again somewhere else. */
+function advanceWanderers(now) {
+  // Clamped at both ends. A long frame must not jump a wanderer through half
+  // its life, and a timestamp that ever moves backwards must not run one
+  // backwards into a negative life, where its size is not a number at all and
+  // the whole canvas paints nothing.
+  const elapsed = Math.max(0, Math.min(0.1, (now - (slime.drawnAt || now)) / 1000));
+  slime.drawnAt = now;
+  const seconds = now / 1000;
+  const energy = bands.bass.level * 0.5 + bands.mid.level * 0.3 + bands.high.level * 0.2;
+
+  for (const wanderer of slime.wanderers) {
+    // Its pace wanders as it goes, and the music hurries it: the same shape
+    // takes half a minute over a quiet passage and a few seconds over a loud
+    // one, which is most of why none of this looks like a loop.
+    const pace = (1 + wanderer.swing
+        * Math.sin(seconds * wanderer.swingRate * 6.283 + wanderer.swingPhase))
+      * (0.55 + 1.1 * energy + 0.8 * field.bloom);
+    wanderer.life += (elapsed / wanderer.span) * Math.max(0.1, pace);
+    if (!(wanderer.life >= 0)) wanderer.life = 0;
+    if (wanderer.life >= 1) { wanderer.life = 0; reseed(wanderer); }
+    // Nothing, to everything, to nothing. Raised to a power so it spends longer
+    // small and passes through its full size rather than sitting at it.
+    wanderer.shape = Math.pow(Math.sin(Math.PI * wanderer.life), 1.7);
+  }
+}
+
 function advanceBands(now) {
   // Nothing reported for a moment: the music stopped, so let it all settle.
   const quiet = !beat.lastReport || now - beat.lastReport > 1200;
@@ -479,7 +520,7 @@ function advanceBands(now) {
   field.pullY += (Math.sin(angle) * 0.05 - field.pullY) * 0.02;
 }
 
-const slime = { canvas: null, ctx: null, blobs: [], width: 0, height: 0 };
+const slime = { canvas: null, ctx: null, blobs: [], wanderers: [], width: 0, height: 0, drawnAt: 0 };
 
 // Rendered well below screen resolution: it is blurred past recognition
 // anyway, and a full-size canvas repainted every frame is wasted work.
@@ -522,9 +563,32 @@ function buildSlime() {
     }),
   );
 
+  slime.wanderers = Array.from({ length: WANDERERS }, () => reseed({ life: random(0, 1) }));
+
   sizeSlime();
   window.addEventListener("resize", sizeSlime);
   requestAnimationFrame(drawSlime);
+}
+
+/* A wanderer's next life: a new place, a new size to reach, a new pace. Reused
+   rather than replaced, so there are always exactly as many as there were. */
+function reseed(wanderer) {
+  wanderer.life = wanderer.life || 0;
+  wanderer.homeX = random(0.1, 0.9);
+  wanderer.homeY = random(0.1, 0.9);
+  wanderer.span = random(11, 34);            // seconds from nothing to nothing
+  wanderer.peak = random(0.45, 1.25);        // and how far across the screen it gets
+  wanderer.swing = random(0.3, 0.9);         // how much its pace wanders
+  wanderer.swingRate = random(0.04, 0.13);
+  wanderer.swingPhase = random(0, Math.PI * 2);
+  wanderer.driftX = random(0.05, 0.22);
+  wanderer.driftY = random(0.05, 0.20);
+  wanderer.speedX = random(0.010, 0.055);
+  wanderer.speedY = random(0.008, 0.048);
+  wanderer.phaseX = random(0, Math.PI * 2);
+  wanderer.phaseY = random(0, Math.PI * 2);
+  wanderer.band = FAMILIES[Math.floor(random(0, FAMILIES.length))].band;
+  return wanderer;
 }
 
 function sizeSlime() {
@@ -545,6 +609,7 @@ function light(amount) {
 function drawSlime(now) {
   advanceBeat(now);
   advanceBands(now);
+  advanceWanderers(now);
 
   const { ctx, width, height } = slime;
   const seconds = now / 1000;
@@ -564,6 +629,34 @@ function drawSlime(now) {
 
   // Additive, so overlaps brighten into one body instead of stacking edges.
   ctx.globalCompositeOperation = "lighter";
+
+  /* The wanderers first, so the shapes that are actually keeping time sit in
+     front of them rather than being swallowed. */
+  for (const wanderer of slime.wanderers) {
+    if (wanderer.shape < 0.01) continue;
+
+    const x = width * (wanderer.homeX
+      + wanderer.driftX * Math.sin(seconds * wanderer.speedX * 6.283 + wanderer.phaseX));
+    const y = height * (wanderer.homeY
+      + wanderer.driftY * Math.cos(seconds * wanderer.speedY * 6.283 + wanderer.phaseY));
+    const radius = reach * wanderer.peak * wanderer.shape
+      * (1 + 0.3 * bands[wanderer.band].body) * global;
+    if (radius < 1) continue;
+
+    // The bigger it gets the fainter it runs, or a full-screen one would wash
+    // the stage out and take the waiting card with it.
+    const size = Math.min(1, radius / reach);
+    const alpha = 0.42 * wanderer.shape * (1 - 0.62 * size);
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, `rgba(${light(0.1 + tone * 0.35)}, ${alpha.toFixed(3)})`);
+    gradient.addColorStop(0.5, `rgba(0, 236, 236, ${(alpha * 0.45).toFixed(3)})`);
+    gradient.addColorStop(1, "rgba(0, 255, 255, 0)");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   for (const blob of slime.blobs) {
     const family = blob.family;
     const band = bands[family.band];

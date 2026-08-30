@@ -25,9 +25,11 @@ const literal = (name) => {
 };
 
 const BANDS = eval(/const BANDS = (\[[\s\S]*?\n\]);/.exec(src)[1]);
+const TEMPO_WEIGHT = eval(`(${/const TEMPO_WEIGHT = (\{[\s\S]*?\n\});/.exec(src)[1]})`);
 const SCRIPT = literal("BEAT_SCRIPT")
   .replace("${ENSURE_CHAIN}", literal("ENSURE_CHAIN"))
   .replace("${JSON.stringify(BANDS)}", JSON.stringify(BANDS))
+  .replace("${JSON.stringify(TEMPO_WEIGHT)}", JSON.stringify(TEMPO_WEIGHT))
   .replace(/\$\{OPEN\.frequency\}/g, "22000");
 
 // ---- a synthetic room ------------------------------------------------------
@@ -138,6 +140,59 @@ draw(120); const hat = poll();
 out.hat = bandsOf(hat);
 out.hatCentroid = hat.centroid;
 
+/* ---- and now the thing that matters: keeping up ----------------------------
+
+   A grid is only worth anything while it matches what is playing. These play a
+   song, change to a different one at a different tempo, and record how long the
+   tracker takes to be sure of the new tempo — first across a gap between
+   tracks, then across a change with no gap at all, which is the harder one. */
+const GATE = Number(/const BEAT_CONFIDENCE = ([\d.]+)/.exec(src)[1]);
+const locked = (report, bpm) => report.steady && report.confidence >= GATE
+  && Math.abs(report.bpm - bpm) <= Math.max(3, bpm * 0.04);
+
+function play(bpm, seconds, watch) {
+  const period = 60000 / bpm;
+  const end = clock + seconds * 1000;
+  let nextBeat = clock + period, count = 0, nextPoll = clock + 200;
+  while (clock < end) {
+    clock += 16.6;
+    while (nextBeat <= clock + period) {
+      const place = count % 4;
+      if (place === 0) scene.hits.push([nextBeat, 35, 150, 230]);        // downbeat kick
+      else if (place === 2) scene.hits.push([nextBeat, 35, 150, 160]);   // and on three
+      else scene.hits.push([nextBeat, 180, 4000, 160]);                  // snare on two and four
+      scene.hits.push([nextBeat + period / 2, 6000, 16000, 90]);         // hats between
+      nextBeat += period;
+      count += 1;
+    }
+    scene.hits = scene.hits.filter(([at]) => clock - at < 300);
+    for (const fn of pending.splice(0)) fn();
+    if (clock >= nextPoll) { nextPoll += 200; watch(poll(), clock); }
+  }
+}
+
+const settle = (ms) => { const end = clock + ms; while (clock < end) { clock += 16.6;
+  for (const fn of pending.splice(0)) fn(); if (Math.random() < 0.1) poll(); } };
+
+scene = { notes: [], hits: [] };
+let mark = null, from = clock;
+play(92, 16, (report, at) => { if (mark === null && locked(report, 92)) mark = at - from; });
+out.lockFromCold = mark;
+
+// A gap between tracks, then a much faster song.
+scene.hits = [];
+from = clock;
+settle(700);
+mark = null;
+play(142, 16, (report, at) => { if (mark === null && locked(report, 142)) mark = at - from; });
+out.relockAfterGap = mark;
+
+// And a change with no gap at all — one song straight into another.
+from = clock;
+mark = null;
+play(96, 16, (report, at) => { if (mark === null && locked(report, 96)) mark = at - from; });
+out.relockWithoutGap = mark;
+
 // The page stops being drawn — the operator switched to another tab.
 scene = { notes: C_MAJOR, hits: [] };
 draw(600); poll();
@@ -147,5 +202,6 @@ out.undrawn = poll();
 // The audio graph carries on regardless, and that is what keeps it alive.
 for (let i = 0; i < 40; i += 1) { clock += 21; pump.onaudioprocess(); }
 out.fromAudioClock = poll();
+
 
 console.log(JSON.stringify(out));

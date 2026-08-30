@@ -48,6 +48,7 @@ def test_the_injected_script_parses():
     # The interpolations are constants; their values do not matter to a parse.
     for placeholder, stand_in in (
         ("${JSON.stringify(BANDS)}", "[]"),
+        ("${JSON.stringify(TEMPO_WEIGHT)}", "{}"),
         ("${OPEN.frequency}", "22000"),
     ):
         body = body.replace(placeholder, stand_in)
@@ -108,3 +109,17 @@ def test_the_audio_graph_keeps_it_alive_with_the_page_undrawn(heard):
     """The operator spends the night on other tabs; a hidden page gets no frames."""
     assert heard["fromAudioClock"]["state"] == "ok"
     assert heard["fromAudioClock"]["frames"] > 30
+
+
+def test_it_picks_up_a_song_without_having_to_listen_for_long(heard):
+    """A grid is worth nothing while it belongs to the song before it."""
+    assert heard["lockFromCold"] is not None
+    assert heard["lockFromCold"] < 6000, "too slow to find a tempo from cold"
+
+
+def test_it_follows_the_music_when_the_song_changes(heard):
+    """Both ways a song changes: with a gap between tracks, and without one."""
+    assert heard["relockAfterGap"] is not None, "never picked up the new tempo"
+    assert heard["relockAfterGap"] < 6000
+    assert heard["relockWithoutGap"] is not None
+    assert heard["relockWithoutGap"] < 8000

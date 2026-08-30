@@ -68,6 +68,15 @@ onto twelve pitch classes, and how bright the sound is. The waiting screen has a
 family of shapes for each band — the sub is enormous and slow, the hats are
 small and quick — running off its own copy of the beat grid rather than waiting
 for messages to arrive, so it stays in time rather than trailing the music.
+Drifting behind them are a few shapes that answer to nothing in particular:
+each lives its own slow life, swelling from nothing to most of the screen and
+away again, speeding up and slowing down as it goes, hurried along by loud
+passages. They are what keeps the whole thing from settling into a pattern.
+
+The tempo is worked out from what is playing now rather than from the last
+several seconds equally, and the history is thrown away at a gap between tracks
+or when the grid stops fitting what it can hear, so a new song is picked up in
+about three seconds instead of being averaged with the one before it.
 
 The **Beat** light in the mixer shows the tempo it has settled on, so a wrong
 lock is obvious at a glance. *Listening* means it can hear the music but has not

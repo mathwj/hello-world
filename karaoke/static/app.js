@@ -458,9 +458,16 @@ const BANDS = [
   ["air", 8000, 16000],
 ];
 
+/* How much each band has to say about where the beat is. The kick and the
+   snare decide it; the voice helps a little; cymbals mostly mislead. */
+const TEMPO_WEIGHT = {
+  sub: 0.8, bass: 1, body: 0.9, mid: 0.7, presence: 0.5, high: 0.15, air: 0,
+};
+
 const BEAT_SCRIPT = `(() => {
   ${ENSURE_CHAIN}
   const BANDS = ${JSON.stringify(BANDS)};
+  const TEMPO_WEIGHT = ${JSON.stringify(TEMPO_WEIGHT)};
   const playing = () => Array.from(document.querySelectorAll("video"))
     .find((v) => !v.paused && !v.ended && v.readyState > 2);
 
@@ -483,6 +490,7 @@ const BEAT_SCRIPT = `(() => {
       period: 0, bpm: 0, confidence: 0, anchor: 0, analysedAt: 0, barBeat: 0,
       recent: [], steady: false,
       centroid: 0, harmony: 0, tonal: 0, chroma: null, chromaTable: null, chromaAt: 0,
+      fit: 0, misfits: 0, quietSince: 0,
       bands: emptyBands(),
       emptyBands,
     };
@@ -522,16 +530,32 @@ const BEAT_SCRIPT = `(() => {
       const variance = centred.reduce((a, v) => a + v * v, 0) / count;
       if (variance <= 0) return;
 
+      /* Recency. The window holds several seconds, and all of it used to count
+         equally — so for those seconds after a song changed, the tracker was
+         still mostly listening to the song before. Weighting the newest samples
+         far above the oldest means the estimate follows what is playing now
+         while still having enough history behind it to be sure of a tempo. */
+      // Measured in time, not in samples: after a break the window is short,
+      // and a fade defined as a fraction of it would weight the newest half
+      // second above everything else and wander.
+      const fade = Math.max(count / 2.5, 2500 / step);
+      const weight = new Float64Array(count);
+      for (let i = 0; i < count; i += 1) weight[i] = Math.exp(-(count - 1 - i) / fade);
+
       // Correlate well past the tempos we will consider: the harmonics of a
       // candidate are what tell it apart from its own multiples.
       const reach = Math.min(Math.floor(count / 2), Math.round(3200 / step));
       const r = new Float64Array(reach + 1);
       for (let lag = 1; lag <= reach; lag += 1) {
-        let sum = 0;
-        for (let i = 0; i + lag < count; i += 1) sum += centred[i] * centred[i + lag];
+        let sum = 0, total = 0;
+        for (let i = 0; i + lag < count; i += 1) {
+          const w = weight[i + lag];
+          sum += w * centred[i] * centred[i + lag];
+          total += w;
+        }
         // Normalised by the signal's own variance, so it means "how alike"
         // rather than "how loud" and is comparable between lags.
-        r[lag] = sum / ((count - lag) * variance);
+        r[lag] = total > 0 ? sum / (total * variance) : 0;
       }
 
       const shortest = Math.max(2, Math.round(300 / step));           // 200 bpm
@@ -557,6 +581,7 @@ const BEAT_SCRIPT = `(() => {
       for (let lag = shortest; lag <= longest; lag += 1) {
         if (score[lag] > score[bestLag]) bestLag = lag;
       }
+      const winner = bestLag;               // kept for the confidence below
 
       // Sub-sample: one frame is 17ms, which is 4 bpm at dance tempos and
       // enough drift to walk the grid off the beat within a few bars.
@@ -566,6 +591,8 @@ const BEAT_SCRIPT = `(() => {
         const curve = before - 2 * here + after;
         if (curve < 0) refined = bestLag + Math.max(-0.5, Math.min(0.5, (before - after) / (2 * curve)));
       }
+      beat.period = refined * step;
+      beat.bpm = Math.round(60000 / beat.period);
 
       let total = 0, lags = 0;
       for (let lag = shortest; lag <= longest; lag += 1) { total += score[lag]; lags += 1; }
@@ -577,9 +604,7 @@ const BEAT_SCRIPT = `(() => {
       spread = Math.sqrt(spread / lags);
       // How far the winner stands out from every other spacing, in standard
       // deviations: a steady beat towers over the field, noise does not.
-      beat.confidence = spread > 0 ? (score[bestLag] - average) / spread : 0;
-      beat.period = refined * step;
-      beat.bpm = Math.round(60000 / beat.period);
+      beat.confidence = spread > 0 ? (score[winner] - average) / spread : 0;
 
       /* Phase, by comb rather than by the loudest recent onset.
 
@@ -588,17 +613,55 @@ const BEAT_SCRIPT = `(() => {
          every possible offset by the energy landing on that whole grid asks
          which alignment the entire window agrees with, which is the question
          actually being asked. */
-      let bestOffset = 0, bestEnergy = -1;
-      for (let offset = 0; offset < bestLag; offset += 1) {
+      // Only the last few seconds: a comb over the whole window would average
+      // the alignment of the section that just ended into the one playing.
+      const recent = Math.max(0, count - Math.round(3000 / step));
+      const comb = (from, spacing) => {
         let sum = 0, hits = 0;
         for (let k = 0; ; k += 1) {
-          const i = Math.round(count - 1 - offset - k * refined);
-          if (i < 0) break;
+          const i = Math.round(from - k * spacing);
+          if (i < recent) break;
           sum += onset[i];
           hits += 1;
         }
-        if (hits && sum / hits > bestEnergy) { bestEnergy = sum / hits; bestOffset = offset; }
+        return hits ? sum / hits : 0;
+      };
+
+      let bestOffset = 0, bestEnergy = -1;
+      for (let offset = 0; offset < bestLag; offset += 1) {
+        const energy = comb(count - 1 - offset, refined);
+        if (energy > bestEnergy) { bestEnergy = energy; bestOffset = offset; }
       }
+
+      /* Is there a beat between every pair of these?
+
+         A rock pattern puts the kick on one and three and the snare on two and
+         four, so the music repeats itself every *two* beats and correlates best
+         there — which is how a tracker ends up swelling on every other beat of
+         a song anybody would clap along to. Rather than hope a prior outweighs
+         it, ask the question directly: if the midpoints of this grid carry
+         nearly as much attack as the grid does, the midpoints are beats too. */
+      const half = refined / 2;
+      if (Math.round(half) >= shortest
+          && comb(count - 1 - bestOffset - half, refined) > bestEnergy * 0.6) {
+        refined = half;
+        bestLag = Math.max(1, Math.round(half));
+        beat.period = refined * step;
+        beat.bpm = Math.round(60000 / beat.period);
+      }
+
+      /* Does this grid still explain what is being played?
+
+         Tempo and phase can both look settled while the music has moved on
+         underneath them — the numbers agree with each other and with nothing
+         audible. Comparing the onset energy landing on the grid against the
+         average across the same stretch answers the question directly: on a
+         grid that fits, the beats are where the attacks are. */
+      let over = 0, overall = 0, spans = 0;
+      for (let i = recent; i < count; i += 1) { overall += onset[i]; spans += 1; }
+      overall = spans ? overall / spans : 0;
+      over = bestEnergy;
+      beat.fit = overall > 0 ? over / overall : 0;
       beat.anchor = beat.times[count - 1 - bestOffset];
 
       /* Which beat of the bar that is.
@@ -634,7 +697,18 @@ const BEAT_SCRIPT = `(() => {
       const sorted = [...beat.recent].sort((a, b) => a - b);
       const middle = sorted[sorted.length >> 1];
       beat.steady = beat.recent.length >= 3
+        && beat.fit >= 1.25
         && beat.recent.every((p) => Math.abs(p - middle) < middle * 0.04);
+
+      /* A grid that has stopped fitting twice running is not going to recover
+         by being averaged with more of the same. Everything older than a couple
+         of seconds goes, so the next estimate is made from the music that is
+         actually playing rather than from the memory of the one before it. */
+      beat.misfits = beat.fit < 1.25 ? beat.misfits + 1 : 0;
+      if (beat.misfits >= 2) {
+        forget(beat, Math.round(2000 / step));
+        beat.misfits = 0;
+      }
     };
 
     /* Which pitch class each fine bin belongs to.
@@ -655,6 +729,17 @@ const BEAT_SCRIPT = `(() => {
       return table;
     };
 
+    /* Throws away everything but the last few samples: a new song, or a section
+       that broke the grid, should not be worked out from the one before it. */
+    const forget = (beat, keep) => {
+      beat.flux = beat.flux.slice(-keep);
+      beat.times = beat.times.slice(-keep);
+      beat.lows = beat.lows.slice(-keep);
+      beat.recent.length = 0;
+      beat.steady = false;
+      beat.misfits = 0;
+    };
+
     /* Sampled from whichever clock gets here first — the audio graph when the
        page is hidden, animation frames when it is not — with anything closer
        together than half a frame ignored, so the two never double up. */
@@ -666,15 +751,6 @@ const BEAT_SCRIPT = `(() => {
         analyser.getByteFrequencyData(spectrum);
 
         const beat = store.beat;
-        // Onset strength: how much low-end energy *rose* this frame. Only rises
-        // count — a note dying away is not the start of anything.
-        let flux = 0;
-        if (beat.previous) {
-          for (let bin = 1; bin <= 32; bin += 1) {     // up to about 1.5 kHz
-            const rise = spectrum[bin] - beat.previous[bin];
-            if (rise > 0) flux += rise;
-          }
-        }
 
         /* Every part of the music, not just the kick.
 
@@ -692,7 +768,7 @@ const BEAT_SCRIPT = `(() => {
         fine.getByteFrequencyData(beat.fineSpectrum);
         const detail = beat.fineSpectrum;
 
-        let frameLow = 0;
+        let frameLow = 0, flux = 0;
         for (const [name, lowHz, highHz] of BANDS) {
           // Level from the fine analyser: 40 Hz and 90 Hz are a world apart to
           // listen to and one bin apart to the fast one.
@@ -712,9 +788,19 @@ const BEAT_SCRIPT = `(() => {
               fastBins += 1;
             }
           }
-          const onset = fastBins ? Math.min(100, (rise / fastBins) * 2.5) : 0;
+          const raw = fastBins ? rise / fastBins : 0;      // mean rise per bin
+          const onset = Math.min(100, raw * 2.5);
 
-          if (name === "sub" || name === "bass") frameLow = Math.max(frameLow, onset);
+          if (name === "sub" || name === "bass") frameLow = Math.max(frameLow, raw);
+          /* The envelope the tempo is found in.
+
+             Summing raw bins made a broadband hit look enormous beside a narrow
+             one: a snare covers thirty bins and a kick three, so the kick all
+             but vanished and the tracker heard a bar where there was a beat.
+             Per bin, and weighted by how much each part of a mix has to do with
+             where the beat is, they stand comparison. Hats are nearly left out:
+             they land between beats as often as on them. */
+          flux += raw * TEMPO_WEIGHT[name];
 
           const band = beat.bands[name];
           band.level += level;
@@ -780,7 +866,22 @@ const BEAT_SCRIPT = `(() => {
         beat.lows.push(frameLow);          // for finding the downbeat
         if (beat.flux.length > 420) { beat.flux.shift(); beat.times.shift(); beat.lows.shift(); }
 
-        if (now - beat.analysedAt > 500 && beat.flux.length > 180) {
+        /* A gap between tracks is the one moment the tempo is certain to
+           change, and the one moment it can be seen coming. Rather than drag
+           the old grid into the new song for several seconds, the history goes
+           at the gap and the next song is worked out from itself. */
+        let loudest = 0;
+        for (const [name] of BANDS) loudest = Math.max(loudest, beat.bands[name].onset);
+        if (loudest < 2) {
+          beat.quietSince = beat.quietSince || now;
+          if (now - beat.quietSince > 400 && beat.flux.length > 60) forget(beat, 30);
+        } else {
+          beat.quietSince = 0;
+        }
+
+        // Four times a second rather than twice: this is how quickly it can
+        // notice that the music has moved on.
+        if (now - beat.analysedAt > 250 && beat.flux.length > 120) {
           beat.analysedAt = now;
           analyse(beat);
         }
@@ -828,6 +929,7 @@ const BEAT_SCRIPT = `(() => {
     bpm: beat.bpm,
     confidence: +beat.confidence.toFixed(2),
     steady: beat.steady,
+    fit: +(beat.fit || 0).toFixed(2),
     period: Math.round(beat.period),
     // Age rather than a timestamp: the two pages have unrelated clocks, but
     // "this happened N milliseconds ago" travels between them intact, which is
