@@ -271,8 +271,12 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
 .chip svg{width:1.1rem;height:1.1rem;flex:none}
 .chip.split{padding:0;overflow:hidden}
 .chip.split button{flex:1;padding:.85rem 0;color:var(--ink)}
-.chip.split button:first-child{border-right:1px solid var(--line);font-size:.85rem}
-.chip.split button:last-child{font-size:1.15rem}
+.chip.split button{display:flex;align-items:center;justify-content:center;gap:.4rem}
+.chip.split button:first-child{border-right:1px solid var(--line)}
+.chip.split#fontChip button:first-child{font-size:.85rem}
+.chip.split#fontChip button:last-child{font-size:1.15rem}
+.chip.split button svg{width:1.1rem;height:1.1rem}
+.chip.split button.on{background:var(--pill);color:var(--pill-ink)}
 .chip.on{background:var(--pill);color:var(--pill-ink)}
 .chip.on svg{color:var(--pill-ink)}
 .sheet-row{
@@ -375,19 +379,23 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v4a2 2 0 0 0 2 2h1v-6H6a2 2 0 0 0-2 2z" fill="currentColor"/><path d="M20 13v4a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2z" fill="currentColor"/></svg>
         <span id="audioLabel">PT</span>
       </button>
-      <div class="chip split">
+      <div class="chip split" id="fontChip">
         <button id="fontMinus" title="Smaller text">A</button>
         <button id="fontPlus" title="Larger text">A</button>
       </div>
       <button class="chip" id="chipRate" title="Reading speed">1x</button>
-      <button class="chip" id="chipDark" title="Dark theme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
-        <span>Dark</span>
+      <button class="chip" id="chipEngine" title="Voice engine">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 1 1 .7-8.95 6 6 0 0 1 11.3 2.2A3.75 3.75 0 0 1 18 18H7z"/></svg>
+        <span id="engineLabel">Google voice</span>
       </button>
-      <button class="chip" id="chipLight" title="Light theme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
-        <span>Light</span>
-      </button>
+      <div class="chip split" id="themeChip">
+        <button id="chipDark" title="Dark theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
+        </button>
+        <button id="chipLight" title="Light theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+        </button>
+      </div>
       <label class="sheet-row">Voz PT
         <select id="voice"><option value="">Automatic</option></select>
       </label>
@@ -402,25 +410,35 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
 const $ = id => document.getElementById(id);
 const synth = window.speechSynthesis;
 
-let sentences = [];        // {orig, pt, para, origEl, ptEl, origWords:[{s,e,el}], ptWords:[{s,e,el}]}
+let units = [];            // phrase units: {orig, pt, para, origEl, ptEl, origWords:[{s,e,el}], ptWords:[{s,e,el}]}
 let detectedLang = "";
 let queue = [];            // {i, side, text, lang}
 let qPos = 0;
 let state = "idle";        // idle | playing | paused
 let stopped = false;
-let playGen = 0;           // invalidates callbacks from utterances of an earlier run
+let playGen = 0;           // invalidates callbacks from utterances/audio of an earlier run
 let currentUtterance = null;
+let activeEngine = "device"; // engine used by the item currently sounding
+let googleDown = false;      // set after the online voice fails once; falls back to device
+let player = null;           // shared Audio element (reuse keeps iOS playback unlocked)
+let progTimer = null;
+let startWatchdog = null;
 
 const RATES = [0.8, 1, 1.2, 1.5];
 const FS_MIN = 0.8, FS_MAX = 1.5, FS_STEP = 0.1;
-let settings = {disp:"both", audio:"pt", rate:1, fs:1, theme:""};
+let settings = {disp:"both", audio:"both", rate:1, fs:1, theme:"", engine:"google"};
 
 /* ---------- persistence ---------- */
 function loadSettings(){
   try{
     const raw = localStorage.getItem("lb_settings");
-    if (raw) Object.assign(settings, JSON.parse(raw));
+    if (raw){
+      const s = JSON.parse(raw);
+      if (!("engine" in s)) s.audio = "both"; // migrate pre-phrase settings to the bilingual default
+      Object.assign(settings, s);
+    }
   }catch(e){}
+  if (RATES.indexOf(settings.rate) < 0) settings.rate = 1;
 }
 function saveSettings(){
   try{ localStorage.setItem("lb_settings", JSON.stringify(settings)); }catch(e){}
@@ -436,7 +454,7 @@ function toast(msg, ms){
   toastTimer = setTimeout(() => t.classList.remove("show"), ms || 3200);
 }
 
-/* ---------- sentence & word splitting ---------- */
+/* ---------- text segmentation: sentences, then short phrases ---------- */
 function splitSentences(paragraph){
   try{
     const seg = new Intl.Segmenter(undefined, {granularity:"sentence"});
@@ -446,10 +464,53 @@ function splitSentences(paragraph){
   return paragraph.split(/(?<=[.!?…])\s+/).map(s => s.trim()).filter(Boolean);
 }
 
+const MAX_WORDS = 7, MIN_WORDS = 3;
+const CONNECTORS = new RegExp("^(?:" + [
+  "and","but","or","nor","so","yet","because","although","though","while","when","whenever",
+  "where","which","who","whom","whose","that","if","unless","until","after","before","since",
+  "as","than","with","without","about","against","between","through","during","into","from",
+  "to","for","of","in","on","at","by","like","towards","despite",
+  "e","mas","ou","porque","embora","enquanto","quando","onde","que","quem","se","até",
+  "depois","antes","como","com","sem","sobre","entre","para","de","em","por","durante","pois"
+].join("|") + ")$", "i");
+
+function isConnector(word){
+  return CONNECTORS.test(word.replace(/[^\p{L}'’-]/gu, ""));
+}
+
+function chunkWords(words){
+  if (words.length <= MAX_WORDS) return [words];
+  const cands = [];
+  for (let i = MIN_WORDS; i <= words.length - MIN_WORDS; i++){
+    if (isConnector(words[i])) cands.push(i);
+  }
+  const mid = words.length / 2;
+  const cut = cands.length
+    ? cands.reduce((a, b) => Math.abs(b - mid) < Math.abs(a - mid) ? b : a)
+    : Math.round(mid);
+  return chunkWords(words.slice(0, cut)).concat(chunkWords(words.slice(cut)));
+}
+
+function splitPhrases(sentence){
+  const parts = sentence.split(/(?<=[,;:—–…])\s+/).map(s => s.trim()).filter(Boolean);
+  const merged = [];
+  parts.forEach(p => {
+    const n = p.split(/\s+/).length;
+    const prevN = merged.length ? merged[merged.length - 1].split(/\s+/).length : 0;
+    if (merged.length && (n < MIN_WORDS || prevN < MIN_WORDS)) merged[merged.length - 1] += " " + p;
+    else merged.push(p);
+  });
+  const out = [];
+  merged.forEach(p => chunkWords(p.split(/\s+/)).forEach(ws => out.push(ws.join(" "))));
+  return out;
+}
+
 function parseText(text){
   const paras = text.split(/\n{2,}/).map(p => p.replace(/\s+/g," ").trim()).filter(Boolean);
   const out = [];
-  paras.forEach((p, pi) => splitSentences(p).forEach(s => out.push({orig:s, pt:"", para:pi})));
+  paras.forEach((p, pi) =>
+    splitSentences(p).forEach(sent =>
+      splitPhrases(sent).forEach(ph => out.push({orig:ph, pt:"", para:pi}))));
   return out;
 }
 
@@ -481,9 +542,18 @@ async function translateMyMemory(text){
   return decodeEntities(j.responseData.translatedText);
 }
 
-async function translateSentence(text){
-  try { return await translateGtx(text); }
-  catch (e) { return await translateMyMemory(text); }
+function matchCase(orig, pt){
+  const c = orig.charAt(0);
+  if (pt && c && c === c.toLowerCase() && c !== c.toUpperCase())
+    return pt.charAt(0).toLowerCase() + pt.slice(1);
+  return pt;
+}
+
+async function translatePhrase(text){
+  let pt;
+  try { pt = await translateGtx(text); }
+  catch (e) { pt = await translateMyMemory(text); }
+  return matchCase(text, pt);
 }
 
 async function mapLimit(items, limit, fn){
@@ -505,8 +575,8 @@ function origShort(){
 }
 
 /* ---------- rendering ---------- */
-function buildSentenceSpan(s, i, side){
-  const text = side === "orig" ? s.orig : s.pt;
+function buildPhraseSpan(u, i, side){
+  const text = side === "orig" ? u.orig : u.pt;
   const el = document.createElement("span");
   el.className = "sent";
   el.dataset.i = i;
@@ -524,8 +594,8 @@ function buildSentenceSpan(s, i, side){
     last = m.index + m[0].length;
   }
   if (last < text.length) el.appendChild(document.createTextNode(text.slice(last)));
-  if (side === "orig"){ s.origEl = el; s.origWords = words; }
-  else { s.ptEl = el; s.ptWords = words; }
+  if (side === "orig"){ u.origEl = el; u.origWords = words; }
+  else { u.ptEl = el; u.ptWords = words; }
   return el;
 }
 
@@ -540,7 +610,7 @@ function renderDoc(){
     h.textContent = title;
     doc.appendChild(h);
   }
-  const paras = [...new Set(sentences.map(s => s.para))];
+  const paras = [...new Set(units.map(u => u.para))];
   paras.forEach(pi => {
     const pair = document.createElement("div");
     pair.className = "pair";
@@ -548,9 +618,9 @@ function renderDoc(){
       const block = document.createElement("p");
       block.className = "block b-" + side;
       if (side === "pt") block.lang = "pt-BR";
-      sentences.forEach((s, i) => {
-        if (s.para !== pi) return;
-        block.appendChild(buildSentenceSpan(s, i, side));
+      units.forEach((u, i) => {
+        if (u.para !== pi) return;
+        block.appendChild(buildPhraseSpan(u, i, side));
         block.appendChild(document.createTextNode(" "));
       });
       pair.appendChild(block);
@@ -579,15 +649,15 @@ function showManualBox(){
 function useManualTranslation(){
   const text = $("manualInput").value.trim();
   if (!text){ toast("Paste the Portuguese translation first."); return; }
-  const ptSents = parseText(text);
-  sentences.forEach((s, i) => { s.pt = ptSents[i] ? ptSents[i].orig : ""; });
-  if (ptSents.length > sentences.length){
-    sentences[sentences.length - 1].pt += " " + ptSents.slice(sentences.length).map(p => p.orig).join(" ");
+  const ptUnits = parseText(text);
+  units.forEach((u, i) => { u.pt = ptUnits[i] ? ptUnits[i].orig : ""; });
+  if (ptUnits.length > units.length){
+    units[units.length - 1].pt += " " + ptUnits.slice(units.length).map(p => p.orig).join(" ");
   }
-  sentences.forEach(s => { if (!s.pt) s.pt = s.orig; });
+  units.forEach(u => { if (!u.pt) u.pt = u.orig; });
   renderDoc();
   $("btnPlay").disabled = false;
-  toast(sentences.length + " sentences paired — press play.");
+  toast(units.length + " phrases paired — press play.");
 }
 
 /* ---------- translate flow ---------- */
@@ -603,15 +673,15 @@ async function doTranslate(){
   const text = $("input").value.trim();
   if (!text){ setEditStatus("Type or paste some text first.", true); return; }
   stopPlayback();
-  sentences = parseText(text);
+  units = parseText(text);
   detectedLang = "";
   $("btnTranslate").disabled = true;
-  setEditStatus("Traduzindo… (" + sentences.length + " sentence" + (sentences.length === 1 ? "" : "s") + ")");
+  setEditStatus("Traduzindo… (" + units.length + " phrase" + (units.length === 1 ? "" : "s") + ")");
 
   let failures = 0;
-  await mapLimit(sentences, 4, async s => {
-    try { s.pt = await translateSentence(s.orig); }
-    catch (e) { s.pt = s.orig; failures++; }
+  await mapLimit(units, 4, async u => {
+    try { u.pt = await translatePhrase(u.orig); }
+    catch (e) { u.pt = u.orig; failures++; }
   });
 
   $("btnTranslate").disabled = false;
@@ -621,7 +691,7 @@ async function doTranslate(){
   $("readerScreen").hidden = false;
   window.scrollTo(0, 0);
 
-  if (failures === sentences.length){
+  if (failures === units.length){
     showManualBox();
     $("btnPlay").disabled = true;
     toast("Could not reach a translation service.", 4200);
@@ -630,8 +700,8 @@ async function doTranslate(){
   $("btnPlay").disabled = false;
   applySettings();
   refreshOrigVoice();
-  if (failures) toast(failures + " sentence(s) kept in the original (translation failed).", 4200);
-  else if (detectedLang) toast("Detected " + languageName(detectedLang) + " — tap play, or tap any sentence.");
+  if (failures) toast(failures + " phrase(s) kept in the original (translation failed).", 4200);
+  else if (detectedLang) toast("Detected " + languageName(detectedLang) + " — tap play, or tap any phrase.");
 }
 
 function backToEdit(){
@@ -642,14 +712,24 @@ function backToEdit(){
   $("btnPlay").disabled = true;
 }
 
-/* ---------- voices ---------- */
+/* ---------- device voices ---------- */
 function allVoices(){ return synth ? synth.getVoices() : []; }
+
+function voiceScore(v){
+  let s = 0;
+  if (/enhanced|premium|natural|neural|aprimorada|melhorada|superior/i.test(v.name)) s += 4;
+  if (/google/i.test(v.name)) s += 2;
+  if (/siri/i.test(v.name)) s += 1;
+  if (v.default) s += 1;
+  return s;
+}
 
 function populateVoices(){
   const sel = $("voice");
   const keep = sel.value;
   sel.innerHTML = '<option value="">Automatic</option>';
   allVoices().filter(v => v.lang.toLowerCase().replace("_","-").startsWith("pt"))
+    .sort((a, b) => voiceScore(b) - voiceScore(a))
     .forEach(v => {
       const o = document.createElement("option");
       o.value = v.name;
@@ -665,9 +745,11 @@ function pickVoice(lang){
   const voices = allVoices();
   const norm = v => v.lang.toLowerCase().replace("_","-");
   const l = lang.toLowerCase();
-  return voices.find(v => norm(v) === l)
-      || voices.find(v => norm(v).startsWith(l.split("-")[0]))
-      || null;
+  const cands = voices.filter(v => norm(v).startsWith(l.split("-")[0]));
+  if (!cands.length) return null;
+  cands.sort((a, b) =>
+    (voiceScore(b) + (norm(b) === l ? 2 : 0)) - (voiceScore(a) + (norm(a) === l ? 2 : 0)));
+  return cands[0];
 }
 
 let origVoice = null;
@@ -685,11 +767,11 @@ function ptVoice(){
 /* ---------- playback ---------- */
 function buildQueue(){
   const q = [];
-  sentences.forEach((s, i) => {
+  units.forEach((u, i) => {
     if (settings.audio === "orig" || settings.audio === "both")
-      q.push({i, side:"orig", text:s.orig, lang: detectedLang || "en"});
+      q.push({i, side:"orig", text:u.orig, lang: detectedLang || "en"});
     if (settings.audio === "pt" || settings.audio === "both")
-      q.push({i, side:"pt", text:s.pt, lang:"pt-BR"});
+      q.push({i, side:"pt", text:u.pt, lang:"pt-BR"});
   });
   return q;
 }
@@ -699,14 +781,14 @@ function clearHighlights(){
   document.querySelectorAll(".w.spoken").forEach(el => el.classList.remove("spoken"));
 }
 
-function highlightSentence(item){
+function highlightUnit(item){
   clearHighlights();
-  const s = sentences[item.i];
-  if (!s) return;
-  [s.origEl, s.ptEl].forEach(el => { if (el) el.classList.add("active"); });
+  const u = units[item.i];
+  if (!u) return;
+  [u.origEl, u.ptEl].forEach(el => { if (el) el.classList.add("active"); });
   const target = item.side === "orig"
-    ? (document.body.classList.contains("disp-pt") ? s.ptEl : s.origEl)
-    : (document.body.classList.contains("disp-orig") ? s.origEl : s.ptEl);
+    ? (document.body.classList.contains("disp-pt") ? u.ptEl : u.origEl)
+    : (document.body.classList.contains("disp-orig") ? u.origEl : u.ptEl);
   if (target){
     try { target.scrollIntoView({block:"center", behavior:"smooth"}); }
     catch(e){ target.scrollIntoView(); }
@@ -714,11 +796,101 @@ function highlightSentence(item){
 }
 
 function markProgress(item, charIndex){
-  const s = sentences[item.i];
-  if (!s || typeof charIndex !== "number") return;
-  const words = item.side === "orig" ? s.origWords : s.ptWords;
+  const u = units[item.i];
+  if (!u || typeof charIndex !== "number") return;
+  const words = item.side === "orig" ? u.origWords : u.ptWords;
   if (!words) return;
   words.forEach(w => w.el.classList.toggle("spoken", w.s <= charIndex));
+}
+
+/* --- online voice (Google Translate TTS via a shared <audio> element) --- */
+function getPlayer(){
+  if (!player){
+    player = new Audio();
+    player.preload = "auto";
+  }
+  return player;
+}
+
+function cleanupPlayer(){
+  clearTimeout(startWatchdog);
+  startWatchdog = null;
+  stopProgressLoop();
+  if (player){
+    player.onerror = player.onplay = player.onended = null;
+    if (!player.paused) player.pause();
+  }
+}
+
+function startProgressLoop(item, gen, a){
+  stopProgressLoop();
+  progTimer = setInterval(() => {
+    if (gen !== playGen || a.paused) return;
+    const d = a.duration;
+    if (!d || !isFinite(d)) return;
+    const frac = Math.min(1, a.currentTime / d);
+    markProgress(item, Math.floor(frac * item.text.length));
+  }, 120);
+}
+function stopProgressLoop(){
+  clearInterval(progTimer);
+  progTimer = null;
+}
+
+function speakGoogle(item, gen, done){
+  const a = getPlayer();
+  cleanupPlayer();
+  const fail = () => {
+    if (gen !== playGen || stopped) return;
+    cleanupPlayer();
+    if (!googleDown){
+      googleDown = true;
+      toast("Online voice unavailable here — using the device voice.", 4200);
+      applySettings();
+    }
+    speakDevice(item, gen, done);
+  };
+  a.onerror = fail;
+  a.onplay = () => {
+    if (gen !== playGen) return;
+    clearTimeout(startWatchdog);
+    a.playbackRate = settings.rate;
+    activeEngine = "google";
+    highlightUnit(item);
+    startProgressLoop(item, gen, a);
+  };
+  a.onended = () => {
+    if (gen !== playGen) return;
+    stopProgressLoop();
+    markProgress(item, item.text.length);
+    done();
+  };
+  a.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="
+        + encodeURIComponent(item.lang) + "&q=" + encodeURIComponent(item.text);
+  a.playbackRate = settings.rate;
+  startWatchdog = setTimeout(fail, 6000);
+  const p = a.play();
+  if (p && p.catch) p.catch(fail);
+}
+
+/* --- device voice (speechSynthesis) --- */
+function speakDevice(item, gen, done){
+  if (!synth){ done(); return; }
+  activeEngine = "device";
+  const u = new SpeechSynthesisUtterance(item.text);
+  u.lang = item.lang;
+  const v = item.side === "pt" ? ptVoice() : origVoice;
+  if (v) u.voice = v;
+  u.rate = settings.rate;
+  u.onstart = () => { if (gen === playGen) highlightUnit(item); };
+  u.onboundary = e => { if (gen === playGen && (e.name === "word" || e.name === undefined)) markProgress(item, e.charIndex); };
+  u.onend = () => { if (!stopped && gen === playGen) done(); };
+  u.onerror = e => {
+    if (stopped || gen !== playGen || e.error === "interrupted" || e.error === "canceled") return;
+    done();
+  };
+  currentUtterance = u; // keep a reference so the utterance is not garbage-collected mid-speech
+  synth.speak(u);
 }
 
 function speakNext(){
@@ -726,48 +898,38 @@ function speakNext(){
   if (qPos >= queue.length){ finishPlayback(); return; }
   const item = queue[qPos];
   const gen = playGen;
-  const u = new SpeechSynthesisUtterance(item.text);
-  u.lang = item.lang;
-  const v = item.side === "pt" ? ptVoice() : origVoice;
-  if (v) u.voice = v;
-  u.rate = settings.rate;
-  u.onstart = () => { if (gen === playGen) highlightSentence(item); };
-  u.onboundary = e => { if (gen === playGen && (e.name === "word" || e.name === undefined)) markProgress(item, e.charIndex); };
-  u.onend = () => { if (!stopped && gen === playGen){ qPos++; speakNext(); } };
-  u.onerror = e => {
-    if (stopped || gen !== playGen || e.error === "interrupted" || e.error === "canceled") return;
-    qPos++;
-    speakNext();
-  };
-  currentUtterance = u; // keep a reference so the utterance is not garbage-collected mid-speech
-  synth.speak(u);
+  const done = () => { if (!stopped && gen === playGen){ qPos++; speakNext(); } };
+  if (settings.engine === "google" && !googleDown) speakGoogle(item, gen, done);
+  else speakDevice(item, gen, done);
 }
 
-function startFrom(sentIdx){
-  if (!synth){ toast("This browser does not support speech synthesis."); return; }
+function startFrom(unitIdx){
   stopped = true;
-  synth.cancel();
+  if (synth) synth.cancel();
+  cleanupPlayer();
   stopped = false;
   playGen++;
   queue = buildQueue();
-  qPos = queue.findIndex(item => item.i >= sentIdx);
+  qPos = queue.findIndex(item => item.i >= unitIdx);
   if (qPos < 0) qPos = 0;
   state = "playing";
   setPlayIcon(true);
   speakNext();
 }
 
-function currentSentence(){
+function currentUnit(){
   return queue.length && queue[Math.min(qPos, queue.length - 1)] ? queue[Math.min(qPos, queue.length - 1)].i : 0;
 }
 
 function togglePlay(){
   if (state === "playing"){
-    synth.pause();
+    if (activeEngine === "google" && player) player.pause();
+    else if (synth) synth.pause();
     state = "paused";
     setPlayIcon(false);
   } else if (state === "paused"){
-    synth.resume();
+    if (activeEngine === "google" && player) player.play();
+    else if (synth) synth.resume();
     state = "playing";
     setPlayIcon(true);
   } else {
@@ -779,6 +941,7 @@ function stopPlayback(){
   stopped = true;
   playGen++;
   if (synth) synth.cancel();
+  cleanupPlayer();
   finishPlayback();
 }
 
@@ -793,10 +956,10 @@ function setPlayIcon(playing){
   $("icoPause").hidden = !playing;
 }
 
-function stepSentence(delta){
-  if ($("btnPlay").disabled || !sentences.length) return;
-  const cur = state === "idle" ? 0 : currentSentence();
-  const next = Math.min(sentences.length - 1, Math.max(0, cur + delta));
+function stepUnit(delta){
+  if ($("btnPlay").disabled || !units.length) return;
+  const cur = state === "idle" ? 0 : currentUnit();
+  const next = Math.min(units.length - 1, Math.max(0, cur + delta));
   startFrom(next);
 }
 
@@ -807,7 +970,8 @@ function applySettings(){
   const o = origShort();
   $("dispLabel").textContent = settings.disp === "both" ? o + "/PT" : settings.disp === "orig" ? o : "PT";
   $("audioLabel").textContent = settings.audio === "both" ? o + "+PT" : settings.audio === "orig" ? o : "PT";
-  $("chipRate").textContent = (settings.rate + "").replace(/^1$/,"1") + "x";
+  $("chipRate").textContent = settings.rate + "x";
+  $("engineLabel").textContent = (settings.engine === "google" && !googleDown) ? "Google voice" : "Device voice";
   document.documentElement.style.setProperty("--fs", settings.fs);
   if (settings.theme) document.documentElement.dataset.theme = settings.theme;
   else delete document.documentElement.dataset.theme;
@@ -820,7 +984,7 @@ function openSheet(){ $("sheet").hidden = false; $("scrim").hidden = false; }
 function closeSheet(){ $("sheet").hidden = true; $("scrim").hidden = true; }
 
 function restartIfSpeaking(){
-  if (state !== "idle") startFrom(currentSentence());
+  if (state !== "idle") startFrom(currentUnit());
 }
 
 /* ---------- wiring ---------- */
@@ -828,8 +992,8 @@ $("btnTranslate").addEventListener("click", doTranslate);
 $("btnBack").addEventListener("click", backToEdit);
 $("btnEditPill").addEventListener("click", backToEdit);
 $("btnPlay").addEventListener("click", togglePlay);
-$("btnPrev").addEventListener("click", () => stepSentence(-1));
-$("btnNext").addEventListener("click", () => stepSentence(1));
+$("btnPrev").addEventListener("click", () => stepUnit(-1));
+$("btnNext").addEventListener("click", () => stepUnit(1));
 $("btnSettings").addEventListener("click", openSheet);
 $("scrim").addEventListener("click", closeSheet);
 
@@ -838,13 +1002,20 @@ $("chipDisp").addEventListener("click", () => {
   applySettings();
 });
 $("chipAudio").addEventListener("click", () => {
-  settings.audio = settings.audio === "pt" ? "orig" : settings.audio === "orig" ? "both" : "pt";
+  settings.audio = settings.audio === "both" ? "pt" : settings.audio === "pt" ? "orig" : "both";
   applySettings();
   restartIfSpeaking();
 });
 $("chipRate").addEventListener("click", () => {
   const i = RATES.indexOf(settings.rate);
   settings.rate = RATES[(i + 1) % RATES.length];
+  applySettings();
+  if (state === "playing" && activeEngine === "google" && player) player.playbackRate = settings.rate;
+  else restartIfSpeaking();
+});
+$("chipEngine").addEventListener("click", () => {
+  settings.engine = settings.engine === "google" ? "device" : "google";
+  if (settings.engine === "google") googleDown = false; // give the online voice another chance
   applySettings();
   restartIfSpeaking();
 });
@@ -869,9 +1040,7 @@ $("voice").addEventListener("change", restartIfSpeaking);
 loadSettings();
 applySettings();
 
-if (!synth){
-  setEditStatus("This browser does not support speech synthesis — highlighting still works, but nothing can be read aloud.", true);
-} else {
+if (synth){
   populateVoices();
   synth.addEventListener("voiceschanged", populateVoices);
 }
