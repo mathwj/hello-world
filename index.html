@@ -383,7 +383,10 @@ body.disp-orig .b-orig,body.disp-pt .b-pt{border-bottom:none;padding-bottom:0}
         <button id="fontMinus" title="Smaller text">A</button>
         <button id="fontPlus" title="Larger text">A</button>
       </div>
-      <button class="chip" id="chipRate" title="Reading speed">1x</button>
+      <div class="chip split" id="rateChip">
+        <button id="rateOrigBtn" title="Original reading speed">EN 1x</button>
+        <button id="ratePtBtn" title="Portuguese reading speed">PT 1x</button>
+      </div>
       <button class="chip" id="chipEngine" title="Voice engine">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 1 1 .7-8.95 6 6 0 0 1 11.3 2.2A3.75 3.75 0 0 1 18 18H7z"/></svg>
         <span id="engineLabel">Google voice</span>
@@ -426,7 +429,7 @@ let startWatchdog = null;
 
 const RATES = [0.8, 1, 1.2, 1.5];
 const FS_MIN = 0.8, FS_MAX = 1.5, FS_STEP = 0.1;
-let settings = {disp:"both", audio:"both", rate:1, fs:1, theme:"", engine:"google"};
+let settings = {disp:"both", audio:"both", rateOrig:1, ratePt:1, fs:1, theme:"", engine:"google"};
 
 /* ---------- persistence ---------- */
 function loadSettings(){
@@ -435,10 +438,12 @@ function loadSettings(){
     if (raw){
       const s = JSON.parse(raw);
       if (!("engine" in s)) s.audio = "both"; // migrate pre-phrase settings to the bilingual default
+      if ("rate" in s && !("ratePt" in s)){ s.rateOrig = s.rate; s.ratePt = s.rate; delete s.rate; }
       Object.assign(settings, s);
     }
   }catch(e){}
-  if (RATES.indexOf(settings.rate) < 0) settings.rate = 1;
+  if (RATES.indexOf(settings.rateOrig) < 0) settings.rateOrig = 1;
+  if (RATES.indexOf(settings.ratePt) < 0) settings.ratePt = 1;
 }
 function saveSettings(){
   try{ localStorage.setItem("lb_settings", JSON.stringify(settings)); }catch(e){}
@@ -837,6 +842,10 @@ function stopProgressLoop(){
   progTimer = null;
 }
 
+function rateFor(item){
+  return item.side === "pt" ? settings.ratePt : settings.rateOrig;
+}
+
 function speakGoogle(item, gen, done){
   const a = getPlayer();
   cleanupPlayer();
@@ -854,7 +863,7 @@ function speakGoogle(item, gen, done){
   a.onplay = () => {
     if (gen !== playGen) return;
     clearTimeout(startWatchdog);
-    a.playbackRate = settings.rate;
+    a.playbackRate = rateFor(item);
     activeEngine = "google";
     highlightUnit(item);
     startProgressLoop(item, gen, a);
@@ -867,7 +876,7 @@ function speakGoogle(item, gen, done){
   };
   a.src = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="
         + encodeURIComponent(item.lang) + "&q=" + encodeURIComponent(item.text);
-  a.playbackRate = settings.rate;
+  a.playbackRate = rateFor(item);
   startWatchdog = setTimeout(fail, 6000);
   const p = a.play();
   if (p && p.catch) p.catch(fail);
@@ -881,7 +890,7 @@ function speakDevice(item, gen, done){
   u.lang = item.lang;
   const v = item.side === "pt" ? ptVoice() : origVoice;
   if (v) u.voice = v;
-  u.rate = settings.rate;
+  u.rate = rateFor(item);
   u.onstart = () => { if (gen === playGen) highlightUnit(item); };
   u.onboundary = e => { if (gen === playGen && (e.name === "word" || e.name === undefined)) markProgress(item, e.charIndex); };
   u.onend = () => { if (!stopped && gen === playGen) done(); };
@@ -970,7 +979,8 @@ function applySettings(){
   const o = origShort();
   $("dispLabel").textContent = settings.disp === "both" ? o + "/PT" : settings.disp === "orig" ? o : "PT";
   $("audioLabel").textContent = settings.audio === "both" ? o + "+PT" : settings.audio === "orig" ? o : "PT";
-  $("chipRate").textContent = settings.rate + "x";
+  $("rateOrigBtn").textContent = o + " " + settings.rateOrig + "x";
+  $("ratePtBtn").textContent = "PT " + settings.ratePt + "x";
   $("engineLabel").textContent = (settings.engine === "google" && !googleDown) ? "Google voice" : "Device voice";
   document.documentElement.style.setProperty("--fs", settings.fs);
   if (settings.theme) document.documentElement.dataset.theme = settings.theme;
@@ -1006,13 +1016,18 @@ $("chipAudio").addEventListener("click", () => {
   applySettings();
   restartIfSpeaking();
 });
-$("chipRate").addEventListener("click", () => {
-  const i = RATES.indexOf(settings.rate);
-  settings.rate = RATES[(i + 1) % RATES.length];
+function cycleRate(side){
+  const key = side === "pt" ? "ratePt" : "rateOrig";
+  const i = RATES.indexOf(settings[key]);
+  settings[key] = RATES[(i + 1) % RATES.length];
   applySettings();
-  if (state === "playing" && activeEngine === "google" && player) player.playbackRate = settings.rate;
-  else restartIfSpeaking();
-});
+  // apply immediately if this language is the one sounding right now; otherwise it takes effect on the next phrase
+  const cur = queue[qPos];
+  if (state === "playing" && activeEngine === "google" && player && cur && cur.side === side)
+    player.playbackRate = settings[key];
+}
+$("rateOrigBtn").addEventListener("click", () => cycleRate("orig"));
+$("ratePtBtn").addEventListener("click", () => cycleRate("pt"));
 $("chipEngine").addEventListener("click", () => {
   settings.engine = settings.engine === "google" ? "device" : "google";
   if (settings.engine === "google") googleDown = false; // give the online voice another chance
