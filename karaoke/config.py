@@ -8,11 +8,27 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from functools import lru_cache
 from pathlib import Path
 
-#: Where downloaded karaoke videos live. macOS keeps user video in ~/Movies.
-DEFAULT_DOWNLOAD_DIR = Path.home() / "Movies" / "Karaoke"
+
+def _video_folder(platform: str = sys.platform) -> str:
+    """What this machine calls the folder it keeps video in.
+
+    Taken as an argument rather than read from the module, because a test that
+    patches sys.platform patches it for pathlib too, and pathlib then starts
+    handing out Windows paths on a machine that cannot make them.
+    """
+    return "Movies" if platform == "darwin" else "Videos"
+
+
+def _default_download_dir() -> Path:
+    return Path.home() / _video_folder() / "Karaoke"
+
+
+#: Where downloaded karaoke videos live, unless KARAOKE_DIR says otherwise.
+DEFAULT_DOWNLOAD_DIR = _default_download_dir()
 
 #: Media containers we are willing to list in the library and stream back.
 MEDIA_EXTENSIONS = {".mp4", ".mkv", ".webm", ".m4v", ".mov"}
@@ -80,15 +96,19 @@ def ydl_cookie_options() -> dict:
 JS_RUNTIMES = ("deno", "bun", "node", "quickjs")
 
 
-@lru_cache(maxsize=1)
-def _bundled_node() -> str | None:
+@lru_cache(maxsize=2)
+def _bundled_node(windows: bool = os.name == "nt") -> str | None:
     """Node from the nodejs-wheel-binaries package, installed with our deps."""
     try:
         import nodejs_wheel
     except ImportError:
         return None
-    binary = "node.exe" if os.name == "nt" else "node"
-    path = Path(nodejs_wheel.__file__).parent / "bin" / binary
+    # The wheel lays itself out differently per platform: a bin/ folder on
+    # macOS and Linux, and the executable at the top level on Windows. Looking
+    # in the wrong place means no JavaScript runtime, which means every
+    # download fails with "Requested format is not available".
+    root = Path(nodejs_wheel.__file__).parent
+    path = root / "node.exe" if windows else root / "bin" / "node"
     return str(path) if path.exists() else None
 
 

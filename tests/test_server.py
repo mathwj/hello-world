@@ -396,3 +396,37 @@ def test_a_port_asked_for_by_name_is_not_swapped(monkeypatch):
         taken = held.getsockname()[1]
         monkeypatch.setenv("KARAOKE_PORT", str(taken))
         assert choose_port("127.0.0.1", taken) is None
+
+
+def test_downloads_go_where_the_platform_keeps_video():
+    """~/Movies on a Mac, ~/Videos on Windows and Linux."""
+    from karaoke import config
+
+    assert config._video_folder("darwin") == "Movies"
+    assert config._video_folder("win32") == "Videos"
+    assert config._video_folder("linux") == "Videos"
+
+
+def test_the_bundled_node_is_found_on_every_platform(tmp_path, monkeypatch):
+    """The wheel puts node in bin/ on macOS and Linux, and at the top on Windows.
+
+    Looking in the wrong place means no JavaScript runtime, which means every
+    download fails with "Requested format is not available".
+    """
+    import sys
+    import types
+
+    from karaoke import config
+
+    fake = types.ModuleType("nodejs_wheel")
+    fake.__file__ = str(tmp_path / "nodejs_wheel" / "__init__.py")
+    monkeypatch.setitem(sys.modules, "nodejs_wheel", fake)
+
+    for windows, layout in ((True, "node.exe"), (False, "bin/node")):
+        config._bundled_node.cache_clear()
+        binary = tmp_path / "nodejs_wheel" / layout
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text("")
+        assert config._bundled_node(windows) == str(binary)
+        binary.unlink()
+    config._bundled_node.cache_clear()

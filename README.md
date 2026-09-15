@@ -10,7 +10,10 @@ the original recordings.
 
 ## Requirements
 
-- macOS with Python 3 (`python3 --version`; install with `brew install python` if missing)
+- **macOS** with Python 3 (`python3 --version`; install with `brew install python` if missing)
+- or **Windows 10 or 11** with Python 3 from <https://www.python.org/downloads/> —
+  tick *Add python.exe to PATH* in the installer. For the desktop build, Node.js
+  from <https://nodejs.org> as well.
 That is genuinely all. Two helper programs are needed to download from YouTube,
 and both install automatically as Python packages — no Homebrew, no Xcode
 command line tools:
@@ -24,6 +27,8 @@ command line tools:
 
 ## Run it
 
+On a Mac:
+
 ```sh
 ./run-desktop.sh     # desktop app — the Music page is real youtube.com
 ```
@@ -33,6 +38,17 @@ or, if you would rather stay in your browser:
 ```sh
 ./run.sh
 ```
+
+On Windows, the same two, from the folder you unpacked — double-click them, or
+in a terminal:
+
+```bat
+run-desktop.bat
+run.bat
+```
+
+The first `run-desktop` downloads Electron, so give it a few minutes, and
+Windows may ask you to allow it through the firewall the first time.
 
 The desktop build exists for one reason: only a desktop window can show
 youtube.com itself. In a browser tab it cannot be done — the site answers with
@@ -122,7 +138,8 @@ found a steady tempo yet; the shapes still move with the bands meanwhile.
    play/pause, **Score** — which ends the song where it is and puts the number up
    on the stage — and stop.
 
-Songs are saved to `~/Movies/Karaoke` by default.
+Songs are saved to `~/Movies/Karaoke` on a Mac and `%USERPROFILE%\Videos\Karaoke`
+on Windows.
 
 ## Your own logo
 
@@ -140,7 +157,7 @@ All settings are environment variables:
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `KARAOKE_DIR` | `~/Movies/Karaoke` | Where songs are saved |
+| `KARAOKE_DIR` | `~/Movies/Karaoke`, or `~\Videos\Karaoke` on Windows | Where songs are saved |
 | `KARAOKE_PORT` | `8770` | Port the app listens on (see below) |
 | `KARAOKE_HOST` | `127.0.0.1` | Interface to bind |
 | `KARAOKE_CONCURRENCY` | `2` | Simultaneous downloads |

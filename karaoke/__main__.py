@@ -16,6 +16,14 @@ import webbrowser
 from . import __version__, config, tls
 from .server import create_app
 
+WINDOWS = sys.platform == "win32"
+
+#: How to name the virtualenv's own python and pip in a message someone is
+#: going to paste into their shell. The layout differs per platform, and an
+#: instruction that cannot be pasted is not an instruction.
+VENV_PYTHON = r".venv\Scripts\python" if WINDOWS else ".venv/bin/python"
+VENV_PIP = r".venv\Scripts\pip" if WINDOWS else ".venv/bin/pip"
+
 
 def port_is_free(host: str, port: int) -> bool:
     """Can we still claim this port? Werkzeug exits before we could ask later."""
@@ -68,8 +76,17 @@ def whoever_has(host: str, port: int) -> str:
         pass
 
     unknown = "Something has it, and it does not answer as KaraokeBox."
+    listening = _listening_on(port)
+    return f"Held by: {listening}" if listening else unknown
+
+
+def _listening_on(port: int) -> str:
+    """What the system says has the port, named as plainly as it can be."""
+    if WINDOWS:
+        return _windows_holder(port)
+
     if not shutil.which("lsof"):
-        return unknown
+        return ""
     try:
         # Every socket on the port, not only one that is listening. A process
         # that holds the port without serving on it — a leftover child that
@@ -79,13 +96,43 @@ def whoever_has(host: str, port: int) -> str:
         listed = subprocess.run(["lsof", "-nP", f"-i:{port}"],
                                 capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
-        return unknown
-
+        return ""
     rows = [line.split() for line in listed.stdout.splitlines()[1:] if line.split()]
-    if not rows:
-        return unknown + "\nNothing shows in lsof either, so it may be held by another user."
-    held = ", ".join(f"{row[0]} (pid {row[1]})" for row in rows[:3])
-    return f"Held by: {held}"
+    return ", ".join(f"{row[0]} (pid {row[1]})" for row in rows[:3])
+
+
+def _windows_holder(port: int) -> str:
+    """The same question on Windows, where there is no lsof: netstat, then the
+    task list to turn the process id into a name worth reading."""
+    try:
+        listed = subprocess.run(["netstat", "-ano", "-p", "tcp"],
+                                capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+    pids = []
+    for line in listed.stdout.splitlines():
+        parts = line.split()
+        if len(parts) < 5 or not parts[1].endswith(f":{port}"):
+            continue
+        if parts[-1].isdigit() and parts[-1] not in pids:
+            pids.append(parts[-1])
+    if not pids:
+        return ""
+
+    named = []
+    for pid in pids[:3]:
+        name = ""
+        try:
+            tasks = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/NH", "/FO", "CSV"],
+                                   capture_output=True, text=True, timeout=10)
+            first = tasks.stdout.strip().splitlines()[:1]
+            if first and first[0].startswith('"'):
+                name = first[0].split('","')[0].strip('"')
+        except (OSError, subprocess.SubprocessError, IndexError):
+            pass
+        named.append(f"{name} (pid {pid})" if name else f"pid {pid}")
+    return ", ".join(named)
 
 
 def main() -> None:
@@ -129,7 +176,7 @@ def main() -> None:
         print("  certs   : using bundled certificates (system trust store is empty)")
     elif tls.system_ca_count() == 0:
         print("  certs   : WARNING no certificates found — searches will fail.")
-        print("            Fix with:  .venv/bin/pip install certifi")
+        print(f"            Fix with:  {VENV_PIP} install certifi")
     problem = config.cookie_problem()
     if problem:
         print(f"  cookies : IGNORED — {problem}")
@@ -141,11 +188,11 @@ def main() -> None:
         print(f"  js      : {runtime[0]} ({runtime[1]})")
     else:
         print("  js      : WARNING none found — downloads will fail.")
-        print("            Fix with:  .venv/bin/pip install nodejs-wheel-binaries")
+        print(f"            Fix with:  {VENV_PIP} install nodejs-wheel-binaries")
 
     if config.ffmpeg_path() is None:
         print("  ffmpeg  : not found — downloads fall back to lower quality.")
-        print("            Install it with:  brew install ffmpeg")
+        print(f"            Fix with:  {VENV_PIP} install imageio-ffmpeg")
     else:
         print(f"  ffmpeg  : {config.ffmpeg_path()}")
     if port is not None and port != wanted:
@@ -157,7 +204,11 @@ def main() -> None:
         print(f"\nPort {wanted} is already in use.")
         print(f"{whoever_has(host, wanted)}\n")
         print("To close whatever has it:")
-        print(f"\n    lsof -ti tcp:{wanted} | xargs kill\n")
+        if WINDOWS:
+            print(f"\n    for /f \"tokens=5\" %p in ('netstat -ano ^| findstr :{wanted}') "
+                  "do taskkill /PID %p /F\n")
+        else:
+            print(f"\n    lsof -ti tcp:{wanted} | xargs kill\n")
         # Worth closing rather than working around: an old copy left running is
         # also an old copy of the code, so an update appears not to have worked.
         print("Closing it is usually what you want — an old copy still running")
@@ -165,7 +216,7 @@ def main() -> None:
         print("nothing. To leave it where it is and run this copy beside it:")
         print(f"\n    KARAOKE_PORT={wanted + 1} {script}\n")
         print("Diagnostics do not need the port:")
-        print("    .venv/bin/python -m karaoke --doctor <video id>")
+        print(f"    {VENV_PYTHON} -m karaoke --doctor <video id>")
         raise SystemExit(1)
 
     # Written for whatever started us: run-desktop.sh has to point a window at

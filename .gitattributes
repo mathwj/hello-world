@@ -1,0 +1,2 @@
+# Windows needs CRLF in its batch files, whatever the checkout is.
+*.bat text eol=crlf
