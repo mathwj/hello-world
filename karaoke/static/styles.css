@@ -1,94 +1,135 @@
+/* KaraokeBox, in the Aloud design system.
+
+   One accent, rationed: #00FFFF on buttons, chips, checks and progress, never
+   as text on white. Black and white do the work — a white console under a
+   black bar — and the cyan only lights things up. One typeface, Epilogue.
+   No gradients, no diffuse shadows, no hover that moves anything: the only
+   "shadow" a button has is its solid 3D base, which it sinks into on click. */
+
 :root {
-  /* Three colours: cyan, near-black, white — plus shades mixed from them. */
-  --bg: #141414;
-  --bg-raised: #1c1c1c;
-  --bg-hover: #262626;
-  --border: #2e2e2e;
+  /* The design system's tokens, by their own names. */
+  --paper: #fafafa;
+  --ink: #141414;
+  --cyan: #00ffff;
+  --cyan-soft: #e6ffff;
+  --cyan-pale: #f0ffff;
+  --cyan-deep: #00b8b8;
+  --mute: #5c5c5c;
+  --line: #e4e4e4;
+  --card-dark: #1e1e1e;
+  --line-dark: #2e2e2e;
+  --muted-dark: #b8b8b8;
 
-  --text: #ffffff;
-  --text-dim: #9b9b9b;
+  --radius: 20px;                        /* cards */
+  --radius-btn: 12px;                    /* buttons */
+  --radius-field: 10px;                  /* inputs */
 
-  --accent: #00ffff;
-  --accent-bright: #7dffff;               /* hover, and the loudest highlights */
-  --accent-soft: rgba(0, 255, 255, 0.13);
-  /* Cyan is a very light colour: white on it is unreadable (about 1.2:1), so
-     anything sitting on a cyan fill takes the dark ink instead. */
-  --on-accent: #141414;
+  /* An error has to look like one. This red is the one the design system
+     itself uses for "não faça", so it is already part of the family. */
+  --err: #b04848;
+}
 
-  --ok: #00ffff;                          /* success reads as the brand colour */
-  --err: #ff5f5f;                         /* kept off-palette: a warning must look like one */
-  --err-soft: rgba(255, 95, 95, 0.45);
-  --err-text: #ff9b9b;
+/* Epilogue, shipped with the app rather than fetched from Google: the stage
+   and the desktop window should look right on a laptop with no connection,
+   and a font that arrives late re-flows the whole console. Variable, so one
+   file covers every weight from 400 to 900. SIL Open Font License, in
+   fonts/OFL.txt. */
+@font-face {
+  font-family: "Epilogue";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("fonts/epilogue-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
 
-  --radius: 12px;
+@font-face {
+  font-family: "Epilogue";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("fonts/epilogue-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 * { box-sizing: border-box; }
 
+/* `display: flex/block` below would otherwise beat the `hidden` attribute's
+   default `display: none`, leaving an invisible overlay swallowing every click. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
-  background: radial-gradient(circle at 12% -12%, #0d2b2b 0%, var(--bg) 58%);
-  background-attachment: fixed;
-  color: var(--text);
-  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.5 Epilogue, system-ui, -apple-system, "Helvetica Neue", sans-serif;
   min-height: 100vh;
 }
 
-/* ---------- top bar ---------- */
+/* ---------- top bar: the black slice ---------- */
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 18px 24px;
   flex-wrap: wrap;
-  padding: 20px 28px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(20, 20, 20, 0.78);
-  backdrop-filter: blur(12px);
+  padding: 16px clamp(1rem, 3vw, 1.75rem);
+  background: var(--ink);
+  color: #fff;
+  /* Sticky, unlike a landing page: the mixer has to be in reach from every
+     tab, all night, and that is what this bar is for. */
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.brand { display: flex; align-items: center; gap: 14px; }
-.brand-mark { font-size: 30px; }
-.brand h1 { margin: 0; font-size: 19px; letter-spacing: 0.2px; }
-.brand-sub { margin: 2px 0 0; font-size: 12px; color: var(--text-dim); }
+.brand { display: flex; align-items: baseline; gap: 12px; }
+.brand h1 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.04em; }
+.brand-sub { margin: 0; font-size: 13px; font-weight: 500; color: var(--muted-dark); }
 
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .tab {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-dim);
-  padding: 8px 14px;
-  border-radius: 999px;
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-dark);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.tab:hover { color: var(--text); background: var(--bg-hover); }
-.tab.is-active { color: var(--text); background: var(--accent-soft); border-color: var(--accent); }
+.tab:hover { color: #fff; }
+.tab.is-active { background: var(--cyan); color: var(--ink); font-weight: 700; }
 
+/* Counts, as the design system's small chips. */
 .pill {
-  min-width: 20px;
+  min-width: 22px;
   padding: 1px 7px;
   border-radius: 999px;
-  background: var(--bg-hover);
-  font-size: 11px;
+  background: var(--card-dark);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-.tab.is-active .pill { background: var(--accent); color: var(--on-accent); }
+.tab.is-active .pill { background: var(--ink); color: #fff; }
 
 /* ---------- layout ---------- */
 
-main { max-width: 1180px; margin: 0 auto; padding: 28px; }
+main { max-width: 1180px; margin: 0 auto; padding: 28px clamp(1rem, 4vw, 2.5rem); }
 .panel { display: none; }
 .panel.is-active { display: block; }
 
@@ -97,193 +138,259 @@ main { max-width: 1180px; margin: 0 auto; padding: 28px; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
-.panel-head h2 { margin: 0; font-size: 17px; }
+.panel-head h2 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.025em; }
 
 .searchbar { display: flex; gap: 10px; }
+
+/* ---------- fields ---------- */
 
 input[type="search"],
 input[type="text"] {
   flex: 1;
-  padding: 13px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-raised);
-  color: var(--text);
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-field);
+  background: #fff;
+  color: var(--ink);
   font: inherit;
+  font-size: 15px;
 }
 
 input[type="search"]:focus,
-input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-input::placeholder { color: var(--text-dim); }
-input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
-
-.btn {
-  border: 1px solid var(--border);
-  background: var(--bg-raised);
-  color: var(--text);
-  padding: 10px 16px;
-  border-radius: var(--radius);
-  font: inherit;
-  cursor: pointer;
-  white-space: nowrap;
+input[type="text"]:focus {
+  outline: 3px solid var(--cyan);
+  outline-offset: 1px;
+  border-color: var(--ink);
 }
 
-.btn:hover:not(:disabled) { background: var(--bg-hover); }
-.btn:disabled { opacity: 0.5; cursor: default; }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-.btn-primary:hover:not(:disabled) { background: var(--accent-bright); border-color: var(--accent-bright); }
-.btn-ghost { background: transparent; }
-.btn-danger { border-color: var(--err-soft); color: var(--err-text); }
+input::placeholder { color: #8a8a8a; }
+input[type="search"].filter { flex: 0 1 260px; padding: 0.6rem 0.85rem; }
 
-.hint { color: var(--text-dim); font-size: 13px; margin: 12px 0 20px; }
-.empty { color: var(--text-dim); text-align: center; padding: 48px 0; }
-.footer { text-align: center; color: var(--text-dim); font-size: 12px; padding: 32px 0 40px; }
+/* ---------- buttons ---------- */
+
+/* Secondary by default: white, outlined like a field. The design system has
+   one loud button and one dark one; everything else is black and white. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-btn);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.12s;
+}
+
+.btn:hover:not(:disabled) { filter: brightness(0.96); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+
+/* The primary: cyan with ink text, standing on its solid base and sinking
+   into it when pressed. */
+.btn-primary {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--cyan-deep);
+}
+
+.btn-primary:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--cyan-deep); }
+/* Done or waiting, rather than broken: pale cyan and quiet, not a faded
+   version of the loud button. */
+.btn-primary:disabled {
+  border-color: var(--cyan-soft);
+  background: var(--cyan-soft);
+  color: var(--mute);
+  box-shadow: none;
+  opacity: 1;
+}
+
+/* The dark button: for actions that repeat down a list or across a grid.
+   Cyan on every row would stop meaning anything; the design system keeps it
+   for the one action per screen, and goes black where cyan is already near. */
+.btn-dark { border-color: var(--ink); background: var(--ink); color: #fff; box-shadow: 0 4px 0 #000; }
+.btn-dark:hover:not(:disabled) { filter: brightness(1.25); }
+.btn-dark:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 #000; }
+.btn-dark:disabled { border-color: var(--line); background: var(--paper); color: var(--mute); box-shadow: none; opacity: 1; }
+
+.btn-ghost { background: transparent; }
+.btn-danger { color: var(--err); }
+
+/* ---------- text ---------- */
+
+.hint { color: var(--mute); font-size: 14px; margin: 14px 0 22px; }
+.empty { color: var(--mute); text-align: center; padding: 56px 0; }
+.footer { text-align: center; color: var(--mute); font-size: 13px; padding: 32px 0 40px; }
 
 /* ---------- result cards ---------- */
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 18px;
+  gap: 1rem;
 }
 
+/* The light card: white, a fine border, 20px corners, no shadow. */
 .card {
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
-
-.card:hover { border-color: var(--accent); }
 
 .card-thumb {
   position: relative;
   aspect-ratio: 16 / 9;
-  background: #000;
-}
-
-.card-thumb::after {
-  content: "\1F3A4";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  opacity: 0.22;
+  background: var(--card-dark);
 }
 
 .card-thumb img {
-  position: relative;
-  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  /* Sleeves are a wall of clashing thumbnails otherwise — gold Sing King, pink
+     KaraFun — and in black and white the titles do the talking while the cyan
+     stays the only colour on the page. */
+  filter: grayscale(1);
 }
 
 .card-duration {
   position: absolute;
-  right: 8px;
-  bottom: 8px;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 2px 6px;
-  border-radius: 5px;
+  right: 10px;
+  bottom: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
   font-size: 12px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.card-body { display: flex; flex-direction: column; gap: 10px; flex: 1; padding: 1rem 1.2rem 1.2rem; }
 
 .card-title {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.card-meta { margin: 0; font-size: 12px; color: var(--text-dim); }
-.card-actions { display: flex; gap: 8px; margin-top: auto; }
-.card-actions .btn { flex: 1; padding: 8px 10px; font-size: 13px; text-align: center; }
+/* View counts are metadata: a soft chip, as the design system has them. */
+.card-meta {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: var(--cyan-soft);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.card-meta:empty { display: none; }
+
+/* Room underneath for the button's base, which would otherwise be clipped. */
+.card-actions { display: flex; gap: 8px; margin-top: auto; padding-bottom: 4px; }
+.card-actions .btn { flex: 1; }
 
 /* ---------- downloads ---------- */
 
 .job {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 6px 16px;
+  gap: 8px 16px;
   align-items: center;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
   margin-bottom: 10px;
+  padding: 1rem 1.2rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
 
-.job-title { font-weight: 600; font-size: 14px; }
-.job-status { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-.job-status.is-done { color: var(--ok); }
+.job-title { font-weight: 700; font-size: 15px; }
+.job-status { font-size: 13px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.job-status.is-done { color: var(--ink); font-weight: 700; }
 .job-status.is-failed { color: var(--err); }
 
+/* Progress: cyan on pale cyan, the design system's progress bar. */
 .bar {
   grid-column: 1 / -1;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--bg-hover);
+  height: 8px;
+  border-radius: 999px;
+  background: var(--cyan-soft);
   overflow: hidden;
 }
 
-.bar span { display: block; height: 100%; background: var(--accent); transition: width 0.3s ease; }
+.bar span { display: block; height: 100%; background: var(--cyan); transition: width 0.3s ease; }
 
 /* ---------- player ---------- */
-
-/* `display: flex/block` below would otherwise beat the `hidden` attribute's
-   default `display: none`, leaving an invisible overlay swallowing every click. */
-[hidden] { display: none !important; }
 
 .player {
   position: fixed;
   inset: 0;
-  background: rgba(10, 10, 10, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+  background: rgba(20, 20, 20, 0.96);
+  color: #fff;
   z-index: 50;
 }
 
 .player-inner { width: min(1100px, 100%); }
 .player-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-.player-head h3 { margin: 0; font-size: 16px; }
-.player video { width: 100%; border-radius: var(--radius); background: #000; max-height: 74vh; }
+.player-head h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.player video { width: 100%; border-radius: 16px; background: #000; max-height: 74vh; }
 
 /* ---------- toast ---------- */
 
+/* A black card floating over the page — the design system's one floating
+   element, with its one allowed shadow. */
 .toast {
   position: fixed;
   left: 50%;
   bottom: 28px;
   transform: translateX(-50%);
-  background: var(--bg-raised);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 11px 18px;
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--radius-btn);
+  background: var(--ink);
+  color: #fff;
   font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.18);
   z-index: 60;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.toast.is-error { border-color: var(--err); }
+.toast::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--cyan);
+  vertical-align: middle;
+}
+
+.toast.is-error::before { background: var(--err); }
 
 /* ---------- score screen ---------- */
 
@@ -299,66 +406,69 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
   justify-content: center;
   gap: 4px;
   text-align: center;
-  background: radial-gradient(circle at 50% 38%, #102e2e, #0d0d0d 72%);
-  border-radius: var(--radius);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 16px;
   animation: score-in 0.35s ease both;
 }
 
 @keyframes score-in {
-  from { opacity: 0; transform: scale(0.97); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
+/* A kicker: the only small caps the design system allows. */
 .score-label {
   margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.22em;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: var(--muted-dark);
 }
 
 .score-number {
-  font-size: clamp(90px, 20vw, 190px);
-  font-weight: 800;
+  font-size: clamp(90px, 20vw, 200px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
   line-height: 1;
   /* Tabular figures stop the digits jittering as the number rolls. */
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
-  text-shadow: 0 0 46px var(--accent-soft);
+  color: #fff;
 }
 
-.score.is-final .score-number { animation: score-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+/* The landing: the number snaps to cyan on the snare. */
+.score.is-final .score-number { color: var(--cyan); animation: score-pop 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 
 @keyframes score-pop {
   from { transform: scale(1); }
-  45%  { transform: scale(1.16); }
+  45%  { transform: scale(1.1); }
   to   { transform: scale(1); }
 }
 
 .score-rank {
-  margin: 6px 0 0;
-  min-height: 26px;
-  font-size: 20px;
-  font-weight: 600;
+  margin: 10px 0 0;
+  min-height: 30px;
+  font-size: clamp(20px, 2.6vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   opacity: 0;
 }
 
 .score.is-final .score-rank { animation: score-fade 0.45s 0.1s ease both; }
 
 @keyframes score-fade {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .score-actions { display: flex; gap: 10px; margin-top: 24px; opacity: 0; }
 .score.is-final .score-actions { animation: score-fade 0.45s 0.25s ease both; }
 
-/* Bands give the number a colour that matches how well it went. */
-.score[data-band="legend"]  .score-number { color: var(--accent); text-shadow: 0 0 60px rgba(0, 255, 255, 0.45); }
-.score[data-band="great"]   .score-number { color: var(--accent-bright); text-shadow: 0 0 50px rgba(125, 255, 255, 0.3); }
-.score[data-band="ok"]      .score-number { color: #ffffff; text-shadow: 0 0 50px rgba(255, 255, 255, 0.22); }
-/* Even a bad score is a reveal — it has to land, not fade into the wall. */
-.score[data-band="rough"]   .score-number { color: #cfcfcf; text-shadow: 0 0 40px rgba(255, 255, 255, 0.16); }
+/* A low score lands in white rather than cyan: still a reveal, just not a
+   celebration. */
+.score.is-final[data-band="ok"] .score-number,
+.score.is-final[data-band="rough"] .score-number { color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   .score, .score.is-final .score-number,
@@ -368,61 +478,112 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 
 /* ---------- mixer ---------- */
 
+/* A dark card inside the black bar, always its own full-width row: the
+   faders are easier to hit with room around them than crammed in a corner. */
 .mixer {
-  display: flex;
-  align-items: center;
-  /* Always its own full-width row under the tabs, spread across the bar: the
-     faders are easier to hit with room around them than crammed in a corner. */
   order: 3;
   width: 100%;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-raised);
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding: 10px 14px;
+  background: var(--card-dark);
+  border: 1px solid var(--line-dark);
+  border-radius: 16px;
 }
 
-.fader { display: flex; align-items: center; gap: 9px; font-size: 12px; }
-.fader-name { color: var(--text-dim); min-width: 52px; }
+.fader { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.fader-name { min-width: 56px; color: var(--muted-dark); font-weight: 600; }
 
 .fader input[type="range"] {
-  width: 108px;
-  accent-color: var(--accent);
+  width: 120px;
+  accent-color: var(--cyan);
   cursor: pointer;
 }
 
 .fader output {
   min-width: 26px;
   text-align: right;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
 }
 
+/* Status pills in the dark bar: a dot and a word. */
+.beat,
 .stage-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
+  padding: 7px 13px;
+  border: 1px solid var(--line-dark);
   border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  text-decoration: none;
+  color: var(--muted-dark);
   font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
   white-space: nowrap;
 }
 
-.stage-link:hover { color: var(--text); background: var(--bg-hover); }
+.stage-link:hover { color: #fff; }
 
-.dot {
-  width: 8px;
-  height: 8px;
+/* Off is grey, on is cyan: the dot says it without a second colour. */
+.dot,
+.beat-dot {
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: var(--err);
-  box-shadow: 0 0 8px rgba(255, 95, 95, 0.7);
+  background: #555;
 }
 
-.dot.is-on { background: var(--accent); box-shadow: 0 0 9px rgba(0, 255, 255, 0.85); }
+.dot.is-on { background: var(--cyan); }
+
+.beat-dot { transition: transform 0.1s ease, background 0.2s ease; }
+
+/* Listening but between beats. */
+.beat-dot.is-live { background: var(--cyan-deep); }
+
+/* Each beat, so the operator can see the tracker keeping time at a glance. */
+.beat-dot.is-live.is-hit { background: var(--cyan); transform: scale(1.6); }
+
+/* ---------- crossfade and muffle ---------- */
+
+/* The crossfade is the one move the operator makes all night, so it gets the
+   loud button, small. */
+.crossfade {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--radius-btn);
+  background: var(--cyan);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--cyan-deep);
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.12s;
+}
+
+.crossfade:hover { filter: brightness(0.94); }
+.crossfade:active { transform: translateY(4px); box-shadow: 0 0 0 var(--cyan-deep); }
+.crossfade-arrows { font-size: 15px; line-height: 1; }
+
+/* Muffle is a switch: dark when off, cyan when on. */
+.muffle {
+  background: transparent;
+  color: #fff;
+  border: 1.5px solid var(--line-dark);
+  box-shadow: none;
+}
+
+.muffle:hover { filter: brightness(1.25); }
+.muffle:active { transform: none; }
+.muffle.is-on { background: var(--cyan); border-color: var(--cyan); color: var(--ink); box-shadow: 0 4px 0 var(--cyan-deep); }
 
 /* ---------- now playing ---------- */
 
@@ -433,45 +594,84 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 28px;
-  background: var(--accent-soft);
-  border-bottom: 1px solid var(--accent);
-  backdrop-filter: blur(10px);
+  padding: 12px clamp(1rem, 3vw, 1.75rem);
+  background: var(--cyan-pale);
+  border-bottom: 1px solid var(--line);
 }
 
+/* What is playing, as a chip rather than a shouted label. */
 .now-kind {
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  padding: 3px 9px;
+  flex: none;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--cyan);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
-.now-kind.is-music { background: var(--text); color: var(--bg); }
-.now-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.now-score { color: var(--ok); font-size: 13px; white-space: nowrap; }
-.now-actions { display: flex; gap: 8px; margin-left: auto; }
-.now-actions .btn { padding: 7px 14px; font-size: 13px; }
+.now-kind.is-music { background: var(--ink); color: #fff; }
+.now-title { font-weight: 700; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.now-score { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.now-actions { display: flex; gap: 8px; margin-left: auto; padding-bottom: 4px; }
+.now-actions .btn { padding: 0.5rem 0.9rem; font-size: 13px; }
 
-/* A card for whatever is on the stage right now. */
-.card.is-live { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-
-.card-live {
-  position: absolute;
-  left: 8px;
-  top: 8px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  z-index: 2;
+/* On a phone the bar takes two rows: what is playing and its buttons on top,
+   the progress underneath at full width, rather than the buttons being pushed
+   off the edge of the screen. */
+@media (max-width: 720px) {
+  .nowbar { flex-wrap: wrap; row-gap: 10px; }
+  .now-title { flex: 1; min-width: 0; }
+  .now-progress { order: 3; flex-basis: 100%; }
 }
+
+/* The music bar sits apart from the karaoke bar: two independent things are
+   playing, and only one of them is on the stage. */
+.musicbar { background: #fff; }
+
+.now-progress { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 160px; }
+
+.track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cyan-soft);
+  overflow: hidden;
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--cyan-deep);
+  /* Position arrives twice a second; the transition carries it between. */
+  transition: width 1s linear;
+}
+
+.now-time { font-size: 13px; font-weight: 600; color: var(--mute); font-variant-numeric: tabular-nums; }
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-field);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.12s;
+}
+
+.icon-btn:hover { filter: brightness(0.96); }
+.icon-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+/* The score is the moment of the night: the one cyan button in the bar. */
+#now-reveal { border-color: var(--cyan); background: var(--cyan); box-shadow: 0 4px 0 var(--cyan-deep); }
+#now-reveal:active { transform: translateY(4px); box-shadow: 0 0 0 var(--cyan-deep); }
 
 /* ---------- music: watch view ---------- */
 
@@ -485,29 +685,20 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
   position: relative;
   aspect-ratio: 16 / 9;
   width: 100%;
-  background: #000;
-  border-radius: var(--radius);
   overflow: hidden;
-  border: 1px solid var(--border);
+  background: #000;
+  border: 6px solid var(--ink);
+  border-radius: 16px;
 }
 
-.watch-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.watch-frame iframe,
+.watch-frame #yt-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-.watch-title { margin: 16px 0 4px; font-size: 19px; line-height: 1.35; }
-.watch-meta { margin: 0 0 26px; color: var(--text-dim); font-size: 13px; }
-
-.watch-more-head {
-  margin: 0 0 14px;
-  font-size: 14px;
-  color: var(--text-dim);
-  font-weight: 600;
-}
-
-/* The music bar sits above the stage bar: two independent things are playing. */
-.musicbar { background: rgba(255, 255, 255, 0.07); border-bottom-color: rgba(255, 255, 255, 0.3); }
-.watch-note { font-size: 13px; color: var(--text-dim); }
-.watch-frame #yt-player { position: absolute; inset: 0; width: 100%; height: 100%; }
-#open-youtube { display: flex; align-items: center; text-decoration: none; }
+.watch-title { margin: 18px 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.25; }
+.watch-meta { margin: 0 0 28px; color: var(--mute); font-size: 14px; }
+.watch-more-head { margin: 0 0 14px; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.watch-note { font-size: 13px; color: var(--mute); }
+#open-youtube { display: flex; align-items: center; }
 
 /* ---------- the embedded browser (desktop build) ---------- */
 
@@ -536,35 +727,26 @@ input[type="search"].filter { flex: 0 1 260px; padding: 9px 13px; }
 }
 
 .yt-bar { display: flex; align-items: center; gap: 6px; padding: 0 0 10px; }
-.yt-bar .btn { padding: 7px 12px; font-size: 14px; }
+.yt-bar .btn { padding: 0.45rem 0.8rem; font-size: 14px; }
 
 .yt-url {
   margin-left: 8px;
   font-size: 12px;
-  color: var(--text-dim);
+  color: var(--mute);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* A black frame around a white screen, the way the design system draws any
+   interface it shows. */
 #yt-view {
   flex: 1;
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   background: #fff;
+  border: 6px solid var(--ink);
+  border-radius: 16px;
 }
-
-/* ---------- library covers ---------- */
-
-/* Sleeves are a wall of clashing thumbnails otherwise — gold Sing King, pink
-   KaraFun — and in black and white the titles do the talking while the cyan
-   stays the only colour on the page. Applies to every result grid, not just
-   the library, so searching and browsing look like one thing. */
-.card-thumb img { filter: grayscale(1); }
-.card:hover .card-thumb img { filter: grayscale(0.55); }
-
-/* ---------- full-width embedded browser ---------- */
 
 body.is-browsing main { max-width: none; padding: 14px 18px 18px; }
 body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar-h, 132px) - 66px); }
@@ -572,10 +754,10 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
 /* ---------- my songs: a list, not a grid ---------- */
 
 .songlist {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   overflow: hidden;
-  background: var(--bg-raised);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
 
 .song {
@@ -583,19 +765,23 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 16px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid var(--line);
 }
 
 .song:last-child { border-bottom: 0; }
-.song:hover { background: var(--bg-hover); }
+
+/* An empty list is no list: otherwise its border draws a stray line above
+   "No songs downloaded yet". */
+.songlist:empty { display: none; }
 
 .song-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
 .song-title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   /* One line per song is what makes the list scannable. */
   overflow: hidden;
   text-overflow: ellipsis;
@@ -604,22 +790,21 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
 
 .song-live {
   flex: none;
-  padding: 2px 8px;
+  padding: 0.22rem 0.6rem;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  background: var(--cyan);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.song-time { color: var(--text-dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.song-time { color: var(--mute); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.song-actions { display: flex; gap: 8px; }
-.song-actions .btn { padding: 8px 14px; font-size: 13px; }
+.song-actions { display: flex; gap: 8px; padding-bottom: 4px; }
+.song-actions .btn { padding: 0.5rem 0.9rem; font-size: 13px; }
 
-/* The row that is on the stage keeps a cyan edge, as the card used to. */
-.song.is-live { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+/* The row on the stage: pale cyan with a cyan edge, the "winning card" rule. */
+.song.is-live { background: var(--cyan-pale); box-shadow: inset 4px 0 0 var(--cyan); }
 
 @media (max-width: 720px) {
   .song { grid-template-columns: 1fr; row-gap: 10px; }
@@ -627,81 +812,20 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
   .song-actions { grid-column: 1 / -1; }
 }
 
-
-/* ---------- crossfade ---------- */
-
-.crossfade {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 13px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.crossfade:hover { background: var(--accent); color: var(--on-accent); }
-.crossfade-arrows { font-size: 15px; line-height: 1; color: var(--accent); }
-.crossfade:hover .crossfade-arrows { color: var(--on-accent); }
-
-/* ---------- now playing: progress and transport ---------- */
-
-.now-progress { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 160px; }
-
-.track {
-  flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.16);
-  overflow: hidden;
-}
-
-.track span {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--accent);
-  /* Position arrives twice a second; the transition carries it between. */
-  transition: width 1s linear;
-}
-
-.now-time { font-size: 12px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--bg-raised);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-.icon-btn svg { width: 16px; height: 16px; fill: currentColor; }
-#now-reveal:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-
 /* ---------- download progress on the button ---------- */
 
+/* The button becomes the progress bar: cyan filling pale cyan, with the
+   percentage in ink, which reads on both. */
 .btn.is-downloading {
   position: relative;
   overflow: hidden;
-  background: var(--bg-hover);
-  border-color: var(--accent);
-  color: var(--text);
+  border-color: var(--cyan-soft);
+  background: var(--cyan-soft);
+  color: var(--ink);
+  box-shadow: none;
+  opacity: 1;
 }
 
-/* A translucent fill, so the percentage stays readable across the whole sweep
-   rather than turning dark-on-cyan halfway. */
 .btn.is-downloading::before {
   content: "";
   position: absolute;
@@ -709,50 +833,14 @@ body.is-browsing .panel.is-browser.is-active { height: calc(100vh - var(--topbar
   top: 0;
   bottom: 0;
   width: var(--progress, 0%);
-  background: rgba(0, 255, 255, 0.32);
+  background: var(--cyan);
   transition: width 0.4s ease;
 }
 
 .btn.is-downloading span { position: relative; }
 
-.muffle { border-color: var(--border); background: var(--bg-raised); }
-.muffle:hover { border-color: var(--accent); background: var(--bg-hover); color: var(--text); }
-.muffle.is-on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-
 /* ---------- a supplied logo ---------- */
 
 /* Sized by height so any aspect ratio sits correctly on the bar. */
-.brand-logo { height: 34px; width: auto; max-width: 340px; object-fit: contain; display: block; }
-.brand-sub-alone { margin: 0; align-self: center; }
-
-/* ---------- beat indicator ---------- */
-
-.beat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 13px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.beat-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--border);
-  transition: transform 0.1s ease, background 0.2s ease;
-}
-
-/* Listening but between beats. */
-.beat-dot.is-live { background: rgba(0, 255, 255, 0.35); }
-
-/* Each detected kick, so the operator can see detection working at a glance. */
-.beat-dot.is-live.is-hit {
-  background: var(--accent);
-  transform: scale(1.9);
-  box-shadow: 0 0 10px var(--accent);
-}
+.brand-logo { height: 26px; width: auto; max-width: 300px; object-fit: contain; display: block; align-self: center; }
+.brand-sub-alone { align-self: center; }

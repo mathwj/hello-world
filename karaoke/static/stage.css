@@ -1,9 +1,13 @@
-/* The audience screen: big, dark, and nothing to click. */
+/* The audience screen: the design system's black slice, big, with nothing to
+   click. It is the one place motion is allowed to carry the page — the slime
+   is the show — so it keeps its animation while taking the type and colours. */
 
 .stage-body {
   overflow: hidden;
   height: 100vh;
   cursor: none;
+  background: var(--ink);
+  color: #fff;
 }
 
 .waiting {
@@ -15,7 +19,7 @@
   justify-content: center;
   gap: 10px;
   text-align: center;
-  background: #141414;
+  background: var(--ink);
 }
 
 /* The slime lives behind everything, blurred into one gooey mass. Rendering it
@@ -47,36 +51,31 @@
   pointer-events: none;
 }
 
-.waiting-mark { font-size: clamp(60px, 11vw, 130px); animation: sway 4s ease-in-out infinite; }
-
-@keyframes sway {
-  0%, 100% { transform: rotate(-7deg); }
-  50%      { transform: rotate(7deg); }
-}
-
 .waiting-title {
   margin: 0;
-  color: var(--text);
+  color: #fff;
   /* The slime surges bright on a kick, and drifts anywhere; the type has to
      stay readable when a blob passes behind it, not just at rest. */
   text-shadow: 0 2px 22px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.7);
-  font-size: clamp(40px, 8vw, 96px);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: clamp(48px, 9vw, 120px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .waiting-sub {
-  margin: 0;
-  font-size: clamp(16px, 2.2vw, 26px);
-  color: var(--text);
+  margin: 8px 0 0;
+  font-size: clamp(18px, 2.4vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.7);
 }
 
 .waiting-hint {
   margin: 26px 0 0;
   font-size: 14px;
-  color: var(--text);
-  opacity: 0.8;
+  color: var(--muted-dark);
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 0, 0, 0.8);
   max-width: 60ch;
 }
@@ -94,10 +93,11 @@
   margin: 0;
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(28, 28, 28, 0.94);
-  border: 1px solid var(--err);
-  color: var(--text);
+  background: var(--card-dark);
+  border: 1px solid var(--line-dark);
+  color: #fff;
   font-size: 13px;
+  font-weight: 600;
   z-index: 30;
 }
 
@@ -110,3 +110,6 @@
   /* The screen stays dark, so light artwork reads as drawn. */
   filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.55));
 }
+
+/* Full-bleed on the stage: the corners belong to the operator's small preview. */
+.score-host .score { border-radius: 0; }

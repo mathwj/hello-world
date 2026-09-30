@@ -139,7 +139,7 @@ function searchCard(result) {
         <h3 class="card-title">${escapeHtml(result.title)}</h3>
         <p class="card-meta">${escapeHtml(formatViews(result.view_count))}</p>
         <div class="card-actions">
-          <button class="btn btn-primary" data-download="${escapeHtml(result.video_id)}"
+          <button class="btn btn-dark" data-download="${escapeHtml(result.video_id)}"
                   data-title="${escapeHtml(result.title)}"
                   data-thumb="${escapeHtml(result.thumbnail)}"
                   ${downloaded || queued ? "disabled" : ""}>${label}</button>
@@ -225,7 +225,7 @@ function musicCard(result) {
         <h3 class="card-title">${escapeHtml(result.title)}</h3>
         <p class="card-meta">${escapeHtml(result.channel)}</p>
         <div class="card-actions">
-          <button class="btn btn-primary" data-watch="${escapeHtml(result.video_id)}">Play</button>
+          <button class="btn btn-dark" data-watch="${escapeHtml(result.video_id)}">Play</button>
         </div>
       </div>
     </article>`;
@@ -1335,7 +1335,7 @@ function libraryRow(song) {
       </div>
       <span class="song-time">${escapeHtml(song.duration_label)}</span>
       <div class="song-actions">
-        <button class="btn btn-primary" data-play="${escapeHtml(song.name)}"
+        <button class="btn btn-dark" data-play="${escapeHtml(song.name)}"
                 data-title="${escapeHtml(song.title)}">Play on stage</button>
         <button class="btn btn-danger" data-delete="${escapeHtml(song.name)}"
                 data-title="${escapeHtml(song.title)}">Delete</button>

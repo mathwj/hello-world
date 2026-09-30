@@ -328,8 +328,10 @@ def test_the_wordmark_is_used_when_no_logo_is_supplied(client, static_dir):
     existing = [p for p in static_dir.glob("logo.*")]
     assert not existing, f"a logo file is checked in: {existing}"
 
-    assert b"brand-mark" in client.get("/").data
-    assert b"waiting-mark" in client.get("/stage").data
+    operator = client.get("/").data
+    stage = client.get("/stage").data
+    assert b"<h1>KaraokeBox</h1>" in operator and b"brand-logo" not in operator
+    assert b'class="waiting-title"' in stage and b"waiting-logo" not in stage
 
 
 def test_a_supplied_logo_replaces_the_wordmark_on_both_screens(client, static_dir):
