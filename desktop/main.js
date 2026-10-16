@@ -16,7 +16,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
     height: 920,
-    title: "KaraokeBox",
+    title: "Aloud Karaoke",
     backgroundColor: "#0e0b18",
     autoHideMenuBar: true,
     webPreferences: {

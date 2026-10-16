@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KaraokeBox — Stage</title>
+<title>Aloud Karaoke — Stage</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='stage.css') }}">
 </head>
@@ -12,7 +12,7 @@
 <div class="waiting" id="waiting">
   <canvas class="slime" id="slime" aria-hidden="true"></canvas>
   {% if logo %}
-    <img class="waiting-logo" src="{{ url_for('static', filename=logo) }}" alt="KaraokeBox">
+    <img class="waiting-logo" src="{{ url_for('static', filename=logo) }}" alt="Aloud Karaoke">
   {% else %}
     <h1 class="waiting-title">KaraokeBox</h1>
   {% endif %}

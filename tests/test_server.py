@@ -324,25 +324,38 @@ def static_dir():
     return Path(server_module.__file__).parent / "static"
 
 
-def test_the_wordmark_is_used_when_no_logo_is_supplied(client, static_dir):
-    existing = [p for p in static_dir.glob("logo.*")]
-    assert not existing, f"a logo file is checked in: {existing}"
+def test_the_aloud_logo_ships_with_the_app(client, static_dir):
+    """The brand is the logo, so it is checked in and both screens use it."""
+    assert (static_dir / "logo.png").is_file()
 
     operator = client.get("/").data
     stage = client.get("/stage").data
-    assert b"<h1>KaraokeBox</h1>" in operator and b"brand-logo" not in operator
-    assert b'class="waiting-title"' in stage and b"waiting-logo" not in stage
+    assert b"brand-logo" in operator and b"logo.png" in operator
+    assert b"waiting-logo" in stage and b"logo.png" in stage
+
+
+def test_the_wordmark_is_the_fallback_when_the_logo_is_missing(client, static_dir):
+    logo = static_dir / "logo.png"
+    kept = logo.read_bytes()
+    logo.unlink()
+    try:
+        operator = client.get("/").data
+        stage = client.get("/stage").data
+        assert b"<h1>KaraokeBox</h1>" in operator and b"brand-logo" not in operator
+        assert b'class="waiting-title"' in stage and b"waiting-logo" not in stage
+    finally:
+        logo.write_bytes(kept)
 
 
 def test_a_supplied_logo_replaces_the_wordmark_on_both_screens(client, static_dir):
     """Drop a logo into static/ and both screens use it, no code change."""
-    logo = static_dir / "logo.png"
-    logo.write_bytes(b"\x89PNG\r\n\x1a\n")          # enough to exist
+    logo = static_dir / "logo.svg"
+    logo.write_text("<svg xmlns='http://www.w3.org/2000/svg'/>")
     try:
         operator = client.get("/").data
         stage = client.get("/stage").data
-        assert b"brand-logo" in operator and b"logo.png" in operator
-        assert b"waiting-logo" in stage and b"logo.png" in stage
+        assert b"brand-logo" in operator and b"logo.svg" in operator
+        assert b"waiting-logo" in stage and b"logo.svg" in stage
         # The fallbacks step aside rather than sitting behind it.
         assert b"brand-mark" not in operator
         assert b"waiting-mark" not in stage
