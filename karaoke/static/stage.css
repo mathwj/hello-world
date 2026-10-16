@@ -63,23 +63,6 @@
   line-height: 1;
 }
 
-.waiting-sub {
-  margin: 8px 0 0;
-  font-size: clamp(18px, 2.4vw, 28px);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: #fff;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.7);
-}
-
-.waiting-hint {
-  margin: 26px 0 0;
-  font-size: 14px;
-  color: var(--muted-dark);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 0, 0, 0.8);
-  max-width: 60ch;
-}
-
 .surface { position: fixed; inset: 0; background: #000; }
 .surface video { width: 100%; height: 100%; object-fit: contain; background: #000; }
 

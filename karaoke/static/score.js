@@ -27,8 +27,15 @@ function bandFor(score) {
   return SCORE_BANDS.find((entry) => score >= entry.min);
 }
 
+/* It is a party, not an exam: most nights deserve a good number. */
+const GOOD_SCORE_ODDS = 0.85;
+const GOOD_SCORE_MIN = 70;
+
 function randomScore() {
-  return Math.floor(Math.random() * 101); // 0–100 inclusive
+  if (Math.random() < GOOD_SCORE_ODDS) {
+    return GOOD_SCORE_MIN + Math.floor(Math.random() * (101 - GOOD_SCORE_MIN));
+  }
+  return Math.floor(Math.random() * GOOD_SCORE_MIN);
 }
 
 const prefersReducedMotion = () =>

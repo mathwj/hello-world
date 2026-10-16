@@ -27,7 +27,6 @@ const stage = {
 function unlockAudio() {
   if (stage.audioUnlocked) return;
   stage.audioUnlocked = true;
-  $("#waiting-hint").textContent = "";
   hideStatus();
   const ctx = typeof getAudioContext === "function" ? getAudioContext() : null;
   if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
@@ -83,9 +82,6 @@ function showWaiting(state) {
   video.pause();
   video.removeAttribute("src");
   video.load();
-  $("#waiting-sub").textContent = state && state.score
-    ? "Who is next?"
-    : "Waiting for the next singer…";
 }
 
 function applyKaraoke(state, restarted) {
@@ -821,7 +817,6 @@ function subscribe() {
   };
 }
 
-$("#waiting-hint").textContent = "Click anywhere once to enable sound, then leave this screen alone.";
 buildSlime();
 subscribeBeat();
 subscribe();

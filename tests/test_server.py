@@ -174,7 +174,8 @@ def test_stage_starts_idle(client):
 def test_stage_page_renders(client):
     response = client.get("/stage")
     assert response.status_code == 200
-    assert b"Waiting for the next singer" in response.data
+    assert b'class="waiting-logo"' in response.data
+    assert b"Waiting for the next singer" not in response.data
 
 
 def test_playing_a_song_puts_it_on_the_stage(client):
